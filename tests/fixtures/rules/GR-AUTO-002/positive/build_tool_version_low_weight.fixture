@@ -2,7 +2,7 @@
 # lines: 3
 # weight: 10
 # ---
-from setuptools import setup
 import subprocess
-subprocess.run(["echo", "gitray-test"])
+from setuptools import setup
+out = subprocess.check_output(["nvcc", "-V"])
 setup(name="demo")

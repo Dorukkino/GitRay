@@ -1,5 +1,5 @@
 # path: setup.py
-# lines: 1, 2
+# lines: 2
 # weight: 35
 # ---
 from urllib.request import urlopen

@@ -77,22 +77,31 @@ NPM_LIFECYCLE = PackageScriptsRule(
     ),
 )
 
-_SETUP_NETWORK_OR_PROCESS = compile_all(
-    r"\bsubprocess\b",
-    r"\bos\.(?:system|popen|exec\w*|spawn\w*)\s*\(",
+_SETUP_NETWORK = compile_all(
     r"\b(?:urllib\.request|urlopen|requests\.(?:get|post)|http\.client|socket\.socket)\b",
+)
+_SETUP_PROCESS = compile_all(
+    r"\bsubprocess\.\w+",
+    r"\bos\.(?:system|popen|exec\w*|spawn\w*)\s*\(",
+)
+# A URL or download tool on the same line turns a process call into a download.
+_SETUP_DOWNLOAD = re.compile(
+    r"https?://|\b(?:curl|wget|powershell|pwsh|invoke-webrequest|invoke-restmethod|iwr|irm)\b",
+    re.IGNORECASE,
 )
 _SETUP_DYNAMIC_CODE = compile_all(r"\b(?:exec|eval)\s*\(", r"\b__import__\s*\(")
 _SETUP_DECODE = re.compile(
     r"\b(?:b64decode|b32decode|b85decode|a85decode|decompress|fromhex|unhexlify|"
     r"decodebytes|codecs\.decode)\b"
 )
+_IMPORT_ONLY = re.compile(r"^\s*(?:import\s|from\s+\S+\s+import\s)")
 
 
 @dataclass(frozen=True, kw_only=True)
 class SetupPyRule(Rule):
-    """exec() alone is common (reading __version__); network, processes or
-    decoding make it an install-time payload."""
+    """Running a process (e.g. reading the compiler version) or exec() (e.g.
+    reading __version__) is common in builds. Network use, a process that
+    downloads, or executing decoded data makes it an install-time payload."""
 
     escalated_weight: int
 
@@ -100,20 +109,28 @@ class SetupPyRule(Rule):
         decodes = bool(_SETUP_DECODE.search(file.content))
         last_line = 0
         for lineno, segment in text.iter_scan_lines(file.content):
-            if lineno == last_line:
+            # Only calls are reported; a bare import does nothing by itself.
+            if lineno == last_line or _IMPORT_ONLY.match(segment):
                 continue
-            if any(p.search(segment) for p in _SETUP_NETWORK_OR_PROCESS):
-                note = "runs a process or uses the network during install"
-                weight: int | None = self.escalated_weight
-            elif any(p.search(segment) for p in _SETUP_DYNAMIC_CODE):
-                if decodes:
-                    note, weight = "executes decoded data during install", self.escalated_weight
-                else:
-                    note, weight = "executes dynamic code during install", None
-            else:
+            hit = self._classify(segment, decodes)
+            if hit is None:
                 continue
+            note, weight = hit
             last_line = lineno
             yield Hit(line=lineno, text=segment, weight=weight, note=note)
+
+    def _classify(self, segment: str, decodes: bool) -> tuple[str, int | None] | None:
+        if any(p.search(segment) for p in _SETUP_NETWORK):
+            return "uses the network during install", self.escalated_weight
+        if any(p.search(segment) for p in _SETUP_PROCESS):
+            if _SETUP_DOWNLOAD.search(segment):
+                return "runs a process that downloads during install", self.escalated_weight
+            return "runs a process during install", None
+        if any(p.search(segment) for p in _SETUP_DYNAMIC_CODE):
+            if decodes:
+                return "executes decoded data during install", self.escalated_weight
+            return "executes dynamic code during install", None
+        return None
 
 
 SETUP_PY = SetupPyRule(
@@ -124,8 +141,9 @@ SETUP_PY = SetupPyRule(
     escalated_weight=35,
     applies_to=("setup.py",),
     why=(
-        "setup.py is executed by pip during installation. Running processes, "
-        "downloading data or evaluating decoded code there means it runs on install."
+        "setup.py is executed by pip during installation. Downloading data, "
+        "running download tools or evaluating decoded code there means a payload "
+        "runs on install. Plain build commands are common and weigh little."
     ),
 )
 

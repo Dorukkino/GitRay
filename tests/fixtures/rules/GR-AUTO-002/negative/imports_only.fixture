@@ -1,0 +1,8 @@
+# path: setup.py
+# ---
+import subprocess
+import socket
+from urllib.request import urlopen
+import base64, zlib
+from setuptools import setup
+setup(name="demo")
