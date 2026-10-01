@@ -50,6 +50,9 @@ _ARCHIVE_MENTION = re.compile(
 )
 
 
+_PATH_ESCAPES = ("..", "%2e", "\\", "%5c", "%2f")
+
+
 def _is_own_release(host: str, path: str, repo: RepoRef | None) -> bool:
     """Only the scanned repo's own release downloads are exempt.
 
@@ -59,8 +62,13 @@ def _is_own_release(host: str, path: str, repo: RepoRef | None) -> bool:
     """
     if repo is None or host not in {"github.com", "www.github.com"}:
         return False
+    lowered = path.lower()
+    # Dot segments (plain or percent-encoded) and backslashes let a browser
+    # resolve the link to another repository, so they void the exemption.
+    if any(marker in lowered for marker in _PATH_ESCAPES):
+        return False
     prefix = f"/{repo.owner}/{repo.repo}/releases/download/".lower()
-    return path.lower().startswith(prefix)
+    return lowered.startswith(prefix)
 
 
 @dataclass(frozen=True, kw_only=True)

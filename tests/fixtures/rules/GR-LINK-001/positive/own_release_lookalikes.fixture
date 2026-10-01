@@ -1,0 +1,13 @@
+# path: README.md
+# lines: 1, 2, 3, 4, 5, 6, 7, 8
+# weight: 20
+# repo: octo/demo
+# ---
+https://github.com/octo/demo/releases/download/../../../../attacker/other/releases/download/v1/x.zip
+https://github.com/octo/demo/releases/download/%2e%2e/%2E%2E/%2e%2E/%2E%2e/attacker/other/releases/download/v1/x.zip
+https://github.com/octo/demo/releases/download/v1/%2E%2E/%2E%2E/x.zip
+https://github.com/octo/demo/releases/download/..\..\..\..\attacker\other\x.zip
+https://github.com.evil.example/octo/demo/releases/download/v1/x.zip
+https://evilgithub.com/octo/demo/releases/download/v1/x.zip
+https://github.com/octo/demo-evil/releases/download/v1/x.zip
+https://github.com/octo/demo.evil/releases/download/v1/x.zip
