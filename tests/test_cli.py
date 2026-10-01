@@ -4,10 +4,11 @@ import random
 import subprocess
 import sys
 
+import httpx
 import pytest
 
 from gitray import cli
-from tests.conftest import FakeGitHub, TarBuilder, make_tarball
+from tests.conftest import SHA, FakeGitHub, TarBuilder, make_tarball
 
 TARGET = "github.com/octo/demo"
 
@@ -120,6 +121,26 @@ def test_partial_scan_json_names_limit_and_file_count(
     assert data["partial"]["limit_value"] == 5
     # Entries counted against max_files include the root directory.
     assert data["partial"]["files_scanned"] == 4
+
+
+@pytest.mark.parametrize("case", ["repo_size", "content_length"])
+def test_early_limit_hits_are_incomplete_exit_4(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str], case: str
+) -> None:
+    if case == "repo_size":
+        fake_github.repo["size"] = 10_000_000
+        expected_limit = "max_repo_size_kb"
+    else:
+        fake_github.overrides[f"/octo/demo/legacy.tar.gz/{SHA}"] = lambda r: httpx.Response(
+            200, headers={"Content-Length": str(10**12)}, content=iter([b""])
+        )
+        expected_limit = "max_download_bytes"
+    assert run(fake_github, "--json") == 4
+    data = json.loads(capsys.readouterr().out)
+    assert data["verdict"] == "incomplete"
+    assert data["repo"]["full_name"] == "octo/demo"
+    assert data["partial"]["limit"] == expected_limit
+    assert data["partial"]["files_scanned"] == 0
 
 
 def test_complete_scan_has_no_partial_block(

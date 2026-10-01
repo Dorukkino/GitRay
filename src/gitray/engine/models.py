@@ -30,6 +30,14 @@ class RepoRef:
 
 
 @dataclass(frozen=True)
+class ScanContext:
+    """What rules may know about the scan beyond the file itself."""
+
+    # The repository being scanned; None when scanning a bare tarball.
+    repo: RepoRef | None = None
+
+
+@dataclass(frozen=True)
 class ReleaseAsset:
     release_tag: str
     name: str
@@ -53,6 +61,12 @@ class RepoInfo:
     owner_type: str
     owner_created_at: str | None
     release_assets: tuple[ReleaseAsset, ...] = ()
+
+    @property
+    def ref(self) -> RepoRef:
+        """Canonical owner/repo as reported by the GitHub API."""
+        owner, _, repo = self.full_name.partition("/")
+        return RepoRef(owner=owner, repo=repo)
 
 
 @dataclass(frozen=True)

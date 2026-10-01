@@ -1,0 +1,10 @@
+# path: README.md
+# lines: 2, 3, 4, 5
+# weight: 20
+# repo: octo/demo
+# ---
+# Tool
+Get [it](https://raw.githubusercontent.com/attacker/other/main/payload.zip)
+Or https://gist.githubusercontent.com/attacker/abc/raw/setup.exe
+Or https://github.com/attacker/other/releases/download/v1/tool.exe
+Or https://objects.githubusercontent.com/github-production-release-asset/x/tool.msi

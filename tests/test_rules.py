@@ -5,6 +5,7 @@ Fixture format (header lines, then "# ---", then the virtual file content):
     # path: <virtual path inside the repo>
     # lines: 3, 5        (positive only: expected finding lines)
     # weight: 45         (optional: expected highest effective weight)
+    # repo: octo/demo    (optional: the repository being scanned)
     # ---
     <content>
 """
@@ -14,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from gitray.engine.models import FileEntry
+from gitray.engine.models import FileEntry, RepoRef, ScanContext
 from gitray.engine.rules import all_rules, get_rule
 
 FIXTURES = Path(__file__).parent / "fixtures" / "rules"
@@ -29,6 +30,11 @@ class Fixture:
     lines: tuple[int, ...]
     weight: int | None
     content: str
+    repo: RepoRef | None = None
+
+    @property
+    def context(self) -> ScanContext:
+        return ScanContext(repo=self.repo)
 
 
 def load(file: Path) -> Fixture:
@@ -47,6 +53,7 @@ def load(file: Path) -> Fixture:
         lines=lines,
         weight=int(meta["weight"]) if "weight" in meta else None,
         content=content,
+        repo=RepoRef(*meta["repo"].split("/")) if "repo" in meta else None,
     )
 
 
@@ -59,7 +66,7 @@ def fixture_id(f: Fixture) -> str:
 
 @pytest.mark.parametrize("fx", [f for f in ALL_FIXTURES if f.kind == "positive"], ids=fixture_id)
 def test_positive_fixture(fx: Fixture) -> None:
-    findings = get_rule(fx.rule_id).scan(FileEntry(path=fx.path, content=fx.content))
+    findings = get_rule(fx.rule_id).scan(FileEntry(path=fx.path, content=fx.content), fx.context)
     assert fx.lines, "positive fixtures must declare expected lines"
     assert sorted({f.line for f in findings}) == sorted(fx.lines)
     assert all(f.rule_id == fx.rule_id and f.path == fx.path for f in findings)
@@ -69,7 +76,7 @@ def test_positive_fixture(fx: Fixture) -> None:
 
 @pytest.mark.parametrize("fx", [f for f in ALL_FIXTURES if f.kind == "negative"], ids=fixture_id)
 def test_negative_fixture(fx: Fixture) -> None:
-    findings = get_rule(fx.rule_id).scan(FileEntry(path=fx.path, content=fx.content))
+    findings = get_rule(fx.rule_id).scan(FileEntry(path=fx.path, content=fx.content), fx.context)
     assert findings == []
 
 

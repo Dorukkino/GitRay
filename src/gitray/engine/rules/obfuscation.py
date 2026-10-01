@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 from gitray.engine import text
-from gitray.engine.models import FileEntry
+from gitray.engine.models import FileEntry, ScanContext
 from gitray.engine.rules.base import Hit, Rule
 
 MIN_TOKEN = 200
@@ -23,7 +23,7 @@ _HEX_ESCAPES = re.compile(rf"(?:\\x[0-9a-fA-F]{{2}}){{{MIN_HEX_ESCAPES},}}")
 
 @dataclass(frozen=True, kw_only=True)
 class HighEntropyRule(Rule):
-    def hits(self, file: FileEntry) -> Iterator[Hit]:
+    def hits(self, file: FileEntry, context: ScanContext) -> Iterator[Hit]:
         last_line = 0
         for lineno, segment in text.iter_scan_lines(file.content):
             if lineno == last_line:

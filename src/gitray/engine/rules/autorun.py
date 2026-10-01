@@ -5,7 +5,7 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-from gitray.engine.models import FileEntry
+from gitray.engine.models import FileEntry, ScanContext
 from gitray.engine.rules.base import Hit, RegexRule, Rule, compile_all
 
 LIFECYCLE_SCRIPTS = (
@@ -28,7 +28,7 @@ _RISKY_SCRIPT = re.compile(
 class PackageScriptsRule(Rule):
     escalated_weight: int
 
-    def hits(self, file: FileEntry) -> Iterator[Hit]:
+    def hits(self, file: FileEntry, context: ScanContext) -> Iterator[Hit]:
         try:
             data = json.loads(file.content)
         except ValueError:

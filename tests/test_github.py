@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from gitray.engine import GitHubClient, GitHubError, LimitExceeded, Limits, RepoRef, scan_repo
+from gitray.engine import GitHubClient, GitHubError, Limits, RepoRef, Verdict, scan_repo
 from gitray.engine.models import DigestStatus
 from tests.conftest import SHA, FakeGitHub
 
@@ -101,19 +101,26 @@ def test_redirect_to_unexpected_host_rejected(fake_github: FakeGitHub, location:
     )
 
 
-def test_repo_size_limit_checked_before_download(fake_github: FakeGitHub) -> None:
+def test_repo_size_limit_gives_incomplete_without_download(fake_github: FakeGitHub) -> None:
     fake_github.repo["size"] = 10_000_000
-    with pytest.raises(LimitExceeded, match="KB"):
-        scan_repo(REF, client(fake_github))
+    result = scan_repo(REF, client(fake_github))
+    assert result.verdict == Verdict.INCOMPLETE
+    assert result.repo is not None and result.repo.full_name == "octo/demo"
+    assert result.partial is not None
+    assert result.partial.limit == "max_repo_size_kb"
+    assert result.stats.files_scanned == 0
     assert not any("tarball" in r.url.path for r in fake_github.requests)
 
 
-def test_content_length_over_limit_rejected(fake_github: FakeGitHub) -> None:
+def test_content_length_over_limit_gives_incomplete(fake_github: FakeGitHub) -> None:
     fake_github.overrides["/octo/demo/legacy.tar.gz/" + SHA] = lambda r: httpx.Response(
         200, headers={"Content-Length": str(10**12)}, content=iter([b""])
     )
-    with pytest.raises(LimitExceeded, match="download"):
-        scan_repo(REF, client(fake_github), Limits())
+    result = scan_repo(REF, client(fake_github), Limits())
+    assert result.verdict == Verdict.INCOMPLETE
+    assert result.partial is not None and result.partial.limit == "max_download_bytes"
+    assert result.repo is not None
+    assert result.stats.files_scanned == 0
 
 
 @pytest.mark.network
