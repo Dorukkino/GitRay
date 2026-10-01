@@ -75,7 +75,16 @@ def test_sources_found() -> None:
     assert len(SOURCES) > 10
 
 
-BIDI_AND_INVISIBLE = {0x200B, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A)}
+# Bidi controls, zero-width space and Unicode line/paragraph separators.
+BIDI_AND_INVISIBLE = {
+    0x200B,
+    0x200E,
+    0x200F,
+    0x2028,
+    0x2029,
+    *range(0x202A, 0x202F),
+    *range(0x2066, 0x206A),
+}
 
 
 @pytest.mark.parametrize(

@@ -39,7 +39,7 @@ class PackageScriptsRule(Rule):
         scripts = data.get("scripts") if isinstance(data, dict) else None
         if not isinstance(scripts, dict):
             return
-        lines = file.content.splitlines()
+        lines = text.split_lines(file.content)
         for name in LIFECYCLE_SCRIPTS:
             command = scripts.get(name)
             if not isinstance(command, str):

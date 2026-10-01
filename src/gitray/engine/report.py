@@ -25,20 +25,24 @@ def finding_to_dict(f: Finding) -> dict[str, Any]:
     }
 
 
+def _sanitize_all(value: Any) -> Any:
+    if isinstance(value, str):
+        return sanitize(value, PATH_MAX)
+    if isinstance(value, dict):
+        return {k: _sanitize_all(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_sanitize_all(v) for v in value]
+    return value
+
+
 def result_to_dict(result: ScanResult) -> dict[str, Any]:
     repo = None
     if result.repo is not None:
-        repo = asdict(result.repo)
-        repo["release_assets"] = [
-            {
-                "release_tag": sanitize(a.release_tag),
-                "name": sanitize(a.name),
-                "size": a.size,
-                "digest": sanitize(a.digest) if a.digest else None,
-                "digest_status": a.digest_status.value,
-            }
-            for a in result.repo.release_assets
-        ]
+        # Every repo field comes from GitHub but is user-controlled (branch names,
+        # release tags, asset names), so all strings are sanitized.
+        repo = _sanitize_all(asdict(result.repo))
+        for asset, a in zip(repo["release_assets"], result.repo.release_assets, strict=True):
+            asset["digest_status"] = a.digest_status.value
     return {
         "repo": repo,
         "score": result.score,

@@ -120,7 +120,7 @@ class FakeGitHub:
             return httpx.Response(200, content=chunked(self.tarball))
         if path == "/repos/octo/demo":
             return httpx.Response(200, json=self.repo)
-        if path == "/repos/octo/demo/commits/main":
+        if path.startswith("/repos/octo/demo/commits/"):
             return httpx.Response(200, text=SHA)
         if path == "/users/octo":
             return httpx.Response(200, json={"created_at": "2015-05-05T00:00:00Z"})

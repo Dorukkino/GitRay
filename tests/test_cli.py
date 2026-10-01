@@ -3,6 +3,7 @@ import json
 import random
 import subprocess
 import sys
+from typing import Any
 
 import httpx
 import pytest
@@ -236,3 +237,73 @@ def test_python_dash_m_uses_exit_code_3_for_argparse_errors() -> None:
         check=False,
     )
     assert proc.returncode == 3
+
+
+# --- untrusted repo metadata is sanitized everywhere ---------------------------
+
+EVIL = "x\N{RIGHT-TO-LEFT OVERRIDE}evil\x1b[31m\x07"
+UNSAFE = ("\N{RIGHT-TO-LEFT OVERRIDE}", "\x1b", "\x07")
+
+
+def _evil_repo(fake: FakeGitHub) -> None:
+    fake.repo.update(
+        default_branch="main" + EVIL,
+        created_at=EVIL,
+        pushed_at=EVIL,
+        owner={"login": "octo", "type": EVIL},
+    )
+    fake.overrides["/users/octo"] = lambda r: httpx.Response(200, json={"created_at": EVIL})
+    fake.releases = [{"tag_name": EVIL, "assets": [{"name": EVIL, "size": 1, "digest": EVIL}]}]
+
+
+def _strings(obj: Any) -> list[str]:
+    if isinstance(obj, str):
+        return [obj]
+    if isinstance(obj, dict):
+        return [s for k, v in obj.items() for s in (*_strings(k), *_strings(v))]
+    if isinstance(obj, list):
+        return [s for v in obj for s in _strings(v)]
+    return []
+
+
+def test_json_report_sanitizes_every_repo_field(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _evil_repo(fake_github)
+    assert run(fake_github, "--json") == 0
+    data = json.loads(capsys.readouterr().out)
+    leaked = [s for s in _strings(data) if any(c in s for c in UNSAFE)]
+    assert leaked == []
+    assert data["repo"]["default_branch"].startswith("mainx?evil")
+
+
+def test_text_report_sanitizes_every_repo_field(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _evil_repo(fake_github)
+    assert run(fake_github) == 0
+    out = capsys.readouterr().out
+    assert not any(c in out for c in UNSAFE)
+
+
+# --- limit flags accept only positive integers ---------------------------------
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--max-file-kb", "-1"],
+        ["--max-file-kb", "0"],
+        ["--max-files", "0"],
+        ["--max-total-mb", "-5"],
+        ["--max-download-mb", "abc"],
+        ["--max-files", "1.5"],
+    ],
+)
+def test_limit_flags_require_positive_integers(
+    args: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert cli.main([*args, TARGET]) == 3
+    err = capsys.readouterr().err
+    assert "positive integer" in err
+    assert "unexpected error" not in err

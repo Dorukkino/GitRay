@@ -40,6 +40,16 @@ EXIT_ERROR = 3
 MAX_LOCATIONS_PER_RULE = 10
 
 
+def positive_int(value: str) -> int:
+    try:
+        n = int(value)
+    except ValueError:
+        n = 0
+    if n <= 0:
+        raise argparse.ArgumentTypeError(f"must be a positive integer, got {value!r}")
+    return n
+
+
 class GitRayArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         self.print_usage(sys.stderr)
@@ -60,10 +70,10 @@ def build_parser() -> GitRayArgumentParser:
     p.add_argument("--debug", action="store_true", help="show tracebacks for errors")
     p.add_argument("--version", action="version", version=f"gitray {__version__}")
     d = Limits()
-    p.add_argument("--max-download-mb", type=int, default=d.max_download_bytes // MiB)
-    p.add_argument("--max-total-mb", type=int, default=d.max_total_bytes // MiB)
-    p.add_argument("--max-files", type=int, default=d.max_files)
-    p.add_argument("--max-file-kb", type=int, default=d.max_file_bytes // 1024)
+    p.add_argument("--max-download-mb", type=positive_int, default=d.max_download_bytes // MiB)
+    p.add_argument("--max-total-mb", type=positive_int, default=d.max_total_bytes // MiB)
+    p.add_argument("--max-files", type=positive_int, default=d.max_files)
+    p.add_argument("--max-file-kb", type=positive_int, default=d.max_file_bytes // 1024)
     return p
 
 
@@ -105,7 +115,7 @@ def print_report(result: ScanResult, out: TextIO) -> None:
     w = out.write
     repo = result.repo
     if repo:
-        w(f"GitRay scan of {sanitize(repo.full_name)} @ {repo.head_sha[:12]} ")
+        w(f"GitRay scan of {sanitize(repo.full_name)} @ {sanitize(repo.head_sha[:12])} ")
         w(f"(branch {sanitize(repo.default_branch)})\n")
     w(f"Verdict: {result.verdict.value.upper()}   Score: {result.score}/100\n")
     s = result.stats
@@ -146,9 +156,11 @@ def print_report(result: ScanResult, out: TextIO) -> None:
 
     if repo:
         w("\nRepository:\n")
-        w(f"  created {repo.created_at}, last push {repo.pushed_at or 'unknown'}\n")
-        owner_age = repo.owner_created_at or "unknown"
-        w(f"  owner {sanitize(repo.owner_login)} ({repo.owner_type}), created {owner_age}\n")
+        pushed = sanitize(repo.pushed_at) if repo.pushed_at else "unknown"
+        w(f"  created {sanitize(repo.created_at)}, last push {pushed}\n")
+        owner_age = sanitize(repo.owner_created_at) if repo.owner_created_at else "unknown"
+        owner = f"{sanitize(repo.owner_login)} ({sanitize(repo.owner_type)})"
+        w(f"  owner {owner}, created {owner_age}\n")
         if repo.release_assets:
             w("  Release assets (not downloaded; digest from GitHub API):\n")
             for a in repo.release_assets:

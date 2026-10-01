@@ -128,3 +128,41 @@ def test_real_github_smoke() -> None:
     with GitHubClient() as c:
         result = scan_repo(RepoRef("octocat", "Hello-World"), c)
     assert result.complete
+
+
+def _moved(fake: FakeGitHub, location: str) -> None:
+    fake.overrides["/repos/octo/old-name"] = lambda r: httpx.Response(
+        301, headers={"Location": location}
+    )
+    fake.overrides["/repositories/42"] = lambda r: httpx.Response(200, json=fake.repo)
+
+
+def test_renamed_repo_redirect_is_followed_within_api(fake_github: FakeGitHub) -> None:
+    _moved(fake_github, "https://api.github.com/repositories/42")
+    result = scan_repo(RepoRef("octo", "old-name"), client(fake_github))
+    assert result.repo is not None and result.repo.full_name == "octo/demo"
+    assert result.complete
+    # Later calls use the canonical name, not the old one.
+    paths = [r.url.path for r in fake_github.requests]
+    assert paths.count("/repos/octo/old-name") == 1
+    assert any(p.startswith("/repos/octo/demo/commits/") for p in paths)
+
+
+@pytest.mark.parametrize(
+    "location",
+    ["https://evil.example/repositories/42", "http://api.github.com/repositories/42", ""],
+)
+def test_redirect_outside_api_gives_clear_message(fake_github: FakeGitHub, location: str) -> None:
+    _moved(fake_github, location)
+    with pytest.raises(GitHubError, match="moved or renamed"):
+        client(fake_github).fetch_repo_info(RepoRef("octo", "old-name"))
+    assert all(r.url.host == "api.github.com" for r in fake_github.requests)
+
+
+def test_redirect_loop_is_bounded(fake_github: FakeGitHub) -> None:
+    fake_github.overrides["/repos/octo/loop"] = lambda r: httpx.Response(
+        301, headers={"Location": "https://api.github.com/repos/octo/loop"}
+    )
+    with pytest.raises(GitHubError, match="moved or renamed"):
+        client(fake_github).fetch_repo_info(RepoRef("octo", "loop"))
+    assert len(fake_github.requests) <= 4

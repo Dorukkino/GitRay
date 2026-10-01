@@ -49,9 +49,21 @@ def is_doc_path(path: str) -> bool:
     return p.name.lower() in DOC_TXT_NAMES
 
 
+def split_lines(content: str) -> list[str]:
+    """Split on \\n and \\r\\n only, like editors and GitHub number lines.
+
+    str.splitlines() would also break on \\x0b, \\x0c, \\x85, U+2028 and others,
+    shifting reported line numbers.
+    """
+    lines = content.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return [line.removesuffix("\r") for line in lines]
+
+
 def iter_scan_lines(content: str) -> Iterator[tuple[int, str]]:
     """Yield (1-based line number, segment). Long lines yield overlapping windows."""
-    for lineno, line in enumerate(content.splitlines(), start=1):
+    for lineno, line in enumerate(split_lines(content), start=1):
         if len(line) <= SCAN_WINDOW:
             yield lineno, line
             continue

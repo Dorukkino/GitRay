@@ -7,7 +7,7 @@ import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, urljoin, urlsplit
 
 import httpx
 
@@ -20,7 +20,10 @@ API_URL = "https://api.github.com"
 TARBALL_HOSTS = frozenset({"api.github.com", "codeload.github.com"})
 STREAM_CHUNK = 64 * 1024
 MAX_RELEASES = 10
+MAX_API_REDIRECTS = 3
+REDIRECT_CODES = frozenset({301, 302, 303, 307, 308})
 _SHA = re.compile(r"^[0-9a-f]{40}$")
+_FULL_NAME = re.compile(r"^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$")
 _TIMEOUT = httpx.Timeout(10.0, read=30.0)
 
 
@@ -56,13 +59,19 @@ class GitHubClient:
         self.close()
 
     def _get(self, path: str, *, accept: str | None = None) -> httpx.Response:
+        """GET from the API, following redirects (moved or renamed repos) only within it."""
         headers = {"Accept": accept} if accept else None
-        try:
-            resp = self._client.get(path, headers=headers)
-        except httpx.HTTPError as e:
-            raise GitHubError(f"request to GitHub failed: {type(e).__name__}") from e
-        _raise_for_status(resp)
-        return resp
+        url = path
+        for _ in range(MAX_API_REDIRECTS + 1):
+            try:
+                resp = self._client.get(url, headers=headers)
+            except httpx.HTTPError as e:
+                raise GitHubError(f"request to GitHub failed: {type(e).__name__}") from e
+            if resp.status_code not in REDIRECT_CODES:
+                _raise_for_status(resp)
+                return resp
+            url = _api_redirect_target(str(resp.url), resp.headers.get("Location", ""))
+        raise GitHubError("repository moved or renamed: too many redirects")
 
     def _get_json(self, path: str) -> Any:
         resp = self._get(path)
@@ -72,8 +81,7 @@ class GitHubClient:
             raise GitHubError(f"invalid JSON from GitHub for {path}") from e
 
     def fetch_repo_info(self, ref: RepoRef) -> RepoInfo:
-        base = f"/repos/{ref.owner}/{ref.repo}"
-        repo = self._get_json(base)
+        repo = self._get_json(f"/repos/{ref.owner}/{ref.repo}")
         if not isinstance(repo, dict):
             raise GitHubError("unexpected repository response")
         if repo.get("private"):
@@ -88,6 +96,10 @@ class GitHubClient:
             owner_type = str(repo["owner"].get("type", ""))
         except (KeyError, TypeError, ValueError, AttributeError) as e:
             raise GitHubError("unexpected repository response") from e
+        if not _FULL_NAME.match(full_name):
+            raise GitHubError("unexpected repository name from GitHub")
+        # Use the canonical name: the requested one may be an old (renamed) name.
+        base = f"/repos/{full_name}"
 
         sha = self._get(
             f"{base}/commits/{quote(default_branch, safe='/')}", accept="application/vnd.github.sha"
@@ -150,7 +162,7 @@ class GitHubClient:
         except httpx.HTTPError as e:
             raise GitHubError(f"tarball request failed: {type(e).__name__}") from e
         try:
-            if resp.status_code in (301, 302, 303, 307, 308):
+            if resp.status_code in REDIRECT_CODES:
                 location = resp.headers.get("Location", "")
                 resp.close()
                 resp = self._open_redirect(location)
@@ -178,6 +190,16 @@ class GitHubClient:
             return self._client.send(request, stream=True)
         except httpx.HTTPError as e:
             raise GitHubError(f"tarball download failed: {type(e).__name__}") from e
+
+
+def _api_redirect_target(current: str, location: str) -> str:
+    target = urlsplit(urljoin(current, location)) if location else None
+    if target is None or target.scheme != "https" or target.hostname != "api.github.com":
+        raise GitHubError(
+            "repository moved or renamed, and GitHub redirected outside api.github.com; "
+            "check the repository's new address"
+        )
+    return target.geturl()
 
 
 def _iter_raw(resp: httpx.Response) -> Iterator[bytes]:
