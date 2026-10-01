@@ -1,0 +1,6 @@
+# path: setup.py
+# lines: 2
+# weight: 10
+# ---
+import subprocess
+subprocess.check_call(["apt-get", "install", "-y", "curl"])

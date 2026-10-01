@@ -152,10 +152,13 @@ class SetupPyRule(Rule):
     def _flow_hits(self, flow: FlowResult, lines: list[str]) -> Iterator[Hit]:
         for h in flow.hits:
             if h.kind is FlowKind.DOWNLOAD:
-                note = "a download tool or URL reaches a process call during install"
+                note = "a process runs a download tool or fetches a URL during install"
                 weight: int | None = self.escalated_weight
             elif h.kind is FlowKind.OPAQUE_DATA:
-                note = "a process runs file contents or generated strings during install"
+                note = "a process runs file contents or decoded data during install"
+                weight = self.escalated_weight
+            elif h.kind is FlowKind.HIDDEN_COMMAND:
+                note = "a process runs a command built in a way the analysis cannot compute"
                 weight = self.escalated_weight
             elif h.kind is FlowKind.PROCESS:
                 note, weight = "runs a process during install", None

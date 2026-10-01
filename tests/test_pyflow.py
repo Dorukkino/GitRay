@@ -1,5 +1,6 @@
 """Static data flow for setup.py. Sources here are harmless strings; nothing is run."""
 
+import ast
 import warnings
 
 import pytest
@@ -161,3 +162,108 @@ def test_rule_uses_regex_layers_for_truncated_files() -> None:
     truncated = rule.scan(FileEntry(path="setup.py", content=content, truncated=True))
     assert max(f.weight for f in parsed) == 10
     assert [f.line for f in truncated] == [2] and truncated[0].weight == 35
+
+
+# -- roles: command position vs argument position --------------------------------
+
+ROLE_CASES = {
+    # Command position: launchers, shells and shell text.
+    "launchers": (
+        'import subprocess\nsubprocess.run(["sudo", "-u", "me", "env", "A=1", "wget", "x"])\n'
+    ),
+    "cmd_caret": 'import subprocess\nsubprocess.run(["cmd", "/c", "c^url x"])\n',
+    "bash_lc": 'import subprocess\nsubprocess.run(["bash", "-lc", "wget x"])\n',
+    "shlex_split": 'import shlex, subprocess\nsubprocess.run(shlex.split("curl -o x y"))\n',
+    "shell_variable": 'import subprocess\nsubprocess.run(["c" "url x"], shell=flag)\n',
+    "execlp_sh": 'import os\nos.execlp("sh", "sh", "-c", "curl x")\n',
+    "create_subprocess_exec": (
+        'import asyncio\nasyncio.create_subprocess_exec("sh", "-c", "wget x")\n'
+    ),
+    "ctypes_loadlibrary": 'import ctypes\nctypes.cdll.LoadLibrary("libc.so.6").system(b"wget x")\n',
+    "format_keyword": 'import os\nos.system("{a} x".format(a="curl"))\n',
+    "percent_mapping": 'import os\nos.system("%(a)s x" % {"a": "curl"})\n',
+    # Argument position: only a URL counts.
+    "url_argument": 'import subprocess\nsubprocess.run(["git", "clone", "https://x"])\n',
+}
+
+
+@pytest.mark.parametrize("source", ROLE_CASES.values(), ids=ROLE_CASES.keys())
+def test_download_by_role(source: str) -> None:
+    assert FlowKind.DOWNLOAD in kinds(source)
+
+
+NEUTRAL_CASES = {
+    "appended_file_contents_argument": (
+        'import subprocess\nv = open("V").read()\ncmd = []\ncmd.append("cmake")\n'
+        'cmd.append("-D" + v)\nsubprocess.check_call(cmd)\n'
+    ),
+    "join_of_appended_constants": (
+        'import os\ncmd = ["make"]\ncmd.append("-j4")\nos.system(" ".join(cmd))\n'
+    ),
+    "pybind11_cmake_template": (
+        'import subprocess, sys\ncmake_args = ["-DPYTHON=" + sys.executable]\n'
+        'cmake_args += ["-DX=1"]\n'
+        'subprocess.check_call(["cmake", ext.sourcedir] + cmake_args, cwd=tmp)\n'
+    ),
+    "environment_variable": (
+        'import os, subprocess\nsubprocess.run([os.environ.get("CC", "cc"), "--version"])\n'
+    ),
+    "parameter_without_call_site": "import subprocess\ndef go(cmd):\n    subprocess.run(cmd)\n",
+    "file_contents_argument": 'import subprocess\nsubprocess.run(["make", open("x").read()])\n',
+    "tool_name_argument": 'import subprocess\nsubprocess.run(["apt-get", "install", "curl"])\n',
+    "ctypes_plain_command": 'import ctypes\nctypes.cdll.msvcrt.system(b"make")\n',
+}
+
+
+@pytest.mark.parametrize("source", NEUTRAL_CASES.values(), ids=NEUTRAL_CASES.keys())
+def test_neutral_process_calls(source: str) -> None:
+    assert kinds(source) == {FlowKind.PROCESS}
+
+
+def test_file_contents_as_command_are_opaque() -> None:
+    assert kinds('import subprocess\nsubprocess.run([open("x").read(), "y"])\n') == {
+        FlowKind.OPAQUE_DATA
+    }
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'import subprocess\nt = "abc".expandtabs(4)\nsubprocess.run([t, "x"])\n',
+        # Results that would be too large are not computed, only marked.
+        'import os\nos.system(("a" * 10).replace("a", "a" * 1000))\n',
+        'import os\nos.system("%999999999d" % 1)\n',
+    ],
+)
+def test_uncomputable_constant_command_is_hidden(source: str) -> None:
+    assert kinds(source) == {FlowKind.HIDDEN_COMMAND}
+
+
+def test_ctypes_find_library_is_neutral() -> None:
+    result = pyflow.analyze('import ctypes.util\nctypes.util.find_library("curl")\n')
+    assert result == pyflow.FlowResult()
+
+
+def test_dynamic_import_alone_counts_as_process_capability() -> None:
+    result = pyflow.analyze("m = __import__(name)\n")
+    assert result is not None and result.can_run_processes
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected"),
+    [
+        ('"cXrl".replace("X", "u")', "curl"),
+        ('"".join(reversed("lruc"))', "curl"),
+        ('"CURL".swapcase()', "curl"),
+        ("bytes([99, 117, 114, 108]).decode()", "curl"),
+        ('"%c%c%c%c" % (99, 117, 114, 108)', "curl"),
+        ('"{}{}".format("cu", "rl")', "curl"),
+        ('"lruc"[::-1]', "curl"),
+        ('"".join(map(chr, [99, 117, 114, 108]))', "curl"),
+        ('"x curl y".split()[1]', "curl"),
+    ],
+)
+def test_constant_transformations_are_computed(expression: str, expected: str) -> None:
+    analyzer = pyflow._Analyzer(ast.parse(f"t = {expression}\n"), 0)
+    analyzer.run()
+    assert analyzer.values["t"].known_strings == {expected}
