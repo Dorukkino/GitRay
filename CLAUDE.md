@@ -22,7 +22,10 @@ Kod `src/` düzeninde, tek Python paketi `gitray` altında:
 - `src/gitray/engine/`: Tarama motoru. Saf Python paketi; web, veritabanı veya worker'a bağımlı değil. CLI ve worker aynı motoru kullanır. `gitray.web`, `gitray.worker`, `gitray.cli`, `fastapi`, `jinja2`, `psycopg` ve `sqlalchemy` importları yasak; `tests/test_architecture.py` bunu zorlar.
   - `models.py` veri tipleri, `limits.py` tüm güvenlik limitleri, `target.py` girdi doğrulama, `text.py` güvenilmez metin yardımcıları (defang, sanitize, belge tespiti)
   - `github.py` GitHub API istemcisi (metadata + tarball akışı), `archive.py` bellekte, akışla ve limitli tar okuyucu (gzip açma kendi sayacımızdan geçer)
-  - `rules/` kurallar (`base.py` Rule/RegexRule, kategori başına bir modül), `scoring.py` puan, `scanner.py` orkestrasyon, `report.py` güvenli JSON çıktısı
+  - `rules/` kurallar (`base.py` Rule/RegexRule, kategori başına bir modül), `scoring.py` puan, `scanner.py` orkestrasyon, `report.py` güvenli JSON çıktısı (tüm repo kaynaklı dizgeler sanitize edilir; web arayüzü de bunu kullanacak)
+  - Kurallar dosyanın yanında bir `ScanContext` alır (taranan repo). GR-LINK-001 yalnızca taranan reponun kendi `github.com/<owner>/<repo>/releases/download/` linklerini muaf tutar; bu dosyalar digest kontrolüyle kapsanır.
+  - Satır numaraları yalnızca `\n` ve `\r\n` ile sayılır (`text.split_lines`); `str.splitlines()` kullanılmaz.
+  - GitHub API yönlendirmeleri (taşınmış/yeniden adlandırılmış repo) yalnızca `https://api.github.com` içinde ve en fazla 3 kez izlenir; sonraki istekler kanonik `full_name` ile yapılır.
 - `src/gitray/cli.py` + `__main__.py`: CLI (`python -m gitray`). Çıkış kodları: 0 Temiz, 1 Şüpheli, 2 Tehlikeli, 3 her türlü hata (argparse ve beklenmeyen hatalar dahil), 4 Eksik.
 - `src/gitray/web/`: FastAPI. Jinja2 ile sunucu tarafında üretilen sayfalar ve JSON API. (Aşama 3, henüz yok)
 - `src/gitray/worker/`: PostgreSQL'deki iş kuyruğundan iş alır, motoru çalıştırır, sonucu yazar. (Aşama 3, henüz yok)
@@ -43,7 +46,7 @@ Kod `src/` düzeninde, tek Python paketi `gitray` altında:
    - Repo sinyalleri: repo ve hesap yaşı, repo'dan eski commit tarihleri (düşük ağırlıklı sinyal), release hash → VirusTotal, bağımlılıklar → OSV
 4. Puanla: her bulgunun bir ağırlığı var; her kural puana bir kez (en yüksek ağırlığıyla) katılır; toplam 0–100. Her bulgu dosya, satır, kural kimliği ve "neden tehlikeli" açıklamasıyla raporlanır. Karar dört durumdan biridir:
    - **Temiz** (<30), **Şüpheli** (30–69), **Tehlikeli** (≥70).
-   - **Eksik** (Incomplete): Bir limit taramayı durdurdu ve okunabilen kısım temiz çıktı. Eksik yalnızca Temiz'in yerine geçer; okunan kısım Şüpheli ya da Tehlikeli ise o karar kalır ve rapor "kısmi tarama" olarak işaretlenir. Kısmi taramada hangi limitin aşıldığı ve kaç dosyanın tarandığı her zaman raporlanır. Kısmi tarama asla Temiz sayılmaz, çünkü saldırgan payload'ı büyük dosyaların arkasına saklayabilir.
+   - **Eksik** (Incomplete): Bir limit taramayı durdurdu ve okunabilen kısım temiz çıktı. Bu, indirmeden önce yakalanan limitler için de geçerlidir (repo boyutu ön kontrolü, Content-Length): taranan dosya sayısı 0 olsa bile sonuç Eksik'tir, repo bilgisi ve `partial` bloğu raporda yer alır; limit aşımı hiçbir zaman hata (3) olarak bitmez. Eksik yalnızca Temiz'in yerine geçer; okunan kısım Şüpheli ya da Tehlikeli ise o karar kalır ve rapor "kısmi tarama" olarak işaretlenir. Kısmi taramada hangi limitin aşıldığı ve kaç dosyanın tarandığı her zaman raporlanır. Kısmi tarama asla Temiz sayılmaz, çünkü saldırgan payload'ı büyük dosyaların arkasına saklayabilir.
 5. Sonucu kaydet ve göster.
 
 ## Aşamalar
@@ -52,6 +55,10 @@ Kod `src/` düzeninde, tek Python paketi `gitray` altında:
   - `.github/workflows` kuralı. `curl … | sh` gibi komutlar workflow dosyalarında ayrı bir bağlam olarak ele alınır: bu komutlar repoyu klonlayanın bilgisayarında değil CI'da çalışır, bu yüzden risk ve ağırlık farklıdır. URL'nin GitHub'da (`github.com`, `raw.githubusercontent.com` vb.) barınması hiçbir kuralda güven sinyali olarak kullanılmaz; saldırganlar payload'larını sıklıkla GitHub'da barındırır.
   - Dosya içeriğini okuyup çalıştıran kod kuralı (`exec(open(...).read())`, `eval(fs.readFileSync(...))`, `new Function(fs.readFileSync(...))`, `source`/`.` ile dosya çalıştırma). Bu kural, payload'ı belge ağırlığının düşük olduğu bir `.md` dosyasına saklama yolunu da kapatır.
   - Görünmez yön karakterleri kuralı (Trojan Source; U+202A–U+202E, U+2066–U+2069, U+200E/U+200F): kaynak kodda göründüğünden farklı çalışan satırlar. Aşama 1'de kendi kodumuzda aynı sorunu yaşadık; `tests/test_security_invariants.py` kendi kodumuzu bu yüzden denetliyor.
+  - UTF-16 dosyalar: NUL byte içerdikleri için şu an ikili sayılıp hiç taranmıyor. Windows'ta UTF-16 kaydedilmiş PowerShell scriptleri yaygın. BOM (`FF FE` / `FE FF`) varsa dosya önce UTF-16 olarak çözülüp taranmalı.
+  - Dosya paylaşım siteleri: MediaFire, Mega, Google Drive, Dropbox gibi uzantısı olmayan indirme linkleri (GR-LINK-001 şu an yalnızca uzantıya ve link kısaltıcılara bakıyor).
+  - Repo içindeki çalıştırılabilir ikili dosyalar: PE (`MZ`), ELF (`\x7fELF`) ve Mach-O imzaları. Şu an yalnızca "ikili dosya atlandı" olarak sayılıyor, bulgu üretmiyor.
+  - Kalibrasyon notu (GR-LINK-001): Aşama 1 düzeltmesinden sonra taranan reponun kendi kaynak arşivi linkleri (`github.com/<owner>/<repo>/archive/…zip`, README'lerdeki "Download ZIP") da işaretleniyor; yalnızca `/releases/download/` muaf. Bu bilinçli bir karar (etiket taranmamış bir commit'i gösterebilir), ama gerçek repolarda yanlış alarm oranı ölçülmeli.
   - Kalibrasyon notu (`nvm-sh/nvm`): Aşama 1 motoru bu meşru repoyu 50 puanla Şüpheli buldu. Puanın 35'i workflow dosyalarındaki `curl … | bash` satırlarından (GR-CODE-002), 15'i bir test dosyasındaki base64 kodlu oturum çerezinden (GR-OBF-001) geliyor. README'deki kurulum satırı doğru şekilde işaretlenmedi. Workflows kuralı eklendikten sonra bu repo yeniden taranıp sonuç kontrol edilmeli.
 - [ ] Aşama 3: FastAPI, PostgreSQL, worker, Jinja2 sayfaları ve önbellek; `docker compose up` ile lokalde çalışır
 - [ ] Aşama 4: Hız sınırı, Turnstile ve boyut limitleri; VPS'e deploy (Caddy, Cloudflare); GitHub Actions ile test ve deploy
