@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 2
+# weight: 35
+# ---
+import socket
+s = socket.socket()
+s.connect(("example.invalid", 4444))

@@ -1,0 +1,9 @@
+# path: setup.py
+# lines: 4
+# weight: 10
+# ---
+from setuptools import setup
+about = {}
+with open("demo/__version__.py") as f:
+    exec(f.read(), about)
+setup(name="demo", version=about["__version__"])

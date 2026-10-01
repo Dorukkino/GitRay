@@ -14,8 +14,13 @@ BASE64_ENTROPY = 5.0
 HEX_ENTROPY = 3.5
 MIN_HEX_ESCAPES = 50
 
-# Embedded images are legitimate in README, HTML, CSS and SVG files.
-_DATA_IMAGE = re.compile(r"data:image/[\w.+-]+;base64,[A-Za-z0-9+/=]+", re.IGNORECASE)
+# Embedded images and fonts are legitimate in README, HTML, CSS and SVG files.
+# Script types (data:text/javascript, data:application/javascript) stay in scope.
+_EMBEDDED_MEDIA = re.compile(
+    r"data:(?:image/[\w.+-]+|font/[\w.+-]+|application/(?:x-)?font-[\w.+-]+|"
+    r"application/vnd\.ms-fontobject)(?:;[\w.+-]+=[\w.+-]+)*;base64,[A-Za-z0-9+/=]+",
+    re.IGNORECASE,
+)
 _TOKEN = re.compile(rf"[A-Za-z0-9+/=_-]{{{MIN_TOKEN},}}")
 _HEX_RUN = re.compile(rf"[0-9a-fA-F]{{{MIN_TOKEN},}}")
 _HEX_ESCAPES = re.compile(rf"(?:\\x[0-9a-fA-F]{{2}}){{{MIN_HEX_ESCAPES},}}")
@@ -28,7 +33,7 @@ class HighEntropyRule(Rule):
         for lineno, segment in text.iter_scan_lines(file.content):
             if lineno == last_line:
                 continue
-            note = self._check(_DATA_IMAGE.sub(" ", segment))
+            note = self._check(_EMBEDDED_MEDIA.sub(" ", segment))
             if note:
                 last_line = lineno
                 yield Hit(line=lineno, text=segment, note=note)

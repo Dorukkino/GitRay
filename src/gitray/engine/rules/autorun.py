@@ -5,6 +5,7 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
+from gitray.engine import text
 from gitray.engine.models import FileEntry, ScanContext
 from gitray.engine.rules.base import Hit, RegexRule, Rule, compile_all
 
@@ -74,22 +75,55 @@ NPM_LIFECYCLE = PackageScriptsRule(
     ),
 )
 
-SETUP_PY = RegexRule(
+_SETUP_NETWORK_OR_PROCESS = compile_all(
+    r"\bsubprocess\b",
+    r"\bos\.(?:system|popen|exec\w*|spawn\w*)\s*\(",
+    r"\b(?:urllib\.request|urlopen|requests\.(?:get|post)|http\.client|socket\.socket)\b",
+)
+_SETUP_DYNAMIC_CODE = compile_all(r"\b(?:exec|eval)\s*\(", r"\b__import__\s*\(")
+_SETUP_DECODE = re.compile(
+    r"\b(?:b64decode|b32decode|b85decode|a85decode|decompress|fromhex|unhexlify|"
+    r"decodebytes|codecs\.decode)\b"
+)
+
+
+@dataclass(frozen=True, kw_only=True)
+class SetupPyRule(Rule):
+    """exec() alone is common (reading __version__); network, processes or
+    decoding make it an install-time payload."""
+
+    escalated_weight: int
+
+    def hits(self, file: FileEntry, context: ScanContext) -> Iterator[Hit]:
+        decodes = bool(_SETUP_DECODE.search(file.content))
+        last_line = 0
+        for lineno, segment in text.iter_scan_lines(file.content):
+            if lineno == last_line:
+                continue
+            if any(p.search(segment) for p in _SETUP_NETWORK_OR_PROCESS):
+                note = "runs a process or uses the network during install"
+                weight: int | None = self.escalated_weight
+            elif any(p.search(segment) for p in _SETUP_DYNAMIC_CODE):
+                if decodes:
+                    note, weight = "executes decoded data during install", self.escalated_weight
+                else:
+                    note, weight = "executes dynamic code during install", None
+            else:
+                continue
+            last_line = lineno
+            yield Hit(line=lineno, text=segment, weight=weight, note=note)
+
+
+SETUP_PY = SetupPyRule(
     id="GR-AUTO-002",
-    title="setup.py runs commands or uses the network",
+    title="setup.py runs code, commands or uses the network",
     category="autorun",
-    weight=30,
+    weight=10,
+    escalated_weight=35,
     applies_to=("setup.py",),
     why=(
         "setup.py is executed by pip during installation. Running processes, "
-        "downloading data or evaluating code there means it runs on install."
-    ),
-    patterns=compile_all(
-        r"\bsubprocess\b",
-        r"\bos\.(?:system|popen|exec\w*|spawn\w*)\s*\(",
-        r"\b(?:urllib\.request|urlopen|requests\.(?:get|post)|http\.client|socket\.socket)\b",
-        r"\b(?:exec|eval)\s*\(",
-        r"\b__import__\s*\(",
+        "downloading data or evaluating decoded code there means it runs on install."
     ),
 )
 

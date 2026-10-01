@@ -1,0 +1,6 @@
+# path: jose/jwe.py
+# ---
+def serialize(self):
+    return {"protected": self.header, "encrypted_key": b64url(self.cek),
+            "iv": b64url(self.iv), "ciphertext": b64url(self.ct)}
+encrypted_key = recipient.wrap(cek)

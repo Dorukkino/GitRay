@@ -90,8 +90,10 @@ BROWSER_CREDENTIALS = RegexRule(
             r"\bCryptUnprotectData\b",
         ),
         *compile_all(
-            r"\bencrypted_key\b",
+            # "encrypted_key" alone is a standard JWE field; only Chrome's
+            # os_crypt key (stored in "Local State") is a stealer indicator.
             r"Local State.{0,200}?os_crypt",
+            r"os_crypt.{0,40}?encrypted_key",
             r"(?:Google[\\/]+Chrome|BraveSoftware[\\/]+Brave-Browser|Microsoft[\\/]+Edge|"
             r"Opera Software[\\/]+Opera Stable)[\\/]+(?:User Data|Default)",
             r"Mozilla[\\/]+Firefox[\\/]+Profiles",
