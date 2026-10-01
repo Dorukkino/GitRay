@@ -76,14 +76,14 @@ def test_sources_found() -> None:
 
 
 # Bidi controls, zero-width space and Unicode line/paragraph separators.
+# Same ranges as the rule in CLAUDE.md: U+200B-U+200F, U+202A-U+202E,
+# U+2066-U+2069, U+2028, U+2029.
 BIDI_AND_INVISIBLE = {
-    0x200B,
-    0x200E,
-    0x200F,
-    0x2028,
-    0x2029,
+    *range(0x200B, 0x2010),
     *range(0x202A, 0x202F),
     *range(0x2066, 0x206A),
+    0x2028,
+    0x2029,
 }
 
 

@@ -71,6 +71,7 @@ Kod `src/` düzeninde, tek Python paketi `gitray` altında:
 - Doğrulayamadığın varsayımları açıkça yaz; tahminle ilerleme. Belirsizlik varsa sor.
 - Bu dosyadaki kararlarla çelişen ya da daha önce düzeltilmiş bir hatayı geri getirebilecek bir değişiklik gerekiyorsa önce sor.
 - Her dedektör ve kural için test yaz. Bir aşama bitince yukarıdaki listeyi güncelle.
+- Görünmez ve yön karakterleri (U+200B–U+200F, U+202A–U+202E, U+2066–U+2069, U+2028, U+2029) kodda ve testlerde asla `\uXXXX` kaçış dizisiyle yazılmaz; `\N{RIGHT-TO-LEFT OVERRIDE}`, `\N{LINE SEPARATOR}` gibi adlar kullanılır (regex ve üretici scriptlerde `chr(0x202e)` da olur). Sebep: Araç çağrıları JSON olarak gidiyor ve JSON `\uXXXX` dizilerini gerçek karaktere çeviriyor; bu, kodumuza iki kez görünmez karakter soktu. `tests/test_security_invariants.py` kendi kodumuzda bu karakterleri arar.
 
 ## Açık kararlar
 - Arayüz dili (Türkçe / İngilizce): Aşama 3'te karar verilecek.
