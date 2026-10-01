@@ -59,14 +59,16 @@ def test_large_file_is_truncated() -> None:
 
 def test_too_many_entries() -> None:
     data = make_tarball({f"f{i}.txt": "x" for i in range(20)})
-    with pytest.raises(LimitExceeded, match="entries"):
+    with pytest.raises(LimitExceeded, match="entries") as exc:
         read_all(data, Limits(max_files=10))
+    assert (exc.value.limit, exc.value.value) == ("max_files", 10)
 
 
 def test_download_limit() -> None:
     data = make_tarball({f"f{i}.txt": str(i) * 5000 for i in range(50)})
-    with pytest.raises(LimitExceeded, match="download"):
+    with pytest.raises(LimitExceeded, match="download") as exc:
         read_all(data, Limits(max_download_bytes=len(data) // 2))
+    assert exc.value.limit == "max_download_bytes"
 
 
 def test_gzip_bomb_stops_at_decompressed_limit() -> None:
@@ -75,8 +77,9 @@ def test_gzip_bomb_stops_at_decompressed_limit() -> None:
     assert len(bomb) < 200 * 1024
     limit = 8 * MiB
     reader = ArchiveReader(chunked(bomb), Limits(max_total_bytes=limit))
-    with pytest.raises(LimitExceeded, match="decompressed"):
+    with pytest.raises(LimitExceeded, match="decompressed") as exc:
         list(reader)
+    assert (exc.value.limit, exc.value.value) == ("max_total_bytes", limit)
     # Reading stops as soon as the counter passes the limit (plus one chunk).
     assert limit < reader.stats.decompressed_bytes <= limit + 64 * 1024
 

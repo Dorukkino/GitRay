@@ -38,6 +38,16 @@ def test_sum_is_capped_at_100() -> None:
     assert verdict == Verdict.DANGEROUS
 
 
+def test_partial_clean_becomes_incomplete() -> None:
+    assert score([], complete=False)[1] == Verdict.INCOMPLETE
+    assert score([finding("A", 29)], complete=False)[1] == Verdict.INCOMPLETE
+
+
+def test_partial_never_downgrades_suspicious_or_dangerous() -> None:
+    assert score([finding("A", 30)], complete=False)[1] == Verdict.SUSPICIOUS
+    assert score([finding("A", 70)], complete=False)[1] == Verdict.DANGEROUS
+
+
 def test_thresholds() -> None:
     assert verdict_for(29) == Verdict.CLEAN
     assert verdict_for(30) == Verdict.SUSPICIOUS

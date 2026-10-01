@@ -8,6 +8,9 @@ class Verdict(StrEnum):
     CLEAN = "clean"
     SUSPICIOUS = "suspicious"
     DANGEROUS = "dangerous"
+    # A limit stopped the scan and the part that was read looked clean. Never
+    # replaces SUSPICIOUS or DANGEROUS: those stand even when the scan is partial.
+    INCOMPLETE = "incomplete"
 
 
 class DigestStatus(StrEnum):
@@ -85,6 +88,15 @@ class ArchiveStats:
 
 
 @dataclass(frozen=True)
+class PartialScan:
+    """Why a scan stopped early: the Limits field that was exceeded and its value."""
+
+    limit: str
+    limit_value: int
+    reason: str
+
+
+@dataclass(frozen=True)
 class ScanResult:
     repo: RepoInfo | None
     findings: tuple[Finding, ...]
@@ -92,9 +104,9 @@ class ScanResult:
     verdict: Verdict
     rule_scores: dict[str, int]
     stats: ArchiveStats
-    partial_reason: str | None = None
+    partial: PartialScan | None = None
     rules_run: tuple[str, ...] = field(default=())
 
     @property
     def complete(self) -> bool:
-        return self.partial_reason is None
+        return self.partial is None

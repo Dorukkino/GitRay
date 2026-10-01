@@ -23,7 +23,7 @@ Kod `src/` düzeninde, tek Python paketi `gitray` altında:
   - `models.py` veri tipleri, `limits.py` tüm güvenlik limitleri, `target.py` girdi doğrulama, `text.py` güvenilmez metin yardımcıları (defang, sanitize, belge tespiti)
   - `github.py` GitHub API istemcisi (metadata + tarball akışı), `archive.py` bellekte, akışla ve limitli tar okuyucu (gzip açma kendi sayacımızdan geçer)
   - `rules/` kurallar (`base.py` Rule/RegexRule, kategori başına bir modül), `scoring.py` puan, `scanner.py` orkestrasyon, `report.py` güvenli JSON çıktısı
-- `src/gitray/cli.py` + `__main__.py`: CLI (`python -m gitray`). Çıkış kodları: 0 Temiz, 1 Şüpheli, 2 Tehlikeli, 3 her türlü hata (argparse ve beklenmeyen hatalar dahil).
+- `src/gitray/cli.py` + `__main__.py`: CLI (`python -m gitray`). Çıkış kodları: 0 Temiz, 1 Şüpheli, 2 Tehlikeli, 3 her türlü hata (argparse ve beklenmeyen hatalar dahil), 4 Eksik.
 - `src/gitray/web/`: FastAPI. Jinja2 ile sunucu tarafında üretilen sayfalar ve JSON API. (Aşama 3, henüz yok)
 - `src/gitray/worker/`: PostgreSQL'deki iş kuyruğundan iş alır, motoru çalıştırır, sonucu yazar. (Aşama 3, henüz yok)
 - `tests/`: Ağ kullanmayan testler. Kural örnekleri `tests/fixtures/rules/<KURAL>/{positive,negative}/*.fixture` (zararsız sahte örnekler); her kural için ikisi de zorunlu.
@@ -41,12 +41,18 @@ Kod `src/` düzeninde, tek Python paketi `gitray` altında:
    - Gizleme: entropi ve uzun, rastgele görünen metinler
    - README ve linkler: GitHub dışına giden `.zip`/`.exe` linkleri, link kısaltıcılar, şifreli arşiv kalıpları
    - Repo sinyalleri: repo ve hesap yaşı, repo'dan eski commit tarihleri (düşük ağırlıklı sinyal), release hash → VirusTotal, bağımlılıklar → OSV
-4. Puanla: her bulgunun bir ağırlığı var; toplam 0–100; karar Temiz / Şüpheli / Tehlikeli. Her bulgu dosya, satır, kural kimliği ve "neden tehlikeli" açıklamasıyla raporlanır.
+4. Puanla: her bulgunun bir ağırlığı var; her kural puana bir kez (en yüksek ağırlığıyla) katılır; toplam 0–100. Her bulgu dosya, satır, kural kimliği ve "neden tehlikeli" açıklamasıyla raporlanır. Karar dört durumdan biridir:
+   - **Temiz** (<30), **Şüpheli** (30–69), **Tehlikeli** (≥70).
+   - **Eksik** (Incomplete): Bir limit taramayı durdurdu ve okunabilen kısım temiz çıktı. Eksik yalnızca Temiz'in yerine geçer; okunan kısım Şüpheli ya da Tehlikeli ise o karar kalır ve rapor "kısmi tarama" olarak işaretlenir. Kısmi taramada hangi limitin aşıldığı ve kaç dosyanın tarandığı her zaman raporlanır. Kısmi tarama asla Temiz sayılmaz, çünkü saldırgan payload'ı büyük dosyaların arkasına saklayabilir.
 5. Sonucu kaydet ve göster.
 
 ## Aşamalar
 - [x] Aşama 1: Motor iskeleti, yalnızca CLI (`python -m gitray github.com/owner/repo`), ilk 8–10 kural ve testler
-- [ ] Aşama 2: Kurallar YAML dosyalarına; tüm dedektörler; OSV ve VirusTotal entegrasyonu
+- [ ] Aşama 2: Kurallar YAML dosyalarına; tüm dedektörler; OSV ve VirusTotal entegrasyonu. Ayrıca:
+  - `.github/workflows` kuralı. `curl … | sh` gibi komutlar workflow dosyalarında ayrı bir bağlam olarak ele alınır: bu komutlar repoyu klonlayanın bilgisayarında değil CI'da çalışır, bu yüzden risk ve ağırlık farklıdır. URL'nin GitHub'da (`github.com`, `raw.githubusercontent.com` vb.) barınması hiçbir kuralda güven sinyali olarak kullanılmaz; saldırganlar payload'larını sıklıkla GitHub'da barındırır.
+  - Dosya içeriğini okuyup çalıştıran kod kuralı (`exec(open(...).read())`, `eval(fs.readFileSync(...))`, `new Function(fs.readFileSync(...))`, `source`/`.` ile dosya çalıştırma). Bu kural, payload'ı belge ağırlığının düşük olduğu bir `.md` dosyasına saklama yolunu da kapatır.
+  - Görünmez yön karakterleri kuralı (Trojan Source; U+202A–U+202E, U+2066–U+2069, U+200E/U+200F): kaynak kodda göründüğünden farklı çalışan satırlar. Aşama 1'de kendi kodumuzda aynı sorunu yaşadık; `tests/test_security_invariants.py` kendi kodumuzu bu yüzden denetliyor.
+  - Kalibrasyon notu (`nvm-sh/nvm`): Aşama 1 motoru bu meşru repoyu 50 puanla Şüpheli buldu. Puanın 35'i workflow dosyalarındaki `curl … | bash` satırlarından (GR-CODE-002), 15'i bir test dosyasındaki base64 kodlu oturum çerezinden (GR-OBF-001) geliyor. README'deki kurulum satırı doğru şekilde işaretlenmedi. Workflows kuralı eklendikten sonra bu repo yeniden taranıp sonuç kontrol edilmeli.
 - [ ] Aşama 3: FastAPI, PostgreSQL, worker, Jinja2 sayfaları ve önbellek; `docker compose up` ile lokalde çalışır
 - [ ] Aşama 4: Hız sınırı, Turnstile ve boyut limitleri; VPS'e deploy (Caddy, Cloudflare); GitHub Actions ile test ve deploy
 - [ ] Aşama 5: README (mimari diyagram, ekran görüntüleri, "nasıl çalışır", "sınırlamalar")

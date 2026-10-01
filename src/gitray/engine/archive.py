@@ -26,14 +26,18 @@ _GZIP_WBITS = 16 + zlib.MAX_WBITS
 
 
 def count_bytes(
-    chunks: Iterable[bytes], limit: int, label: str, on_count: Callable[[int], None]
+    chunks: Iterable[bytes],
+    limit: int,
+    limit_name: str,
+    label: str,
+    on_count: Callable[[int], None],
 ) -> Iterator[bytes]:
     total = 0
     for chunk in chunks:
         total += len(chunk)
         on_count(total)
         if total > limit:
-            raise LimitExceeded(f"{label} exceeded {limit} bytes")
+            raise LimitExceeded(limit_name, limit, f"{label} exceeded {limit} bytes")
         yield chunk
 
 
@@ -100,10 +104,18 @@ class ArchiveReader:
         self.limits = limits
         self.stats = ArchiveStats()
         compressed = count_bytes(
-            chunks, limits.max_download_bytes, "download size", self._on_download
+            chunks,
+            limits.max_download_bytes,
+            "max_download_bytes",
+            "download size",
+            self._on_download,
         )
         decompressed = count_bytes(
-            gunzip(compressed), limits.max_total_bytes, "decompressed size", self._on_decompress
+            gunzip(compressed),
+            limits.max_total_bytes,
+            "max_total_bytes",
+            "decompressed size",
+            self._on_decompress,
         )
         self._fileobj = io.BufferedReader(IterReader(decompressed), CHUNK)
 
@@ -127,7 +139,11 @@ class ArchiveReader:
             tf.members = []  # type: ignore[attr-defined]
             stats.entries_seen += 1
             if stats.entries_seen > limits.max_files:
-                raise LimitExceeded(f"archive has more than {limits.max_files} entries")
+                raise LimitExceeded(
+                    "max_files",
+                    limits.max_files,
+                    f"archive has more than {limits.max_files} entries",
+                )
             # Symlinks, hardlinks, devices, FIFOs and directories are never read.
             if not member.isfile():
                 if not member.isdir():

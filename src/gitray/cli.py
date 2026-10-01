@@ -1,6 +1,7 @@
 """Command line interface: python -m gitray github.com/owner/repo
 
-Exit codes: 0 clean, 1 suspicious, 2 dangerous, 3 any error. argparse and
+Exit codes: 0 clean, 1 suspicious, 2 dangerous, 3 any error, 4 incomplete
+(a limit stopped the scan and the part read was clean). argparse and
 uncaught exceptions would otherwise use 2 and 1, which collide with verdicts.
 """
 
@@ -29,7 +30,12 @@ from gitray.engine.models import Finding
 from gitray.engine.report import result_to_dict
 from gitray.engine.text import sanitize
 
-EXIT_CODES = {Verdict.CLEAN: 0, Verdict.SUSPICIOUS: 1, Verdict.DANGEROUS: 2}
+EXIT_CODES = {
+    Verdict.CLEAN: 0,
+    Verdict.SUSPICIOUS: 1,
+    Verdict.DANGEROUS: 2,
+    Verdict.INCOMPLETE: 4,
+}
 EXIT_ERROR = 3
 MAX_LOCATIONS_PER_RULE = 10
 
@@ -45,7 +51,8 @@ def build_parser() -> GitRayArgumentParser:
         prog="gitray",
         description="Scan a public GitHub repository for malicious patterns "
         "without cloning it or running any of its code.",
-        epilog="Exit codes: 0 clean, 1 suspicious, 2 dangerous, 3 error. "
+        epilog="Exit codes: 0 clean, 1 suspicious, 2 dangerous, 3 error, "
+        "4 incomplete (a size limit stopped the scan and the part read was clean). "
         "Set GITHUB_TOKEN to raise the GitHub API rate limit.",
     )
     p.add_argument("target", help="github.com/owner/repo, a GitHub URL, or owner/repo")
@@ -106,8 +113,18 @@ def print_report(result: ScanResult, out: TextIO) -> None:
         f"Scanned {s.files_scanned} files ({s.truncated_files} truncated, "
         f"{s.skipped_binary} binary skipped, {s.skipped_non_regular} links/special skipped)\n"
     )
-    if not result.complete:
-        w(f"WARNING: partial scan, not all files were read: {result.partial_reason}\n")
+    if result.partial:
+        p = result.partial
+        w(
+            f"PARTIAL SCAN: limit {p.limit} ({p.limit_value}) exceeded after "
+            f"{s.files_scanned} files were scanned; the rest was not read ({p.reason})\n"
+        )
+    if result.rule_scores:
+        breakdown = ", ".join(
+            f"{rule_id} +{points}"
+            for rule_id, points in sorted(result.rule_scores.items(), key=lambda kv: -kv[1])
+        )
+        w(f"Score breakdown: {breakdown}\n")
 
     by_rule: dict[str, list[Finding]] = defaultdict(list)
     for f in result.findings:

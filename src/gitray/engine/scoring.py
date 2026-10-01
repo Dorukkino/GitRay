@@ -25,7 +25,13 @@ def verdict_for(score: int) -> Verdict:
     return Verdict.CLEAN
 
 
-def score(findings: Iterable[Finding]) -> tuple[int, Verdict, dict[str, int]]:
+def score(
+    findings: Iterable[Finding], *, complete: bool = True
+) -> tuple[int, Verdict, dict[str, int]]:
     per_rule = rule_scores(findings)
     total = min(MAX_SCORE, sum(per_rule.values()))
-    return total, verdict_for(total), per_rule
+    verdict = verdict_for(total)
+    # A partial scan can never be called clean: the unread part may hold the payload.
+    if not complete and verdict == Verdict.CLEAN:
+        verdict = Verdict.INCOMPLETE
+    return total, verdict, per_rule

@@ -10,7 +10,15 @@ class InvalidTarget(GitRayError):
 
 
 class LimitExceeded(GitRayError):
-    """A safety limit (size, file count, bytes) was exceeded."""
+    """A safety limit (size, file count, bytes) was exceeded.
+
+    `limit` is the name of the field in Limits, `value` its configured value.
+    """
+
+    def __init__(self, limit: str, value: int, message: str) -> None:
+        super().__init__(message)
+        self.limit = limit
+        self.value = value
 
 
 class ArchiveError(GitRayError):

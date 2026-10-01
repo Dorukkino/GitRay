@@ -7,7 +7,14 @@ from gitray.engine.archive import ArchiveReader
 from gitray.engine.errors import LimitExceeded
 from gitray.engine.github import GitHubClient
 from gitray.engine.limits import Limits
-from gitray.engine.models import FileEntry, Finding, RepoInfo, RepoRef, ScanResult
+from gitray.engine.models import (
+    FileEntry,
+    Finding,
+    PartialScan,
+    RepoInfo,
+    RepoRef,
+    ScanResult,
+)
 from gitray.engine.rules import Rule, all_rules
 
 
@@ -29,13 +36,13 @@ def scan_tarball(
     rules = all_rules() if rules is None else rules
     reader = ArchiveReader(chunks, limits)
     findings: list[Finding] = []
-    partial_reason = None
+    partial = None
     try:
         for entry in reader:
             findings.extend(scan_file(entry, rules))
     except LimitExceeded as e:
-        partial_reason = str(e)
-    total, verdict, per_rule = scoring.score(findings)
+        partial = PartialScan(limit=e.limit, limit_value=e.value, reason=str(e))
+    total, verdict, per_rule = scoring.score(findings, complete=partial is None)
     return ScanResult(
         repo=repo,
         findings=tuple(findings),
@@ -43,7 +50,7 @@ def scan_tarball(
         verdict=verdict,
         rule_scores=per_rule,
         stats=reader.stats,
-        partial_reason=partial_reason,
+        partial=partial,
         rules_run=tuple(r.id for r in rules),
     )
 
@@ -53,7 +60,9 @@ def scan_repo(ref: RepoRef, client: GitHubClient, limits: Limits | None = None) 
     info = client.fetch_repo_info(ref)
     if info.size_kb > limits.max_repo_size_kb:
         raise LimitExceeded(
-            f"repository is {info.size_kb} KB, limit is {limits.max_repo_size_kb} KB"
+            "max_repo_size_kb",
+            limits.max_repo_size_kb,
+            f"repository is {info.size_kb} KB, limit is {limits.max_repo_size_kb} KB",
         )
     with client.stream_tarball(ref, info.head_sha, limits) as chunks:
         return scan_tarball(chunks, limits, repo=info)

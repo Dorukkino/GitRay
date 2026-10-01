@@ -157,7 +157,11 @@ class GitHubClient:
             _raise_for_status(resp)
             length = resp.headers.get("Content-Length")
             if length and length.isdigit() and int(length) > limits.max_download_bytes:
-                raise LimitExceeded(f"download size exceeded {limits.max_download_bytes} bytes")
+                raise LimitExceeded(
+                    "max_download_bytes",
+                    limits.max_download_bytes,
+                    f"download size exceeded {limits.max_download_bytes} bytes",
+                )
             yield _iter_raw(resp)
         finally:
             resp.close()

@@ -44,7 +44,16 @@ def result_to_dict(result: ScanResult) -> dict[str, Any]:
         "score": result.score,
         "verdict": result.verdict.value,
         "complete": result.complete,
-        "partial_reason": result.partial_reason,
+        "partial": (
+            {
+                "limit": result.partial.limit,
+                "limit_value": result.partial.limit_value,
+                "reason": result.partial.reason,
+                "files_scanned": result.stats.files_scanned,
+            }
+            if result.partial
+            else None
+        ),
         "rule_scores": result.rule_scores,
         "stats": asdict(result.stats),
         "findings": [finding_to_dict(f) for f in result.findings],
