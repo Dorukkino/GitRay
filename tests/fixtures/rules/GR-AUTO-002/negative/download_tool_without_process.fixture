@@ -1,0 +1,5 @@
+# path: setup.py
+# ---
+from setuptools import setup
+# Install wget or curl first if you want the optional data files.
+setup(name="demo", keywords=["curl", "wget"])

@@ -1,0 +1,6 @@
+# path: setup.py
+# ---
+from subprocess import Popen, PIPE
+from setuptools import setup
+p = Popen(["curl-config", "--libs"], stdout=PIPE)
+setup(name="demo")

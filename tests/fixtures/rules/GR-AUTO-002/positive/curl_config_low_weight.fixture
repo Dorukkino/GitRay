@@ -1,0 +1,8 @@
+# path: setup.py
+# lines: 3
+# weight: 10
+# ---
+import subprocess
+from setuptools import setup
+libs = subprocess.check_output(["curl-config", "--libs"]).split()
+setup(name="demo")

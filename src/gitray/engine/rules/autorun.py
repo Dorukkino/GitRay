@@ -84,11 +84,19 @@ _SETUP_PROCESS = compile_all(
     r"\bsubprocess\.\w+",
     r"\bos\.(?:system|popen|exec\w*|spawn\w*)\s*\(",
 )
-# A URL or download tool on the same line turns a process call into a download.
-_SETUP_DOWNLOAD = re.compile(
-    r"https?://|\b(?:curl|wget|powershell|pwsh|invoke-webrequest|invoke-restmethod|iwr|irm)\b",
+# Being able to run processes at all, imports included: an alias such as
+# "from subprocess import run as r" hides the call itself.
+_SETUP_PROCESS_CAPABILITY = compile_all(
+    r"\bsubprocess\b",
+    r"\bos\.(?:system|popen|exec\w*|spawn\w*)\b",
+    r"\bfrom[ \t]+os[ \t]+import[ \t]*(?:\([^)]*?|[^\n]*?)\b(?:system|popen|exec\w*|spawn\w*)\b",
+)
+# "curl-config" is a build helper (e.g. pycurl), not a download.
+_DOWNLOAD_TOOL = re.compile(
+    r"\b(?:curl|wget|powershell|pwsh|invoke-webrequest|invoke-restmethod|iwr|irm)\b(?!-config\b)",
     re.IGNORECASE,
 )
+_URL = re.compile(r"https?://", re.IGNORECASE)
 _SETUP_DYNAMIC_CODE = compile_all(r"\b(?:exec|eval)\s*\(", r"\b__import__\s*\(")
 _SETUP_DECODE = re.compile(
     r"\b(?:b64decode|b32decode|b85decode|a85decode|decompress|fromhex|unhexlify|"
@@ -107,23 +115,43 @@ class SetupPyRule(Rule):
 
     def hits(self, file: FileEntry, context: ScanContext) -> Iterator[Hit]:
         decodes = bool(_SETUP_DECODE.search(file.content))
-        last_line = 0
+        found: dict[int, Hit] = {}
         for lineno, segment in text.iter_scan_lines(file.content):
             # Only calls are reported; a bare import does nothing by itself.
-            if lineno == last_line or _IMPORT_ONLY.match(segment):
+            if lineno in found or _IMPORT_ONLY.match(segment):
                 continue
             hit = self._classify(segment, decodes)
             if hit is None:
                 continue
             note, weight = hit
-            last_line = lineno
-            yield Hit(line=lineno, text=segment, weight=weight, note=note)
+            found[lineno] = Hit(line=lineno, text=segment, weight=weight, note=note)
+        if not any(h.weight == self.escalated_weight for h in found.values()):
+            download = self._file_level_download(file.content)
+            if download is not None:
+                found[download.line] = download
+        yield from sorted(found.values(), key=lambda h: h.line)
+
+    def _file_level_download(self, content: str) -> Hit | None:
+        """A file that can run processes and names a download tool anywhere. Catches
+        calls through aliases (r = subprocess.run) that the per-line check misses.
+        URLs do not count here: nearly every setup.py has url="https://..."."""
+        if not any(p.search(content) for p in _SETUP_PROCESS_CAPABILITY):
+            return None
+        for lineno, segment in text.iter_scan_lines(content):
+            if _DOWNLOAD_TOOL.search(segment):
+                return Hit(
+                    line=lineno,
+                    text=segment,
+                    weight=self.escalated_weight,
+                    note="can run processes and names a download tool",
+                )
+        return None
 
     def _classify(self, segment: str, decodes: bool) -> tuple[str, int | None] | None:
         if any(p.search(segment) for p in _SETUP_NETWORK):
             return "uses the network during install", self.escalated_weight
         if any(p.search(segment) for p in _SETUP_PROCESS):
-            if _SETUP_DOWNLOAD.search(segment):
+            if _URL.search(segment) or _DOWNLOAD_TOOL.search(segment):
                 return "runs a process that downloads during install", self.escalated_weight
             return "runs a process during install", None
         if any(p.search(segment) for p in _SETUP_DYNAMIC_CODE):

