@@ -9,7 +9,22 @@ from gitray.engine import text
 from gitray.engine.models import FileEntry, RepoRef, ScanContext
 from gitray.engine.rules.base import Hit, Rule
 
-ARCHIVE_EXTENSIONS = (".zip", ".exe", ".msi", ".rar", ".7z")
+ARCHIVE_EXTENSIONS = (
+    ".zip",
+    ".rar",
+    ".7z",
+    ".iso",
+    # Windows
+    ".exe",
+    ".msi",
+    ".msix",
+    ".scr",
+    # macOS
+    ".dmg",
+    ".pkg",
+    # Java (runs on any OS)
+    ".jar",
+)
 SHORTENERS = frozenset(
     {
         "bit.ly",

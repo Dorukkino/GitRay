@@ -1,0 +1,5 @@
+# path: tools.sh
+# ---
+curl -s https://example.invalid/data.json | /usr/bin/jq .
+curl -s https://example.invalid/list.txt | /bin/grep shell
+curl -s https://example.invalid/x | env > out.txt

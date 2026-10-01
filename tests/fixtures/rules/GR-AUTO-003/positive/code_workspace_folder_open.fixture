@@ -1,0 +1,11 @@
+# path: demo.code-workspace
+# lines: 5
+# weight: 35
+# ---
+{
+  "folders": [{ "path": "." }],
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [{ "label": "x", "command": "node x.js", "runOptions": { "runOn": "folderOpen" } }]
+  }
+}

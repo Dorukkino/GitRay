@@ -1,0 +1,6 @@
+# path: run.sh
+# lines: 2
+# weight: 45
+# ---
+#!/bin/sh
+echo ZWNobyBnaXRyYXktdGVzdAo= | base64 -d | /bin/sh

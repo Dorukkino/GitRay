@@ -6,8 +6,12 @@ from gitray.engine.rules.base import RegexRule, compile_all
 
 # A pipe that is not part of "||".
 _PIPE = r"(?<!\|)\|(?!\|)"
-_SHELL = r"(?:sudo\s+(?:-\S+\s+)*)?(?:ba|z|da|k)?sh\b"
-_INTERP = r"(?:sudo\s+)?(?:python[0-9.]*|perl|ruby|node)\b"
+# Optional /bin/, /usr/bin/ or /usr/local/bin/ prefix.
+_BIN = r"(?:(?:/usr(?:/local)?)?/bin/)?"
+# sudo [flags] [path]env [flags] [path] in front of the shell or interpreter.
+_LAUNCHER = r"(?:sudo\s+(?:-\S+\s+)*)?" + _BIN + r"(?:env\s+(?:-\S+\s+)*)?" + _BIN
+_SHELL = _LAUNCHER + r"(?:ba|z|da|k)?sh\b"
+_INTERP = _LAUNCHER + r"(?:python[0-9.]*|perl|ruby|node)\b"
 
 DECODE_EXEC = RegexRule(
     id="GR-CODE-001",

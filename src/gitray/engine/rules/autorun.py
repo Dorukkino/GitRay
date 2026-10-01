@@ -10,6 +10,8 @@ from gitray.engine.models import FileEntry, ScanContext
 from gitray.engine.rules.base import Hit, RegexRule, Rule, compile_all
 
 LIFECYCLE_SCRIPTS = (
+    # npm still runs prepublish on a local "npm install".
+    "prepublish",
     "preinstall",
     "install",
     "postinstall",
@@ -132,7 +134,8 @@ VSCODE_FOLDER_OPEN = RegexRule(
     title="VS Code task runs when the folder is opened",
     category="autorun",
     weight=35,
-    applies_to=(".vscode/tasks.json",),
+    # Workspace files can define the same tasks under "tasks".
+    applies_to=(".vscode/tasks.json", "*.code-workspace"),
     why=(
         'A task with "runOn": "folderOpen" starts automatically when the '
         "repository is opened in VS Code (once the workspace is trusted). This is "
