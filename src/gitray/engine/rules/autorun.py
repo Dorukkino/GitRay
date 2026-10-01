@@ -5,8 +5,15 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-from gitray.engine import text
+from gitray.engine import pyflow, text
 from gitray.engine.models import FileEntry, ScanContext
+from gitray.engine.pyflow import (
+    DOWNLOAD_TOOL,
+    PROCESS_CAPABILITY,
+    URL,
+    FlowKind,
+    FlowResult,
+)
 from gitray.engine.rules.base import Hit, RegexRule, Rule, compile_all
 
 LIFECYCLE_SCRIPTS = (
@@ -84,19 +91,6 @@ _SETUP_PROCESS = compile_all(
     r"\bsubprocess\.\w+",
     r"\bos\.(?:system|popen|exec\w*|spawn\w*)\s*\(",
 )
-# Being able to run processes at all, imports included: an alias such as
-# "from subprocess import run as r" hides the call itself.
-_SETUP_PROCESS_CAPABILITY = compile_all(
-    r"\bsubprocess\b",
-    r"\bos\.(?:system|popen|exec\w*|spawn\w*)\b",
-    r"\bfrom[ \t]+os[ \t]+import[ \t]*(?:\([^)]*?|[^\n]*?)\b(?:system|popen|exec\w*|spawn\w*)\b",
-)
-# "curl-config" is a build helper (e.g. pycurl), not a download.
-_DOWNLOAD_TOOL = re.compile(
-    r"\b(?:curl|wget|powershell|pwsh|invoke-webrequest|invoke-restmethod|iwr|irm)\b(?!-config\b)",
-    re.IGNORECASE,
-)
-_URL = re.compile(r"https?://", re.IGNORECASE)
 _SETUP_DYNAMIC_CODE = compile_all(r"\b(?:exec|eval)\s*\(", r"\b__import__\s*\(")
 _SETUP_DECODE = re.compile(
     r"\b(?:b64decode|b32decode|b85decode|a85decode|decompress|fromhex|unhexlify|"
@@ -109,36 +103,87 @@ _IMPORT_ONLY = re.compile(r"^\s*(?:import\s|from\s+\S+\s+import\s)")
 class SetupPyRule(Rule):
     """Running a process (e.g. reading the compiler version) or exec() (e.g.
     reading __version__) is common in builds. Network use, a process that
-    downloads, or executing decoded data makes it an install-time payload."""
+    downloads, or executing decoded data makes it an install-time payload.
+
+    Process calls are judged by data flow (engine/pyflow.py) when the file parses:
+    a download tool or URL must reach a process call, so tool names in comments,
+    messages or metadata do not count. Dynamic code next to process execution
+    counts as a download, since the flow cannot be verified. Files that do not
+    parse fall back to per-line and file-level regexes."""
 
     escalated_weight: int
 
     def hits(self, file: FileEntry, context: ScanContext) -> Iterator[Hit]:
+        flow = None if file.truncated else pyflow.analyze(file.content)
+        analyzed = flow is not None and not flow.incomplete
         decodes = bool(_SETUP_DECODE.search(file.content))
         found: dict[int, Hit] = {}
         for lineno, segment in text.iter_scan_lines(file.content):
             # Only calls are reported; a bare import does nothing by itself.
             if lineno in found or _IMPORT_ONLY.match(segment):
                 continue
-            hit = self._classify(segment, decodes)
+            hit = self._classify(segment, decodes, processes=not analyzed)
             if hit is None:
                 continue
             note, weight = hit
             found[lineno] = Hit(line=lineno, text=segment, weight=weight, note=note)
-        if not any(h.weight == self.escalated_weight for h in found.values()):
-            download = self._file_level_download(file.content)
-            if download is not None:
-                found[download.line] = download
+        if flow is not None and analyzed:
+            lines = text.split_lines(file.content)
+            for flow_hit in self._flow_hits(flow, lines):
+                self._keep_highest(found, flow_hit)
+        else:
+            if not any(h.weight == self.escalated_weight for h in found.values()):
+                download = self._file_level_download(file.content)
+                if download is not None:
+                    found[download.line] = download
+            if flow is not None and flow.incomplete and self._can_run_processes(file.content):
+                first = text.split_lines(file.content)[:1] or [""]
+                self._keep_highest(
+                    found,
+                    Hit(
+                        line=1,
+                        text=first[0],
+                        weight=self.escalated_weight,
+                        note="can run processes and is too large or complex to analyze",
+                    ),
+                )
         yield from sorted(found.values(), key=lambda h: h.line)
+
+    def _flow_hits(self, flow: FlowResult, lines: list[str]) -> Iterator[Hit]:
+        for h in flow.hits:
+            if h.kind is FlowKind.DOWNLOAD:
+                note = "a download tool or URL reaches a process call during install"
+                weight: int | None = self.escalated_weight
+            elif h.kind is FlowKind.OPAQUE_DATA:
+                note = "a process runs file contents or generated strings during install"
+                weight = self.escalated_weight
+            elif h.kind is FlowKind.PROCESS:
+                note, weight = "runs a process during install", None
+            elif flow.can_run_processes:
+                note = "dynamic code next to process execution; the data flow cannot be verified"
+                weight = self.escalated_weight
+            else:
+                continue
+            line = lines[h.line - 1] if 0 < h.line <= len(lines) else ""
+            yield Hit(line=h.line, text=line, weight=weight, note=note)
+
+    def _keep_highest(self, found: dict[int, Hit], hit: Hit) -> None:
+        old = found.get(hit.line)
+        if old is None or (hit.weight or self.weight) > (old.weight or self.weight):
+            found[hit.line] = hit
+
+    @staticmethod
+    def _can_run_processes(content: str) -> bool:
+        return any(p.search(content) for p in PROCESS_CAPABILITY)
 
     def _file_level_download(self, content: str) -> Hit | None:
         """A file that can run processes and names a download tool anywhere. Catches
         calls through aliases (r = subprocess.run) that the per-line check misses.
         URLs do not count here: nearly every setup.py has url="https://..."."""
-        if not any(p.search(content) for p in _SETUP_PROCESS_CAPABILITY):
+        if not self._can_run_processes(content):
             return None
         for lineno, segment in text.iter_scan_lines(content):
-            if _DOWNLOAD_TOOL.search(segment):
+            if DOWNLOAD_TOOL.search(segment):
                 return Hit(
                     line=lineno,
                     text=segment,
@@ -147,11 +192,13 @@ class SetupPyRule(Rule):
                 )
         return None
 
-    def _classify(self, segment: str, decodes: bool) -> tuple[str, int | None] | None:
+    def _classify(
+        self, segment: str, decodes: bool, *, processes: bool
+    ) -> tuple[str, int | None] | None:
         if any(p.search(segment) for p in _SETUP_NETWORK):
             return "uses the network during install", self.escalated_weight
-        if any(p.search(segment) for p in _SETUP_PROCESS):
-            if _URL.search(segment) or _DOWNLOAD_TOOL.search(segment):
+        if processes and any(p.search(segment) for p in _SETUP_PROCESS):
+            if URL.search(segment) or DOWNLOAD_TOOL.search(segment):
                 return "runs a process that downloads during install", self.escalated_weight
             return "runs a process during install", None
         if any(p.search(segment) for p in _SETUP_DYNAMIC_CODE):

