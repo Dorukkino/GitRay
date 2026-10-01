@@ -1,0 +1,4 @@
+# path: tools/run.py
+# ---
+import subprocess
+subprocess.run(['ls'])

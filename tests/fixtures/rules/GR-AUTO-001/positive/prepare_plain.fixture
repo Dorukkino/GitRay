@@ -1,0 +1,10 @@
+# path: package.json
+# lines: 4
+# weight: 15
+# ---
+{
+  "name": "demo",
+  "scripts": {
+    "prepare": "husky install"
+  }
+}

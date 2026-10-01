@@ -1,0 +1,5 @@
+# path: setup.py
+# lines: 1, 2
+# ---
+from urllib.request import urlopen
+urlopen("https://example.invalid/x")

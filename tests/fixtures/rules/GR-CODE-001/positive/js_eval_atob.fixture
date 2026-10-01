@@ -1,0 +1,5 @@
+# path: index.js
+# lines: 2
+# ---
+const p = "Y29uc29sZS5sb2coImdpdHJheS10ZXN0Iik=";
+eval(atob(p));

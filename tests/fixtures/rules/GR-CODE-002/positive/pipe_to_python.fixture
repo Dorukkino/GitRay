@@ -1,0 +1,5 @@
+# path: Makefile
+# lines: 2
+# ---
+install:
+	curl -sSL https://example.invalid/get.py | python3 -

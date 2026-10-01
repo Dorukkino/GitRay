@@ -1,0 +1,4 @@
+# path: lib/run.js
+# lines: 1
+# ---
+new Function(Buffer.from("Y29uc29sZS5sb2coImdpdHJheS10ZXN0Iik=", "base64").toString())();

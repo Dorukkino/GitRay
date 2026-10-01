@@ -1,0 +1,5 @@
+# path: vendor.min.js
+# lines: 1
+# weight: 45
+# ---
+!function(){eval(atob("Y29uc29sZS5sb2coImdpdHJheS10ZXN0Iik="))}();

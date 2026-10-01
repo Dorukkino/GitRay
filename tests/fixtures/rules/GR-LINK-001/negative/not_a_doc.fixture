@@ -1,0 +1,3 @@
+# path: src/links.py
+# ---
+URL = "https://bit.ly/3abcdef"

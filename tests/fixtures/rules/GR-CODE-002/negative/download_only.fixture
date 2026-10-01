@@ -1,0 +1,4 @@
+# path: fetch.sh
+# ---
+curl -o out.tar.gz https://example.invalid/out.tar.gz
+curl -s https://example.invalid/health || sh -c 'echo down'

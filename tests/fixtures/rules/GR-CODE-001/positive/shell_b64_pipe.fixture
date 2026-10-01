@@ -1,0 +1,5 @@
+# path: setup.sh
+# lines: 2
+# ---
+#!/bin/sh
+echo ZWNobyBnaXRyYXktdGVzdA== | base64 -d | sh

@@ -1,0 +1,5 @@
+# path: packages/a/package.json
+# lines: 1
+# weight: 35
+# ---
+{"scripts": {"preinstall": "node -e \"require('child_process')\""}}

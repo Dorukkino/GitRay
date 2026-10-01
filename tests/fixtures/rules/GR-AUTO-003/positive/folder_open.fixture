@@ -1,0 +1,14 @@
+# path: .vscode/tasks.json
+# lines: 7
+# weight: 35
+# ---
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "setup",
+      "command": "node scripts/x.js",
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}

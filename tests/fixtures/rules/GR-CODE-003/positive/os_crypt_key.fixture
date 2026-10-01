@@ -1,0 +1,4 @@
+# path: key.py
+# lines: 1
+# ---
+key = json.load(open(local_state))["os_crypt"]["encrypted_key"]

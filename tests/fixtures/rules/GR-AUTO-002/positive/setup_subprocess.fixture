@@ -1,0 +1,8 @@
+# path: setup.py
+# lines: 2, 3
+# weight: 30
+# ---
+from setuptools import setup
+import subprocess
+subprocess.run(["echo", "gitray-test"])
+setup(name="demo")

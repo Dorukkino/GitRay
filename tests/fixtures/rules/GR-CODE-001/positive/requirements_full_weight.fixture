@@ -1,0 +1,6 @@
+# path: requirements.txt
+# lines: 2
+# weight: 45
+# ---
+requests==2.32.0
+# exec(__import__("base64").b64decode("cHJpbnQoImdpdHJheS10ZXN0Iik="))

@@ -1,0 +1,7 @@
+# path: docs/guide.md
+# lines: 3
+# weight: 5
+# ---
+# Guide
+
+Run `exec(base64.b64decode("cHJpbnQoImdpdHJheS10ZXN0Iik="))` to see the demo.

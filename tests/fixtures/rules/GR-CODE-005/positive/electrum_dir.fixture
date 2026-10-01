@@ -1,0 +1,5 @@
+# path: e.py
+# lines: 1, 2
+# ---
+p = appdata + "\\Electrum\\wallets"
+q = home + "/.electrum/wallets"
