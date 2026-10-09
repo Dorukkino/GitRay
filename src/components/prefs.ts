@@ -1,5 +1,5 @@
 /**
- * Small per-visitor preferences kept in localStorage (theme, the cursor spider).
+ * Small per-visitor preferences kept in localStorage (the theme).
  * Read with usePref, which renders the default on the server and the saved
  * value in the browser without a hydration error.
  */
@@ -53,7 +53,6 @@ export type Theme = "system" | "light" | "dark";
 
 // public/theme.js reads the same key before the first paint.
 export const themePref = createPref<Theme>("gitray-theme", "system", ["system", "light", "dark"]);
-export const spiderPref = createPref<"on" | "off">("gitray-spider", "on", ["on", "off"]);
 
 export function usePref<T extends string>(pref: Pref<T>): T {
   return useSyncExternalStore(pref.subscribe, pref.get, pref.getServer);

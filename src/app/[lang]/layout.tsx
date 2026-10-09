@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 
 import { Providers } from "@/components/Providers";
 import { SiteHeader } from "@/components/SiteHeader";
-import { SpiderToggle, XraySpider } from "@/components/XraySpider";
 import { LOCALES, isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 
@@ -44,19 +43,11 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           <footer className="mt-12 border-t border-line/80 py-8 text-sm text-subtle">
             <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-xl">{dict.footer.note}</p>
-              <div className="flex items-center gap-4">
-                <SpiderToggle />
-                <a
-                  href="https://github.com/Dorukkino/GitRay"
-                  className="text-muted transition-colors hover:text-fg"
-                  rel="noopener noreferrer"
-                >
-                  {dict.footer.source}
-                </a>
-              </div>
+              <a href="https://github.com/Dorukkino/GitRay" className="text-muted transition-colors hover:text-fg" rel="noopener noreferrer">
+                {dict.footer.source}
+              </a>
             </div>
           </footer>
-          <XraySpider />
         </Providers>
       </body>
     </html>

@@ -7,24 +7,15 @@ import { usePathname } from "next/navigation";
 import { localePath } from "@/i18n/config";
 import { useI18n } from "@/i18n/provider";
 
+import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
 
-/** The logo turns once like a coin, rests, and turns again. */
-function BrandLogo() {
+function HomeLink() {
   const { locale, dict } = useI18n();
   return (
-    <Link href={localePath(locale)} aria-label={dict.logo} className="shrink-0 [perspective:700px]">
-      <motion.img
-        src="/brand/gitray-logo.svg"
-        alt="GitRay"
-        width={108}
-        height={40}
-        className="h-10 w-[108px] rounded-lg shadow-md ring-1 shadow-black/10 ring-black/5"
-        animate={{ rotateY: 360 }}
-        transition={{ duration: 1.6, ease: [0.65, 0, 0.35, 1], repeat: Infinity, repeatDelay: 4.5, delay: 1.2 }}
-        whileHover={{ scale: 1.04 }}
-      />
+    <Link href={localePath(locale)} aria-label={dict.logo} className="shrink-0">
+      <BrandLogo className="h-11 w-auto" />
     </Link>
   );
 }
@@ -41,7 +32,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-bg/75 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-        <BrandLogo />
+        <HomeLink />
         <nav aria-label={dict.nav.label} className="order-3 -mx-1 flex w-full items-center gap-1 overflow-x-auto text-sm md:order-none md:w-auto">
           {nav.map((item) => {
             const active = item.active ? item.active(pathname) : pathname.startsWith(item.href);

@@ -13,8 +13,6 @@ export const tr: Dictionary = {
   footer: {
     note: "GitRay taradığı kodu asla klonlamaz, derlemez ya da çalıştırmaz. Sonuçlar sezgiseldir, garanti değildir.",
     source: "GitHub'daki kaynak kodu",
-    hideSpider: "Örümceği gizle",
-    showSpider: "Örümceği göster",
   },
   theme: { label: "Tema", system: "Sistem", light: "Açık", dark: "Koyu" },
   language: { label: "Dil" },
