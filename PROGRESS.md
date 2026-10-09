@@ -4,7 +4,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 
 ## Şu anki durum
 
-**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor.
+**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında listeleniyor.
 
 | Parça | Durum |
 | --- | --- |
@@ -13,17 +13,46 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Web sitesi: arama, sonuç, demo, kurallar, ilerleme | Hazır |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
-| Testler | 13 dosya, 477 test, motor satır kapsamı yaklaşık %96 |
-| Vercel'e deploy | Kod hazır; deploy'u kullanıcı yapacak (aşağıdaki adımlar) |
-| Kalıcı depolama, VirusTotal API, OSV | Yok (dış servis: önce kullanıcıya sorulacak) |
+| Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
+| Testler | 15 dosya, 494 test, motor satır kapsamı yaklaşık %96 |
+| Vercel'e deploy | Kullanıcı başladı (import); adımlar aşağıda |
+| VirusTotal API, OSV | Yok (dış servis: önce kullanıcıya sorulacak) |
+
+## Yayına alma rehberi (kullanıcı için, adım adım)
+
+**Adım 1: Yeni kodu `main` dalına al.** Vercel varsayılan olarak `main` dalını yayınlar; `main`'de hâlâ eski Python kodu var. Vercel'in import ekranında framework "Other" görünüyorsa ya da ayar istiyorsa sebebi budur.
+1. https://github.com/Dorukkino/GitRay/compare/main...claude/sleepy-cray-iz5dsv adresini aç.
+2. "Create pull request" → tekrar "Create pull request" → "Merge pull request" → "Confirm merge".
+
+**Adım 2: GitHub token oluştur** (saatte 60 yerine 5.000 GitHub isteği; yaklaşık 1.000 yeni tarama).
+1. https://github.com/settings/personal-access-tokens/new adresini aç (yol: profil fotoğrafı → Settings → en altta Developer settings → Personal access tokens → Fine-grained tokens → Generate new token).
+2. Token name: `gitray-vercel`. Expiration: en uzun seçenek (süre dolunca yenisini oluşturup Vercel'de değiştirmek gerekir).
+3. Resource owner: kendi hesabın. Repository access: **Public repositories**.
+4. Permissions kısmına dokunma (hiçbir izin gerekmez).
+5. "Generate token" → `github_pat_...` ile başlayan değeri kopyala. Yalnızca bir kez gösterilir. Kimseyle paylaşma, koda ya da sohbete yapıştırma.
+
+**Adım 3: Vercel projesini kur.**
+1. vercel.com → "Add New… → Project" → `Dorukkino/GitRay` → Import.
+2. "Configure Project" ekranında: Framework Preset **Next.js**, Root Directory `./`, Build ve Output ayarlarına dokunma.
+3. "Environment Variables" bölümünü aç: Key `GITHUB_TOKEN`, Value kopyaladığın token → Add.
+4. "Deploy". Proje zaten oluşturulduysa: Project → Settings → Environment Variables'tan ekle, sonra Deployments → son deploy → "⋯" → Redeploy (ortam değişkenleri yalnızca yeni deploy'da etkili olur).
+
+**Adım 4: Veritabanını bağla** (Safe Zone ve Scammer listeleri için).
+1. Vercel'de projeyi aç → **Storage** sekmesi → "Create Database" → **Neon** (Serverless Postgres) → Continue.
+2. Plan: **Free**. Bölge: Vercel fonksiyonlarının varsayılan bölgesine yakın olan **Washington, D.C. (US East)**. Bir isim ver → Create.
+3. "Connect Project" ekranında `gitray` projesini seç, tüm ortamları (Production, Preview, Development) işaretle → Connect. `DATABASE_URL` otomatik eklenir.
+4. Deployments → Redeploy. Tablo ilk taramada kendiliğinden oluşur; ayrıca bir şey yapmaya gerek yok.
+
+**Adım 5: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 30 saniye içinde Safe Zone'da görünür.
 
 ## Yol haritası
 
 - [x] **Aşama 0: Sıfırdan başlangıç.** Eski Python kodu silindi, Next.js + TypeScript iskeleti kuruldu.
 - [x] **Aşama 1: MVP.** Motor, 27 kural, web arayüzü, API, CLI, demo rapor, testler, `CLAUDE.md` ve `PROGRESS.md`.
-- [ ] **Aşama 2: Yayına alma.** Vercel'e deploy (kullanıcı), `GITHUB_TOKEN` ortam değişkeni, gerçek repolarda deneme ve kalibrasyon (aşağıdaki listeyle).
+- [x] **Aşama 1.5: Safe Zone ve Scammer.** Taramaların Postgres'e kaydedilmesi, iki liste sayfası, veritabanından önbellek, "Scan again now".
+- [ ] **Aşama 2: Yayına alma.** Dalın `main`'e birleştirilmesi, Vercel'e deploy, `GITHUB_TOKEN`, Neon veritabanı, gerçek repolarda deneme ve kalibrasyon (aşağıdaki listeyle).
 - [ ] **Aşama 3: Daha derin analiz.** Bağımlılıklar için OSV, release digest'leri için VirusTotal API (kotaya dikkat), commit geçmişi sinyalleri (repo'dan eski commit tarihleri), typosquatting (popüler paket adlarına benzeyen bağımlılıklar), `setup.py` için `ast` tabanlı veri akışı analizinin geri getirilmesi.
-- [ ] **Aşama 4: Kalıcılık ve paylaşım.** Tarama geçmişi ve paylaşılabilir sonuç linkleri için ücretsiz bir veritabanı (karar bekliyor), ortak önbellek, kalıcı hız sınırı, kötüye kullanıma karşı Cloudflare Turnstile.
+- [ ] **Aşama 4: Paylaşım ve kötüye kullanıma karşı koruma.** Listelerde sayfalama ve arama, tarama geçmişi (aynı reponun eski sonuçları), veritabanında kalıcı hız sınırı, Cloudflare Turnstile.
 - [ ] **Aşama 5: Vitrin.** README'ye ekran görüntüleri ve mimari diyagram, "nasıl çalışır" ve "sınırlamalar" sayfaları, Open Graph görselleri.
 - [ ] **Aşama 6 (opsiyonel):** Tarayıcı eklentisi (GitHub sayfasında rozet), GitHub Action, Gradle/Podfile/Makefile kuralları, LLM ile bulgu özeti.
 
@@ -70,16 +99,32 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 
 **Bu oturumda yaşanan ve düzeltilen hata:** `CLAUDE.md` yazılırken örnek olarak yazılan bir `\u` kaçış dizisi, araç çağrısının JSON katmanında gerçek bir görünmez karaktere (U+2028) dönüştü. Fark edilip düzeltildi; `tests/security.test.ts` artık `CLAUDE.md`, `PROGRESS.md` ve `README.md`'yi de denetliyor.
 
+### 9 Ekim 2026 (2. oturum): Safe Zone, Scammer ve veritabanı
+
+**İstek:** Kullanıcı Vercel'de import'a bastı; token'ın ne olduğunu ve nereden alınacağını, Vercel'in istediği ayarları sordu. İki yeni sayfa istedi: **Safe Zone** (son taranan ve güvenilir repolar) ve **Scammer** (zararlı dosya bulunan repolar); bunun için sonuçların kaydedilmesi gerekiyor. Saatte 12 taramanın az olduğunu söyledi.
+
+**Kararlar:**
+- Veritabanı: **Neon Postgres, ücretsiz plan.** Vercel'in Storage sekmesinden iki tıkla eklenir, `DATABASE_URL`'i kendisi ayarlar, sunucusuz ortama uygun HTTP sürücüsü var. Eski planda da PostgreSQL seçilmişti.
+- Her reponun yalnızca son taraması saklanır; yeniden tarama kaydın üzerine yazar. Böylece düzeltilen bir repo Scammer'dan çıkar.
+- Safe Zone = son taraması **Temiz** olanlar; Scammer = son taraması **Tehlikeli** (≥70) olanlar. Şüpheli ve Eksik hiçbir listeye girmez: yanlış alarm riski yüksek, herkese açık bir listede birini haksız yere "scammer" göstermemek için.
+- Scammer sayfasında sonucun otomatik olduğu, güvenlik araçlarının da listeye girebileceği açıkça yazıyor ve yanlış alarm bildirme linki var.
+- 12 tarama sınırı yalnızca tokensız durum içindi. Tokenla saatte yaklaşık 1.000 yeni tarama yapılabilir. Son 1 saatte taranmış bir repo veritabanından gelir ve GitHub kotası harcamaz. "Scan again now" düğmesi (`fresh=1`) beklemeden yeniden tarar.
+
+**Yapılanlar:**
+- `src/lib/db.ts`, `src/lib/scan-store.ts` (Postgres deposu + veritabanı yokken boş depo), `src/lib/lists.ts`.
+- `scan-service`: veritabanından önbellek (1 saat), taramadan sonra kayıt; veritabanı hatası taramayı bozmaz.
+- `/safe-zone` ve `/scammer` sayfaları (30 saniyede bir yenilenir), menü linkleri, tarama sayfasında "Scanned … ago · Scan again now" çubuğu.
+- Testler: depo testleri PGlite ile gerçek Postgres üzerinde, servis testleri (önbellek, `fresh`, veritabanı hatası), liste bileşeni (HTML kaçışı) testleri. Toplam 494 test.
+- `.env.example`'a `DATABASE_URL` eklendi; yayına alma rehberi yazıldı.
+
+**Doğrulama:** Lint, tip kontrolü, 494 test ve production build temiz. Yerelde veritabanı olmadan iki sayfa "database not connected" mesajı gösteriyor, tarama ve yeniden tarama çalışıyor, konsolda hata yok. Neon'a gerçek bağlantı bu ortamda denenemedi (hesap yok); aynı SQL PGlite üzerinde test edildi.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Vercel'e deploy** (kullanıcı, yaklaşık 5 dakika):
-   1. https://vercel.com adresine GitHub hesabıyla giriş yap (Hobby planı ücretsiz, ticari olmayan kullanım içindir).
-   2. "Add New → Project" ile `Dorukkino/GitRay` reposunu içe aktar. Framework otomatik olarak Next.js seçilir; diğer ayarlar varsayılan kalabilir.
-   3. "Environment Variables" kısmına `GITHUB_TOKEN` ekle: GitHub → Settings → Developer settings → Fine-grained tokens → yeni token, "Public repositories (read-only)", ek izin gerekmez. Tokensız da çalışır ama saatte yalnızca 60 GitHub isteği (12 tarama) yapılabilir.
-   4. Deploy. Bu çalışma `claude/sleepy-cray-iz5dsv` dalında; Vercel bu dal için bir "preview" adresi üretir. Kalıcı adres için dal `main`'e birleştirilmeli.
+1. **Yayına alma** (yukarıdaki rehber, kullanıcı).
 2. **Gerçek repolarda kalibrasyon.** En az şu repolar taranıp sonuçlar bu dosyaya yazılmalı: `octocat/Hello-World` (Temiz beklenir), `nvm-sh/nvm` (README'deki `curl | bash` belgede olduğu için puan almamalı), `pallets/flask`, `microsoft/vscode`, `pypa/pip`, `NVIDIA/apex` (`setup.py` alt süreç çalıştırıyor: 10 puan, Temiz beklenir). Yanlış alarm veren kurallar ayarlanmalı.
-3. **Güvenlik araçlarının kendi test dosyaları.** GitRay gibi tarayıcıların fixture'ları kaçınılmaz olarak Tehlikeli çıkıyor. Seçenekler: `tests/fixtures/` gibi yollar için bilgi notu (puanı düşürmeden), ya da kullanıcıya "bu bulgular test dosyalarında" diye gruplama. Klasöre göre puan düşürmek saldırganın payload'ı `tests/` içine saklamasına izin verir; bu yüzden puan düşürülmemeli.
-4. **Kalıcılık kararı** (kullanıcıya sorulacak): Neon/Supabase ücretsiz PostgreSQL ile tarama geçmişi ve paylaşılabilir sonuç linkleri, ya da depolamasız devam.
+3. **Liste kalitesi.** Scammer listesi herkese açık olduğu için yanlış alarmlar orada daha görünür olur. Kalibrasyondan sonra gerekirse listeye girme eşiği yükseltilebilir ya da çok yıldızlı / eski repolar için ek kontrol eklenebilir.
+4. **Güvenlik araçlarının kendi test dosyaları.** GitRay gibi tarayıcıların fixture'ları kaçınılmaz olarak Tehlikeli çıkıyor. Seçenekler: `tests/fixtures/` gibi yollar için bilgi notu (puanı düşürmeden), ya da kullanıcıya "bu bulgular test dosyalarında" diye gruplama. Klasöre göre puan düşürmek saldırganın payload'ı `tests/` içine saklamasına izin verir; bu yüzden puan düşürülmemeli.
 5. **VirusTotal ve OSV** (kullanıcıya sorulacak): release digest'lerini VirusTotal API ile otomatik sorgulama (günde 500 istek; kota dolarsa "atlandı"), `package.json` / `requirements.txt` bağımlılıklarını OSV ile kontrol.
 
 ## Bilinen sınırlamalar ve kalibrasyon notları
@@ -92,5 +137,6 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - `GR-LINK-001`: Kendi web sitesinden `.exe`/`.dmg` dağıtan meşru projeler 20 puan alır (tek başına Temiz).
 - Şifreli RAR yalnızca başlıkları da şifreliyse (`rar -hp`) tespit edilir; 7z şifrelemesi tespit edilmiyor.
 - İkili dosyalarda yalnızca ilk 1 MB okunur; ZIP içindeki dosya adları yalnızca bu kısımdaki yerel başlıklardan okunur.
-- Hız sınırı ve önbellek sunucu örneği başınadır (Vercel'de örnekler değişebilir); kalıcı çözüm Aşama 4'te.
+- Hız sınırı sunucu örneği başınadır (Vercel'de örnekler değişebilir); kalıcı çözüm Aşama 4'te. Önbellek artık veritabanında da var (1 saat).
+- Listeler yalnızca son 50 kaydı gösterir; sayfalama ve arama yok.
 - Proxy kısıtı yüzünden bu ortamda sahip hesap yaşı (`/users/...`) okunamıyor; raporda "unknown" görünüyor. Vercel'de çalışır.

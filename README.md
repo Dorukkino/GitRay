@@ -19,6 +19,8 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 
 Each rule adds its strongest finding once to a 0-100 score: **clean** below 30, **suspicious** from 30, **dangerous** from 70. When a safety limit stops the scan, the result is **incomplete**, never clean.
 
+The latest result of every scanned repository is stored. Clean repositories are listed in the **Safe Zone**, dangerous ones in the **Scammer** list (automated results, with a link to report false positives).
+
 ## How it works
 
 1. Repository metadata, owner age and release digests come from the GitHub API. Release files are never downloaded; their SHA-256 can be looked up on VirusTotal.
@@ -37,20 +39,26 @@ npm run scan -- owner/repo     # command-line scan (--json for JSON)
 npm run check                  # lint, typecheck, tests
 ```
 
-Optional: put `GITHUB_TOKEN=<fine-grained token, public read-only>` in `.env.local` to raise the GitHub API limit from 60 to 5,000 requests per hour (a scan uses 5).
+Optional settings in `.env.local` (see `.env.example`):
+
+- `GITHUB_TOKEN`: fine-grained token with read-only access to public repositories. Raises the GitHub API limit from 60 to 5,000 requests per hour (a new scan uses 5; a result stored in the last hour uses none).
+- `DATABASE_URL`: Postgres connection string (Neon). Without it, scans work but nothing is stored and the lists stay empty.
 
 ### Deploy to Vercel
 
-Import the repository on vercel.com (framework: Next.js, no extra settings) and add `GITHUB_TOKEN` as an environment variable.
+1. Import the repository on vercel.com (framework: Next.js, no extra settings) and add `GITHUB_TOKEN` as an environment variable.
+2. In the project's Storage tab, create a Neon Postgres database (free plan) and connect it to the project; Vercel adds `DATABASE_URL`. The table is created on first use.
+3. Redeploy.
 
 ## API
 
-`GET /api/scan?repo=owner/name` returns the JSON report (`schemaVersion: 1`). Errors: `{ "error": { "code", "message" } }` with HTTP 400, 403, 404, 422, 429, 502 or 503.
+`GET /api/scan?repo=owner/name` returns the JSON report (`schemaVersion: 1`). A result stored in the last hour is returned unless `&fresh=1` is added. Errors: `{ "error": { "code", "message" } }` with HTTP 400, 403, 404, 422, 429, 502 or 503.
 
 ## Project layout
 
 - `src/engine/`: the scanning engine (pure TypeScript, Node built-ins only)
 - `src/app/`, `src/components/`: Next.js site and API
+- `src/lib/`: API service (cache, rate limit), Postgres store, demo data
 - `src/cli.ts`: command-line scanner
 - `tests/`: Vitest tests and harmless rule fixtures
 

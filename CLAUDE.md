@@ -20,8 +20,8 @@ Portföy projesi, ticari değil. Hedef: çalışan bir MVP, temiz mimari, açık
 
 ## Maliyet kısıtı
 Her şey ücretsiz olmalı; yalnızca domain (ve ileride gerekirse VPS) ücretli olabilir.
-Şu anki ücretsiz bileşenler: Vercel Hobby planı (ticari olmayan kullanım), GitHub API (kişisel token, yalnızca public okuma), npm paketleri.
-Ücretli bir API, SaaS veya kütüphane ekleme. Yeni bir dış servis (veritabanı, KV, VirusTotal API, OSV) eklemeden önce kullanıcıya sor.
+Şu anki ücretsiz bileşenler: Vercel Hobby planı (ticari olmayan kullanım), GitHub API (kişisel token, yalnızca public okuma), Neon Postgres ücretsiz planı (Vercel'in Storage sekmesinden eklenir, 0,5 GB), npm paketleri.
+Ücretli bir API, SaaS veya kütüphane ekleme. Yeni bir dış servis (KV, VirusTotal API, OSV vb.) eklemeden önce kullanıcıya sor.
 
 ## Mimari
 Tek Next.js 16 uygulaması (App Router, TypeScript, Tailwind CSS 4), Node.js 22+. Vercel'e doğrudan deploy edilir; yerelde `npm run dev`.
@@ -34,10 +34,12 @@ Next.js 16 eğitim verisindeki sürümden farklı: kod yazmadan önce `node_modu
   - `archive.ts` bellekte, akışla ve limitli tar okuyucu (kendi tar ayrıştırıcımız; pax ve GNU uzun ad başlıkları, checksum kontrolü)
   - `rules/` kurallar: `base.ts` (Rule arayüzü, `regexRule`, yol eşleme), kategori başına bir modül (`autorun`, `code`, `obfuscation`, `links`, `binary`, `repo`), `index.ts` kayıt
   - `scoring.ts` puan, `scanner.ts` orkestrasyon, `report.ts` güvenli JSON rapor (arayüzün kullandığı tek biçim)
-- `src/lib/scan-service.ts`: API ile motor arasındaki katman: girdi doğrulama, örnek başına bellek önbelleği (10 dk), IP başına hız sınırı (dakikada 6), aynı anda en fazla 4 tarama, hata kodu eşleme.
+- `src/lib/scan-service.ts`: API ile motor arasındaki katman: girdi doğrulama, iki seviyeli önbellek (örnek belleği 10 dk, veritabanı 1 saat; `fresh=1` ikisini de atlar), IP başına hız sınırı (dakikada 6), aynı anda en fazla 4 tarama, hata kodu eşleme. Veritabanı hatası taramayı asla bozmaz, yalnızca loglanır.
+- `src/lib/db.ts` + `src/lib/scan-store.ts`: Kalıcı depolama. Her reponun **son** taraması `scans` tablosunda tutulur (anahtar: küçük harfli `owner/repo`; yeniden tarama kaydın üzerine yazar). Saklanan şey yalnızca sanitize edilmiş rapordur, repo dosyaları asla saklanmaz. Tablo ilk kullanımda `CREATE TABLE IF NOT EXISTS` ile oluşur, ayrı bir kurulum adımı yoktur. Bağlantı: `DATABASE_URL` (ya da `POSTGRES_URL`); yoksa `nullScanStore` devreye girer, site depolamasız çalışır ve listeler boş görünür. Üretimde Neon'un HTTP sürücüsü, testlerde PGlite (WebAssembly ile gerçek Postgres) aynı `Db` arayüzüyle kullanılır.
 - `src/lib/demo.ts`: Var olmayan sahte bir "free tool" reposu (zararsız örnekler); `/demo` sayfası bunu build sırasında gerçek motorla tarar. Sahip adı çift tire içerir (`gitray--demo`), GitHub buna izin vermediği için gerçek bir hesap olamaz.
-- `src/app/`: Sayfalar: `/` (arama), `/scan/[owner]/[repo]` (tarama + rapor), `/demo`, `/rules` (kural listesi motordan üretilir), `/progress` (`PROGRESS.md`). API: `GET /api/scan?repo=owner/name` → JSON rapor (başarılıysa CDN'de 10 dk önbellek).
-- `src/components/`: `ScanForm`, `ScanClient` (yükleme/hata/sonuç), `ReportView` (rapor ekranı), `verdict.tsx` (renkler, rozet, puan halkası).
+- `src/app/`: Sayfalar: `/` (arama), `/scan/[owner]/[repo]` (tarama + rapor + "Scan again now"), `/safe-zone` (son taraması Temiz çıkan son 50 repo), `/scammer` (son taraması Tehlikeli çıkan son 50 repo; Şüpheli ve Eksik hiçbir listeye girmez), `/demo`, `/rules` (kural listesi motordan üretilir), `/progress` (`PROGRESS.md`). Liste sayfaları ISR ile en fazla 30 saniyede bir yenilenir. API: `GET /api/scan?repo=owner/name[&fresh=1]` → JSON rapor (başarılıysa CDN'de 60 sn önbellek).
+- Scammer listesi otomatik bir sezgisel sonuçtur, bir kişinin kararı değildir: sayfada bu açıkça yazar ve yanlış alarm bildirme linki vardır. Bu uyarılar kaldırılmamalı.
+- `src/components/`: `ScanForm`, `ScanClient` (yükleme/hata/sonuç/yeniden tarama), `ReportView` (rapor ekranı), `RepoList` (Safe Zone / Scammer listeleri), `verdict.tsx` (renkler, rozet, puan halkası).
 - `src/cli.ts`: CLI (`npm run scan -- owner/repo [--json]`). Çıkış kodları: 0 Temiz, 1 Şüpheli, 2 Tehlikeli, 3 her türlü hata, 4 Eksik.
 - `tests/`: Ağ kullanmayan Vitest testleri. Kural örnekleri `tests/fixtures/rules/<KURAL>/{positive,negative}/*.fixture`; her kural için ikisi de zorunlu. Biçim `tests/rules.test.ts` başında anlatılır (`text`, ikili dosyalar için `hex`, repo metadata kuralları için `repo`).
 
@@ -78,7 +80,7 @@ Next.js 16 eğitim verisindeki sürümden farklı: kod yazmadan önce `node_modu
 - Lint / tip kontrolü: `npm run lint`, `npm run typecheck`; hepsi birden: `npm run check`
 - Production build: `npm run build` ve `npm start`
 - CLI tarama: `npm run scan -- github.com/owner/repo` (`--json` ile JSON)
-- GitHub API limiti için: `.env.local` dosyasına `GITHUB_TOKEN=...` (izinsiz, yalnızca public okuma yeterli). Tokensız saatte 60 istek; her tarama 5 istek kullanır.
+- Ortam değişkenleri (`.env.example`): `GITHUB_TOKEN` (fine-grained, yalnızca "Public repositories" okuma, ek izin yok; tokensız saatte 60 GitHub isteği, tokenla 5.000; yeni bir tarama 5 istek kullanır, veritabanından gelen tarama 0) ve `DATABASE_URL` (Neon; Vercel'de Storage sekmesinden bağlanınca otomatik eklenir). Yerelde `.env.local` dosyasına yazılır, asla commit edilmez.
 
 ## Bu bulut ortamına özel notlar (Claude Code on the web)
 - Node'un `fetch`'i proxy ortam değişkenini kendiliğinden okumaz: ağa çıkan komutları `NODE_USE_ENV_PROXY=1` ile çalıştır (örn. `NODE_USE_ENV_PROXY=1 npm run build`, `GITHUB_TOKEN= NODE_USE_ENV_PROXY=1 npm run scan -- Dorukkino/GitRay`).
@@ -86,6 +88,6 @@ Next.js 16 eğitim verisindeki sürümden farklı: kod yazmadan önce `node_modu
 - Proxy GitHub API'sinde yalnızca oturuma bağlı repoya (Dorukkino/GitRay) izin verir; `/users/...` ve başka repolar 403 döner. Başka repoların gerçek taraması yerelde ya da Vercel'de denenmeli.
 
 ## Açık kararlar
-- Kalıcı depolama (tarama geçmişi, paylaşılabilir sonuç linkleri, ortak önbellek): Vercel ile uyumlu ücretsiz bir PostgreSQL (Neon/Supabase) ya da sonuçları hiç saklamamak. Dış servis olduğu için kullanıcıya sorulacak.
+- Kalıcı depolama: **karar verildi (9 Ekim 2026)**, kullanıcı Safe Zone ve Scammer listelerini istedi; Neon Postgres (ücretsiz, Vercel entegrasyonu) seçildi.
 - VirusTotal API (günde 500 / dakikada 4 hash sorgusu) ve OSV entegrasyonu: ücretsiz ama dış servis, kullanıcıya sorulacak. Şu an yalnızca VirusTotal arama linki veriliyor.
 - Arayüz dili şimdilik İngilizce (portföy, uluslararası kitle); Türkçe seçeneği istenirse eklenebilir.
