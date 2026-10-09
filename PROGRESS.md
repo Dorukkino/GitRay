@@ -14,15 +14,13 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
-| Testler | 15 dosya, 494 test, motor satır kapsamı yaklaşık %96 |
-| Vercel'e deploy | Kullanıcı başladı (import); adımlar aşağıda |
+| Testler | 15 dosya, 504 test, motor satır kapsamı yaklaşık %96 |
+| Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
 | VirusTotal API, OSV | Yok (dış servis: önce kullanıcıya sorulacak) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
 
-**Adım 1: Yeni kodu `main` dalına al.** Vercel varsayılan olarak `main` dalını yayınlar; `main`'de hâlâ eski Python kodu var. Vercel'in import ekranında framework "Other" görünüyorsa ya da ayar istiyorsa sebebi budur.
-1. https://github.com/Dorukkino/GitRay/compare/main...claude/sleepy-cray-iz5dsv adresini aç.
-2. "Create pull request" → tekrar "Create pull request" → "Merge pull request" → "Confirm merge".
+**Adım 1: Yeni kodu `main` dalına al.** Yapıldı (3. oturum): değişiklikler PR ile `main`'e birleştirildi. Vercel `main`'i yayınlar; import ekranı bundan önce "Other" framework gösteriyorduysa sebebi `main`'deki eski Python koduydu.
 
 **Adım 2: GitHub token oluştur** (saatte 60 yerine 5.000 GitHub isteği; yaklaşık 1.000 yeni tarama).
 1. https://github.com/settings/personal-access-tokens/new adresini aç (yol: profil fotoğrafı → Settings → en altta Developer settings → Personal access tokens → Fine-grained tokens → Generate new token).
@@ -43,7 +41,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 3. "Connect Project" ekranında `gitray` projesini seç, tüm ortamları (Production, Preview, Development) işaretle → Connect. `DATABASE_URL` otomatik eklenir.
 4. Deployments → Redeploy. Tablo ilk taramada kendiliğinden oluşur; ayrıca bir şey yapmaya gerek yok.
 
-**Adım 5: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 30 saniye içinde Safe Zone'da görünür.
+**Adım 5: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
 ## Yol haritası
 
@@ -113,11 +111,35 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 **Yapılanlar:**
 - `src/lib/db.ts`, `src/lib/scan-store.ts` (Postgres deposu + veritabanı yokken boş depo), `src/lib/lists.ts`.
 - `scan-service`: veritabanından önbellek (1 saat), taramadan sonra kayıt; veritabanı hatası taramayı bozmaz.
-- `/safe-zone` ve `/scammer` sayfaları (30 saniyede bir yenilenir), menü linkleri, tarama sayfasında "Scanned … ago · Scan again now" çubuğu.
+- `/safe-zone` ve `/scammer` sayfaları (önce 30, 3. oturumda 60 saniyede bir yenilenir), menü linkleri, tarama sayfasında "Scanned … ago · Scan again now" çubuğu.
 - Testler: depo testleri PGlite ile gerçek Postgres üzerinde, servis testleri (önbellek, `fresh`, veritabanı hatası), liste bileşeni (HTML kaçışı) testleri. Toplam 494 test.
 - `.env.example`'a `DATABASE_URL` eklendi; yayına alma rehberi yazıldı.
 
 **Doğrulama:** Lint, tip kontrolü, 494 test ve production build temiz. Yerelde veritabanı olmadan iki sayfa "database not connected" mesajı gösteriyor, tarama ve yeniden tarama çalışıyor, konsolda hata yok. Neon'a gerçek bağlantı bu ortamda denenemedi (hesap yok); aynı SQL PGlite üzerinde test edildi.
+
+### 9 Ekim 2026 (3. oturum): Demo kaldırıldı, kod incelemesi, merge
+
+**İstek:** PR ve merge işlerini Claude üstlensin; veritabanı ve sistem baştan sona kontrol edilsin; demo rapor siteden kaldırılsın. Kullanıcı kendi projelerini tarayıp çıktılar üzerine konuşacak. Tasarım (koyu tema yerine yeni görünüm) en son ele alınacak.
+
+**Yapılanlar:**
+- `/demo` sayfası, `src/lib/demo.ts` ve testi silindi; menüdeki, ana sayfadaki ve boş Scammer listesindeki linkler kaldırıldı.
+- Bağımsız bir kod incelemesi (ayrı bir ajan) veritabanı, API ve önbellek kodunu taradı. Doğrulanan hatalar düzeltildi:
+  1. **"Scan again now" sonrası eski sonuç görünüyordu.** CDN önbelleği kapatıldı (`no-store`), bellek önbelleği 10 dk'dan 60 sn'ye indi ve veritabanındaki ömrü (1 saat) asla aşmıyor.
+  2. **Emoji ortadan kesilince kayıt veritabanına yazılamıyordu.** 300 karakterden uzun açıklamada kesim noktasına emoji denk gelirse Postgres JSON'u reddediyordu ve repo listelere hiç girmiyordu. `truncate` artık vekil çiftleri bölmüyor, `sanitize`/`snippet` en sonda `toWellFormed()` çağırıyor.
+  3. **Veritabanı şifresi loglara düşebilirdi.** Neon sürücüsü hatalı bir bağlantı dizesini mesaja olduğu gibi koyuyor; yeni `src/lib/log.ts` bağlantı dizelerini ve tokenları gizliyor.
+  4. **Eski bir tarama yenisinin üzerine yazabiliyordu.** Upsert artık yalnızca daha yeni taramayla güncelliyor.
+- Riskler için alınan önlemler:
+  - Tablo oluşturma yarışı hata sayılmıyor.
+  - Neon sorgularına 5 sn zaman aşımı eklendi; 45 sn'lik süre bütçesi artık GitHub metadata isteklerini de kapsıyor.
+  - Süre yüzünden yarım kalan taramalar saklanmıyor.
+  - Veritabanı sorguları için ayrı hız sınırı var; IPv6 adresleri /64 olarak gruplanıyor; sınır listesi dolunca herkesin sayacı sıfırlanmıyor.
+  - "Scan again now" son 1 dakikadaki sonucu döndürüyor; "busy" yanıtı kota harcamıyor.
+  - Tablo en fazla 5.000 satır tutuyor.
+  - Liste sayfaları 60 sn'de bir yenileniyor; Neon'un ücretsiz planında veritabanı ziyaret yokken uyuyabiliyor.
+  - Geçersiz ya da süresi dolmuş `GITHUB_TOKEN` için açık bir hata mesajı var.
+  - `engines.node` `22.x` olarak sabitlendi.
+- Yeni testler: emoji kesme, eski taramanın üzerine yazmama, satır temizleme, tablo yarışı, log gizleme, token hatası, süre bütçesi, hız sınırları, IPv6 gruplama. Toplam 504 test.
+- `claude/sleepy-cray-iz5dsv` dalı PR ile `main`'e birleştirildi.
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
