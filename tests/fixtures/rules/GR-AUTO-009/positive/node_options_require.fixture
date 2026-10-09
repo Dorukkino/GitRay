@@ -1,0 +1,6 @@
+# path: .npmrc
+# lines: 2
+# weight: 35
+# ---
+registry=https://registry.npmjs.org/
+node-options=--require ./scripts/telemetry.js

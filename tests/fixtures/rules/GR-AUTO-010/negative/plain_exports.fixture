@@ -1,0 +1,7 @@
+# path: .envrc
+# ---
+# curl https://example.invalid is only mentioned here
+export DATABASE_URL=postgres://localhost/dev
+export DOCS=https://example.invalid/docs
+use nix
+layout python3

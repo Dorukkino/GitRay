@@ -10,6 +10,7 @@ export type Category =
   | "social"
   | "binary"
   | "repo"
+  | "dependencies"
   | "ci";
 
 export interface RepoRef {
@@ -64,6 +65,34 @@ export interface ScanContext {
   now: Date;
   /** Files in the commit that GitHub's tarball leaves out (.gitattributes export-ignore). */
   exportIgnored?: string[];
+  /** Declared dependencies that OSV lists as malicious packages. */
+  maliciousDependencies?: MaliciousDependency[];
+}
+
+export interface MaliciousDependency {
+  ecosystem: "npm" | "PyPI";
+  name: string;
+  /** The malicious version installed, or null when every version is malicious. */
+  version: string | null;
+  /** OSV record IDs (MAL-...). */
+  ids: string[];
+  /** Where the dependency is declared. */
+  path: string;
+  line: number;
+  text: string;
+}
+
+/** Result of checking the declared dependencies against OSV's malicious-package records. */
+export interface DependencyCheck {
+  /**
+   * ok: nothing known to be malicious. found: malicious packages declared.
+   * none: no manifests or lockfiles. skipped: not checked (no OSV client).
+   * unavailable: OSV could not be reached.
+   */
+  status: "ok" | "found" | "none" | "skipped" | "unavailable";
+  /** Distinct packages checked. */
+  packages: number;
+  malicious: number;
 }
 
 export interface Finding {
@@ -132,6 +161,7 @@ export interface ScanResult {
   stats: ScanStats;
   partial: PartialScan | null;
   archiveCheck: ArchiveCheck;
+  dependencyCheck: DependencyCheck;
   rulesRun: string[];
   startedAt: string;
   durationMs: number;

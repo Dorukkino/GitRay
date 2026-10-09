@@ -1,0 +1,12 @@
+# path: demo.code-workspace
+# lines: 5
+# weight: 30
+# ---
+{
+  "folders": [{ "path": "." }],
+  "settings": {
+    "terminal.integrated.profiles.windows": {
+      "Dev": { "path": "${workspaceFolder}/scripts/shell.bat" }
+    }
+  }
+}

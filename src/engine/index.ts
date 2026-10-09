@@ -6,6 +6,7 @@
 export { readArchive, type ArchiveEntry } from "./archive";
 export { ArchiveError, GitHubError, GitRayError, InvalidTarget, LimitExceeded } from "./errors";
 export { GitHubClient, type GitHubClientOptions } from "./github";
+export { OsvClient } from "./osv";
 export { DEFAULT_LIMITS, type Limits } from "./limits";
 export { toReport, severityOf, type Report, type ReportAsset, type ReportFinding, type ReportRule, type Severity } from "./report";
 export { allRules, getRule, type Rule } from "./rules";

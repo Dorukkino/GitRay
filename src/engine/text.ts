@@ -226,3 +226,38 @@ export function sanitize(s: string, max = SNIPPET_MAX): string {
   // toWellFormed last: truncating must not leave half of an emoji behind.
   return truncate(defang(revealHidden(s).text), max).toWellFormed();
 }
+
+/**
+ * Parse JSON with comments and trailing commas (VS Code settings, devcontainer.json).
+ * Returns null when the text is not valid even then. Never evaluates anything.
+ */
+export function parseJsonc(text: string): unknown {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      out += c;
+      if (c === "\\") out += text[++i] ?? "";
+      else if (c === '"') inString = false;
+    } else if (c === '"') {
+      inString = true;
+      out += c;
+    } else if (c === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+      out += "\n";
+    } else if (c === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      i = end === -1 ? text.length : end + 1;
+    } else {
+      out += c;
+    }
+  }
+  // Trailing commas outside strings: strings were copied verbatim, so match them whole and keep them.
+  const cleaned = out.replace(/"(?:[^"\\]|\\.)*"|,(\s*[}\]])/g, (m, close?: string) => (close === undefined ? m : close));
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+}

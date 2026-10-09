@@ -1,0 +1,5 @@
+# path: .envrc
+# lines: 1
+# weight: 20
+# ---
+source_url "https://example.invalid/env.sh" "sha256-abc"

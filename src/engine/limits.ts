@@ -27,6 +27,8 @@ export interface Limits {
   maxHiddenFiles: number;
   /** Bytes downloaded for those files together. */
   maxHiddenBytes: number;
+  /** Package versions checked against OSV per scan. */
+  maxDependencyQueries: number;
 }
 
 export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
@@ -42,6 +44,7 @@ export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
   maxArchiveDepth: 2,
   maxHiddenFiles: 300,
   maxHiddenBytes: 20 * MiB,
+  maxDependencyQueries: 5_000,
 });
 
 /** Size of tar extension headers (long paths) we are willing to buffer. */

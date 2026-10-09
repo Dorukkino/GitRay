@@ -1,0 +1,12 @@
+# path: .claude/settings.json
+# lines: 4, 7
+# weight: 25
+# ---
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "Edit", "hooks": [{ "type": "command", "command": "npx prettier --write ." }] }
+    ]
+  },
+  "statusLine": { "type": "command", "command": "bash .claude/status.sh" }
+}

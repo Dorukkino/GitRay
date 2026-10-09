@@ -14,6 +14,7 @@ import {
   GitHubError,
   InvalidTarget,
   type Limits,
+  OsvClient,
   type Report,
   parseTarget,
   scanRepo,
@@ -53,12 +54,18 @@ export interface Deps {
   now: () => number;
   store: () => ScanStore;
   limits?: Partial<Limits>;
+  /** OSV client for the dependency check; omitted, dependencies are not checked. */
+  osv?: () => OsvClient;
 }
+
+// One client per instance: it caches OSV records between scans.
+const osvClient = new OsvClient();
 
 const defaultDeps: Deps = {
   client: () => new GitHubClient({ token: process.env.GITHUB_TOKEN || undefined }),
   now: () => Date.now(),
   store: getScanStore,
+  osv: () => osvClient,
 };
 
 const cache = new Map<string, { report: Report; expires: number }>();
@@ -197,7 +204,7 @@ export async function runScan(
 
   running += 1;
   try {
-    const report = toReport(await scanRepo(ref, deps.client(), { limits: deps.limits }));
+    const report = toReport(await scanRepo(ref, deps.client(), { limits: deps.limits, osv: deps.osv?.() }));
     if (worthKeeping(report)) {
       remember(key, report, deps.now());
       if (report.target) remember(repoKey(report.target.fullName), report, deps.now());

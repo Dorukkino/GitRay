@@ -1,0 +1,3 @@
+# path: config/settings.json
+# ---
+{ "git.path": "./tools/git.exe" }

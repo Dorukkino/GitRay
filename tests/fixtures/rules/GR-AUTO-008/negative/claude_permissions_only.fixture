@@ -1,0 +1,6 @@
+# path: .claude/settings.json
+# ---
+{
+  "permissions": { "allow": ["Bash(npm test)"] },
+  "enabledPlugins": { "expo@claude-plugins-official": true }
+}

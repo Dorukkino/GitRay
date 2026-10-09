@@ -1,0 +1,8 @@
+# path: .vscode/settings.json
+# lines: 3
+# weight: 30
+# ---
+{
+  // lint PHP on save
+  "php.validate.executablePath": "bin/php",
+}

@@ -6,7 +6,8 @@ import { allRules } from "@/engine";
 import type { Category } from "@/engine";
 
 const CATEGORY_TEXT: Record<Category, string> = {
-  autorun: "npm install hooks, setup.py, VS Code folder-open tasks, Visual Studio build events, Rust build scripts.",
+  dependencies: "Packages in package.json, lockfiles and Python requirements that OSV lists as confirmed malware.",
+  autorun: "npm install hooks, setup.py, VS Code tasks and settings, dev containers, AI assistant hooks, .npmrc, direnv, build events.",
   code: "Decode-and-execute, curl | sh, browser password and cookie theft, SSH keys, crypto wallets, Discord/Telegram exfiltration, Windows LOLBins.",
   obfuscation: "Random-looking blobs, Trojan Source bidi characters, code pushed off-screen with whitespace, invisible Unicode payloads.",
   links: "Executables and archives outside the repo's own releases, file-sharing sites, link shorteners, archive passwords.",

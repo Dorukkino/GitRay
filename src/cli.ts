@@ -8,6 +8,7 @@ import {
   GitHubClient,
   GitRayError,
   InvalidTarget,
+  OsvClient,
   type Report,
   parseTarget,
   scanRepo,
@@ -47,6 +48,15 @@ function printReport(r: Report): void {
     skipped: null,
   }[r.archiveCheck.status];
   if (check) out.push(check);
+  const deps = r.dependencyCheck;
+  const depLine = {
+    ok: `Dependencies: ${deps.packages} packages checked against OSV, none known to be malicious`,
+    found: `Dependencies: ${deps.malicious} of ${deps.packages} packages are known malware (OSV)`,
+    unavailable: "Dependencies: OSV could not be reached",
+    none: null,
+    skipped: null,
+  }[deps.status];
+  if (depLine) out.push(depLine);
   if (r.rules.length) {
     out.push("", "Score breakdown:");
     for (const rule of r.rules) out.push(`  +${String(rule.points).padStart(2)}  ${rule.id}  ${rule.title} (${rule.findings})`);
@@ -78,7 +88,7 @@ export async function main(argv: string[]): Promise<number> {
   try {
     const ref = parseTarget(args[0]);
     const client = new GitHubClient({ token: process.env.GITHUB_TOKEN });
-    const report = toReport(await scanRepo(ref, client));
+    const report = toReport(await scanRepo(ref, client, { osv: new OsvClient() }));
     if (json) console.log(JSON.stringify(report, null, 2));
     else printReport(report);
     return EXIT[report.verdict];
