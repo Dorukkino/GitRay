@@ -84,7 +84,7 @@ export const en = {
 
   form: {
     label: "GitHub repository",
-    placeholder: "owner/repository",
+    placeholder: "https://github.com/owner/repository",
     submit: "Scan repository",
     invalid: "Enter a public GitHub repository, e.g. github.com/owner/repo",
     failed: "Something went wrong",

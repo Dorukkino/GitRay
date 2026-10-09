@@ -74,7 +74,7 @@ export const tr: Dictionary = {
 
   form: {
     label: "GitHub reposu",
-    placeholder: "sahip/repo",
+    placeholder: "https://github.com/sahip/repo",
     submit: "Repoyu tara",
     invalid: "Herkese açık bir GitHub reposu girin, örneğin github.com/sahip/repo",
     failed: "Bir şeyler ters gitti",

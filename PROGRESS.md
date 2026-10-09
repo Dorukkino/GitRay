@@ -463,6 +463,9 @@ Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imle
   - Örümcek "çok komik duruyor" dendi, tamamen kaldırıldı.
   - Logo artık dönmüyor ve arkasındaki siyah dikdörtgen yok. Satır içi SVG (`BrandLogo`): harfler temanın yazı rengiyle çiziliyor (açık temada lacivert, koyu temada beyaz), her boyutta keskin.
   - Logonun kendi röntgen ışını iniyor ve her inişten sonra yaklaşık 3,5 saniye bekliyor (döngü 4,2 sn yerine 6 sn; iniş hızı aynı).
+- **Kaydırma animasyonu ve link kutusu** (PR 14):
+  - "Nasıl çalışır", "GitRay neye bakar" ve "Kararlar" kartları artık sayfa açılınca görünmüyor; aşağı kaydırdıkça kaydırma hızıyla birlikte aşağıdan yukarı kayarak geliyor (aynı satırdaki kartlar sırayla), yukarı kaydırınca geri gidiyor (`ScrollReveal`). Kullanıcı ilk iki bölümü istedi; tutarlı olsun diye Kararlar da aynı şekilde yapıldı.
+  - Link kutusundaki sabit "github.com/" öneki kaldırıldı. Kutu boş başlıyor; "https://github.com/sahip/repo" yalnızca gri örnek yazı. Tam link yapıştırılabiliyor (`/tree/...` linkleri ve `.git` sonu dahil, `parseTarget` zaten destekliyordu).
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 

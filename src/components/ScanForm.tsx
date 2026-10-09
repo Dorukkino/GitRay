@@ -39,19 +39,19 @@ export function ScanForm({ autoFocus = false, initial = "" }: { autoFocus?: bool
           {dict.form.label}
         </label>
         <div className="relative flex-1">
-          <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 font-mono text-sm text-subtle">github.com/</span>
           <input
             id="repo"
             name="repo"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={dict.form.placeholder}
+            inputMode="url"
             autoComplete="off"
             spellCheck={false}
             autoFocus={autoFocus}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "repo-error" : undefined}
-            className="h-12 w-full rounded-xl border border-transparent bg-sunken/60 pr-3 pl-[6.6rem] font-mono text-sm text-fg outline-none transition placeholder:text-subtle focus:border-accent/50 focus:bg-raised focus:ring-4 focus:ring-accent/15"
+            className="h-12 w-full rounded-xl border border-transparent bg-sunken/60 px-3.5 font-mono text-sm text-fg outline-none transition placeholder:text-subtle focus:border-accent/50 focus:bg-raised focus:ring-4 focus:ring-accent/15"
           />
         </div>
         <motion.button
