@@ -12,6 +12,7 @@ import { type OsvClient, affectsAllVersions, isMalwareId } from "./osv";
 import { type Rule, allRules } from "./rules";
 import { runBinaryRule, runRepoRule, runTextRule } from "./rules/base";
 import { score } from "./scoring";
+import { type Submodule, parseGitmodules } from "./submodules";
 import { decode } from "./text";
 import {
   type ArchiveCheck,
@@ -78,18 +79,30 @@ function partialFrom(e: LimitExceeded): PartialScan {
 }
 
 /** Run the rules over every entry; a limit hit ends the loop and is returned as a partial scan. */
+/** What collect() gathers besides findings. */
+interface Gathered {
+  deps?: DependencyIndex;
+  submodules: Submodule[];
+}
+
 async function collect(
   entries: AsyncIterable<ArchiveEntry>,
   rules: readonly Rule[],
   ctx: ScanContext,
   findings: Finding[],
-  deps?: DependencyIndex,
+  gathered: Gathered,
 ): Promise<PartialScan | null> {
   try {
     for await (const entry of entries) {
       findings.push(...scanEntry(entry, rules, ctx));
-      if (deps && entry.kind === "text" && isManifest(entry.file.path)) {
-        deps.add(parseManifest(entry.file.path, entry.file.content));
+      if (entry.kind !== "text") continue;
+      if (gathered.deps && isManifest(entry.file.path)) {
+        gathered.deps.add(parseManifest(entry.file.path, entry.file.content));
+      }
+      // Only the top-level .gitmodules counts for git; ZIP members are never named this way.
+      if (entry.file.path === ".gitmodules") {
+        const owner = ctx.info?.fullName.split("/")[0] ?? ctx.repo?.owner ?? null;
+        gathered.submodules.push(...parseGitmodules(entry.file.content, owner));
       }
     }
     return null;
@@ -106,6 +119,7 @@ function finish(
   partial: PartialScan | null,
   archiveCheck: ArchiveCheck,
   dependencyCheck: DependencyCheck,
+  submodules: Submodule[],
   rules: readonly Rule[],
   started: Date,
   now: () => Date,
@@ -122,6 +136,7 @@ function finish(
     partial,
     archiveCheck,
     dependencyCheck,
+    submodules,
     rulesRun: rules.map((r) => r.id),
     startedAt: started.toISOString(),
     durationMs: Math.max(0, now().getTime() - started.getTime()),
@@ -144,8 +159,9 @@ export async function scanEntries(
   const stats = options.stats ?? emptyStats();
   const ctx = contextFor(info, started);
   const findings: Finding[] = info ? rules.flatMap((rule) => runRepoRule(rule, info, ctx)) : [];
-  const partial = await collect(withArchiveContents(entries, limits, stats, options.deadline), rules, ctx, findings);
-  return finish(info, findings, stats, partial, NOT_CHECKED, DEPENDENCIES_NOT_CHECKED, rules, started, now);
+  const gathered: Gathered = { submodules: [] };
+  const partial = await collect(withArchiveContents(entries, limits, stats, options.deadline), rules, ctx, findings, gathered);
+  return finish(info, findings, stats, partial, NOT_CHECKED, DEPENDENCIES_NOT_CHECKED, gathered.submodules, rules, started, now);
 }
 
 export async function scanTarball(
@@ -197,7 +213,7 @@ interface ScanJob {
   findings: Finding[];
   signal: AbortSignal;
   deadline: number;
-  deps: DependencyIndex;
+  gathered: Gathered & { deps: DependencyIndex };
 }
 
 /** Download the files the tarball left out and scan them like the rest. */
@@ -242,7 +258,7 @@ async function scanHiddenFiles(job: ScanJob, hidden: TreeEntry[]): Promise<{ sca
     job.rules,
     job.ctx,
     job.findings,
-    job.deps,
+    job.gathered,
   );
   const missed = hidden.length - entries.length;
   if (!partial && missed > 0) {
@@ -289,7 +305,7 @@ async function checkArchiveGap(job: ScanJob, seen: Set<string>): Promise<{ check
  * hijacked, since the version that would be installed is unknown.
  */
 async function checkDependencies(job: ScanJob, osv: OsvClient | undefined): Promise<DependencyCheck> {
-  const { deps } = job;
+  const { deps } = job.gathered;
   if (deps.size === 0) return { status: "none", packages: 0, malicious: 0 };
   if (!osv) return { status: "skipped", packages: deps.size, malicious: 0 };
   const queries = deps.queries().slice(0, job.limits.maxDependencyQueries);
@@ -351,8 +367,8 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
     const ctx = contextFor(info, started);
     const stats = emptyStats();
     const findings = rules.flatMap((rule) => runRepoRule(rule, info, ctx));
-    const deps = new DependencyIndex();
-    const job: ScanJob = { client, info, rules, ctx, limits, stats, findings, signal: controller.signal, deadline, deps };
+    const gathered = { deps: new DependencyIndex(), submodules: [] as Submodule[] };
+    const job: ScanJob = { client, info, rules, ctx, limits, stats, findings, signal: controller.signal, deadline, gathered };
     let partial: PartialScan | null = null;
     let archiveCheck = NOT_CHECKED;
     let dependencyCheck = DEPENDENCIES_NOT_CHECKED;
@@ -368,7 +384,7 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
       const seen = new Set<string>();
       const chunks = await client.streamTarball(info, limits, controller.signal);
       const tarEntries = readArchive(abortable(chunks, controller.signal, timeLimit), limits, stats, deadline, seen);
-      partial = await collect(withArchiveContents(tarEntries, limits, stats, deadline), rules, ctx, findings, deps);
+      partial = await collect(withArchiveContents(tarEntries, limits, stats, deadline), rules, ctx, findings, gathered);
       // A partial archive cannot be compared with the file list: files are missing anyway.
       if (!partial) ({ check: archiveCheck, partial } = await checkArchiveGap(job, seen));
       dependencyCheck = await checkDependencies(job, options.osv);
@@ -377,7 +393,7 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
       else if (controller.signal.aborted) partial = partialFrom(timeLimit());
       else throw e;
     }
-    return finish(info, findings, stats, partial, archiveCheck, dependencyCheck, rules, started, now);
+    return finish(info, findings, stats, partial, archiveCheck, dependencyCheck, gathered.submodules, rules, started, now);
   } finally {
     clearTimeout(timer);
   }

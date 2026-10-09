@@ -17,7 +17,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3 |
-| Testler | 20 dosya, 732 test |
+| Testler | 22 dosya, 749 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
 | VirusTotal API | Yok (API anahtarı gerekiyor, kullanıcıya sorulacak) |
 
@@ -375,13 +375,26 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 
 `ENGINE_VERSION` 0.4.0 oldu; kayıtlı raporlar yeniden taranacak.
 
+**Kalıcı hız sınırı ve tarama bütçesi** (kötüye kullanıma karşı; yeni servis yok, aynı Neon veritabanı):
+- Eski sorun: hız sınırı yalnızca her Vercel örneğinin belleğindeydi. Vercel aynı anda birçok örnek açabildiği için biri sınırı kolayca aşıp GitHub token'ının saatlik 5.000 isteğini bitirebilirdi. O zaman site herkes için bozulurdu.
+- Şimdi sayaçlar veritabanında, `rate_limits` tablosunda. İstemci başına dakikada 6 yeni tarama var ve tüm örnekler aynı sayacı görüyor.
+- Ayrıca site geneli bir **saatlik bütçe** var: 500 yeni tarama. Dolunca yeni taramalar kibar bir hata alıyor ("budget_exhausted"), son 1 saatte taranmış repolar ise gelmeye devam ediyor. Sınırı aşan biri bu bütçeyi tüketemiyor.
+- Gizlilik: veritabanına IP yazılmıyor, yalnızca geri çevrilemeyen bir özeti (HMAC) yazılıyor. Bir günden eski satırlar siliniyor.
+- Veritabanı hata verirse tarama engellenmiyor, bellekteki sınır yine çalışıyor.
+- Kalan risk: çok sayıda IP'den gelen bir saldırı saatlik bütçeyi bitirebilir; o zaman yeni taramalar bir saatliğine durur ama token korunur. Kesin çözüm Cloudflare Turnstile (insan doğrulaması). Ücretsiz ama yeni bir dış servis, kullanıcıya sorulacak.
+
+**Git submodule'leri:**
+- Kök dizindeki `.gitmodules` dosyası okunuyor. GitHub'ın indirme arşivi submodule'leri içermiyor, ama `git clone --recursive` onları başka repolardan indiriyor. Bu, payload saklamanın bir yolu.
+- Raporda "N git submodules are not scanned" uyarısı ve liste var. GitHub'daki submodule'lerin yanında kendi sitemizde onu tarayan bir "scan owner/repo" linki çıkıyor. URL'nin kendisi tıklanamıyor ve `hxxps://` biçiminde gösteriliyor.
+- Puanı etkilemiyor: submodule kullanan meşru repo çok. `ENGINE_VERSION` 0.5.0.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar.
-2. **Canlıda doğrulama:** Vercel'de bir repo taranınca raporda "Malicious dependencies (OSV)" satırı görünmeli. Yeni motor sürümüyle (0.3.0) Scammer listesindeki eski kayıtlar yeniden taranınca çoğu listeden çıkmalı.
-3. **Liste kalitesi.** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür. Test dosyası ve itibar kararından sonra gerekirse listeye girme eşiği yükseltilebilir.
-4. **Kötüye kullanıma karşı koruma:** Cloudflare Turnstile, veritabanında kalıcı hız sınırı.
-5. **Alt modüller** (`.gitmodules`): tarball başka repolardaki alt modülleri içermez, `git clone --recursive` ise getirir. En azından raporda gösterilmeli.
+1. **Canlıda kontrol:** `/progress` sayfası kalkmış olmalı. Vercel'de Neon bağlıysa `rate_limits` tablosu ilk taramada kendiliğinden oluşur.
+2. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar.
+3. **Canlıda doğrulama:** Vercel'de bir repo taranınca raporda "Malicious dependencies (OSV)" satırı görünmeli. Yeni motor sürümüyle (şu an 0.5.0) Scammer listesindeki eski kayıtlar yeniden taranınca çoğu listeden çıkmalı.
+4. **Liste kalitesi.** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür. Test dosyası ve itibar kararından sonra gerekirse listeye girme eşiği yükseltilebilir.
+5. **Cloudflare Turnstile** (kullanıcıya sorulacak; kalıcı hız sınırı ve saatlik bütçe 8. oturumda yapıldı).
 6. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
 7. **VirusTotal API** (kullanıcıya sorulacak; anahtar gerekiyor): release digest'lerini otomatik sorgulama (günde 500 istek; kota dolarsa "atlandı").
 8. **Tasarım** (kullanıcının isteği, en son): koyu tema yerine daha açık ve okunaklı bir arayüz.
@@ -398,6 +411,6 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - `GR-LINK-001`: Kendi web sitesinden `.exe`/`.dmg` dağıtan meşru projeler 20 puan alır (tek başına Temiz).
 - Şifreli RAR yalnızca başlıkları da şifreliyse (`rar -hp`) tespit edilir; 7z şifrelemesi tespit edilmiyor.
 - İkili dosyalarda yalnızca ilk 1 MB okunur; ZIP içindeki dosya adları yalnızca bu kısımdaki yerel başlıklardan okunur.
-- Hız sınırı sunucu örneği başınadır (Vercel'de örnekler değişebilir); kalıcı çözüm Aşama 4'te. Önbellek artık veritabanında da var (1 saat).
+- Hız sınırı veritabanı varsa tüm örnekler arasında ortaktır (8. oturum); veritabanı yoksa örnek başınadır. Çok IP'li bir saldırı saatlik bütçeyi bitirebilir (Turnstile ile çözülür). Önbellek veritabanında da var (1 saat).
 - Listeler yalnızca son 50 kaydı gösterir; sayfalama ve arama yok.
 - Proxy kısıtı yüzünden bu ortamda sahip hesap yaşı (`/users/...`) okunamıyor; raporda "unknown" görünüyor. Vercel'de çalışır.

@@ -60,6 +60,10 @@ function printReport(r: Report): void {
     skipped: null,
   }[deps.status];
   if (depLine) out.push(depLine);
+  if (r.submodules.length) {
+    out.push(`Submodules (not scanned; git clone --recursive downloads them):`);
+    for (const s of r.submodules) out.push(`  ${s.path} <- ${s.url}${s.github ? `  (scan: npm run scan -- ${s.github})` : ""}`);
+  }
   if (r.rules.length) {
     out.push("", "Score breakdown:");
     for (const rule of r.rules) out.push(`  +${String(rule.points).padStart(2)}  ${rule.id}  ${rule.title} (${rule.findings})`);

@@ -44,6 +44,7 @@ function report(fullName: string, verdict: Verdict, startedAt: string, score = v
     archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     dependencyCheck: { status: "none", packages: 0, malicious: 0 },
     testFilesCapped: false,
+    submodules: [],
     rules: score ? [{ id: "GR-CODE-001", title: "Decodes hidden code and executes it", category: "code", points: 45, findings: 2 }] : [],
     findings: [],
     omittedFindings: 0,
