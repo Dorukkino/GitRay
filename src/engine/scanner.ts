@@ -48,7 +48,7 @@ export interface ScanOptions {
 
 const NOT_CHECKED: ArchiveCheck = { status: "skipped", hidden: 0, scanned: 0 };
 const DEPENDENCIES_NOT_CHECKED: DependencyCheck = { status: "skipped", packages: 0, malicious: 0 };
-const REPUTATION_NOT_CHECKED: ReputationCheck = { status: "none", files: [] };
+const REPUTATION_NOT_CHECKED: ReputationCheck = { status: "none", files: [], notLookedUp: 0 };
 /** Committed programs fingerprinted per scan (the lookups themselves are limited separately). */
 const MAX_EXECUTABLES = 100;
 /** OSV records fetched per scan to tell typosquats (all versions) from hijacked releases. */
@@ -379,7 +379,8 @@ async function checkDependencies(job: ScanJob, osv: OsvClient | undefined): Prom
 }
 
 /** Release files that are documentation, checksums or signatures, not programs or archives. */
-const NOT_A_PROGRAM = /\.(?:sha(?:1|256|512)(?:sum)?|md5|sig|asc|minisig|sigstore(?:\.json)?|pem|crt|pub|sbom|spdx|cdx\.json|intoto\.jsonl|json|txt|md|html)$/i;
+const NOT_A_PROGRAM =
+  /(?:\.(?:sha(?:1|224|256|384|512)(?:sums?)?|md5(?:sums?)?|sums?|sig|asc|gpg|minisig|sigstore(?:\.json)?|bundle|pem|crt|cert|pub|sbom|spdx|cdx\.json|intoto\.jsonl|json|txt|md|html|ya?ml|toml)|(?:^|[._-])(?:sha\d*sums?|checksums?|md5sums?)(?:\.[a-z0-9]+)?)$/i;
 const PROGRAM_OR_ARCHIVE =
   /\.(?:exe|msi|msix|scr|dll|com|bat|cmd|ps1|vbs|lnk|hta|zip|7z|rar|iso|img|dmg|pkg|apk|appimage|deb|rpm|jar|tgz|tar\.gz|tar\.xz)$/i;
 
@@ -412,8 +413,8 @@ function reputationCandidates(job: ScanJob): Omit<CheckedFile, "reputation">[] {
 
 async function checkReputation(job: ScanJob, service: ReputationService | undefined): Promise<ReputationCheck> {
   const candidates = reputationCandidates(job);
-  if (candidates.length === 0) return { status: "none", files: [] };
-  if (!service) return { status: "not_configured", files: [] };
+  if (candidates.length === 0) return { status: "none", files: [], notLookedUp: 0 };
+  if (!service) return { status: "not_configured", files: [], notLookedUp: candidates.length };
   const looked = candidates.slice(0, job.limits.maxReputationLookups);
   let results: Map<string, Reputation>;
   try {
@@ -423,17 +424,19 @@ async function checkReputation(job: ScanJob, service: ReputationService | undefi
     );
   } catch {
     // A missing extra check must not turn a finished scan into an error.
-    return { status: "unavailable", files: [] };
+    return { status: "unavailable", files: [], notLookedUp: candidates.length };
   }
-  const files: CheckedFile[] = [
-    ...looked.map((c) => ({ ...c, reputation: results.get(c.sha256) ?? { status: "skipped" as const, reason: "error" as const } })),
-    ...candidates.slice(looked.length).map((c) => ({ ...c, reputation: { status: "skipped" as const, reason: "limit" as const } })),
-  ];
+  // Files past the per-scan limit are only counted: listing dozens of them is noise.
+  const files: CheckedFile[] = looked.map((c) => ({
+    ...c,
+    reputation: results.get(c.sha256) ?? { status: "skipped" as const, reason: "error" as const },
+  }));
+  const notLookedUp = candidates.length - looked.length;
   const flagged = files.filter((f) => f.reputation.status === "found" && f.reputation.stats.malicious > 0);
   const rule = job.rules.find((r) => r.id === "GR-BIN-003");
   if (rule && flagged.length) job.findings.push(...runRepoRule(rule, job.info, { ...job.ctx, flaggedFiles: flagged }));
   const skipped = files.some((f) => f.reputation.status === "skipped");
-  return { status: flagged.length ? "found" : skipped ? "partial" : "ok", files };
+  return { status: flagged.length ? "found" : skipped ? "partial" : "ok", files, notLookedUp };
 }
 
 /**

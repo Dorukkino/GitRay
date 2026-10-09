@@ -74,6 +74,7 @@ function printReport(r: Report): void {
           : `not looked up (${x.reason})`;
     out.push(`VirusTotal: ${f.name} (${f.source}): ${result}`);
   }
+  if (rep.notLookedUp && rep.status !== "not_configured") out.push(`VirusTotal: ${rep.notLookedUp} more files not looked up (per-scan limit)`);
   if (r.submodules.length) {
     out.push(`Submodules (not scanned; git clone --recursive downloads them):`);
     for (const s of r.submodules) out.push(`  ${s.path} <- ${s.url}${s.github ? `  (scan: npm run scan -- ${s.github})` : ""}`);

@@ -36,7 +36,7 @@ function report(dependencyCheck: DependencyCheck) {
     dependencyCheck,
     testFilesCapped: false,
     submodules: [],
-    reputationCheck: { status: "none", files: [] },
+    reputationCheck: { status: "none", files: [], notLookedUp: 0 },
     rulesRun: [],
     startedAt: "2026-10-01T00:00:00.000Z",
     durationMs: 5,
@@ -102,6 +102,7 @@ describe("ReportView VirusTotal check", () => {
           ...r,
           reputationCheck: {
             status: "found",
+            notLookedUp: 12,
             files: [
               {
                 source: "release",
@@ -118,12 +119,13 @@ describe("ReportView VirusTotal check", () => {
     expect(html).toContain("Antivirus engines (VirusTotal)");
     expect(html).toContain("Antivirus engines flag 1 of 1 file");
     expect(html).toContain("31/70 engines detect it");
+    expect(html).toContain("12 more files were not looked up (at most 10 per scan)");
     expect(html).toContain(`href="https://www.virustotal.com/gui/file/${sha}"`);
   });
 
   it("explains when nothing was looked up", () => {
     const r = report({ status: "none", packages: 0, malicious: 0 });
-    const html = renderToStaticMarkup(<ReportView report={{ ...r, reputationCheck: { status: "not_configured", files: [] } }} />);
+    const html = renderToStaticMarkup(<ReportView report={{ ...r, reputationCheck: { status: "not_configured", files: [], notLookedUp: 0 } }} />);
     expect(html).toContain("Not looked up automatically on this site");
   });
 });
