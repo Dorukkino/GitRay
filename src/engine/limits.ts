@@ -15,6 +15,18 @@ export interface Limits {
   maxTotalBytes: number;
   /** Wall-clock budget for downloading and scanning (serverless functions time out). */
   timeBudgetMs: number;
+  /** ZIP files up to this size are read whole so their contents can be scanned. */
+  maxArchiveBytes: number;
+  /** Members read per ZIP; the rest are counted as skipped. */
+  maxArchiveMembers: number;
+  /** Bytes unpacked from all ZIPs of one scan together (stops zip bombs). */
+  maxArchiveTotalBytes: number;
+  /** A ZIP inside a ZIP is opened; a third level is not. */
+  maxArchiveDepth: number;
+  /** Files left out of GitHub's tarball (export-ignore) that are downloaded separately. */
+  maxHiddenFiles: number;
+  /** Bytes downloaded for those files together. */
+  maxHiddenBytes: number;
 }
 
 export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
@@ -24,6 +36,12 @@ export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
   maxFileBytes: 1 * MiB,
   maxTotalBytes: 200 * MiB,
   timeBudgetMs: 45_000,
+  maxArchiveBytes: 20 * MiB,
+  maxArchiveMembers: 2_000,
+  maxArchiveTotalBytes: 50 * MiB,
+  maxArchiveDepth: 2,
+  maxHiddenFiles: 300,
+  maxHiddenBytes: 20 * MiB,
 });
 
 /** Size of tar extension headers (long paths) we are willing to buffer. */

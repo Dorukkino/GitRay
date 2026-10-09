@@ -62,6 +62,8 @@ export interface ScanContext {
   repo: RepoRef | null;
   info: RepoInfo | null;
   now: Date;
+  /** Files in the commit that GitHub's tarball leaves out (.gitattributes export-ignore). */
+  exportIgnored?: string[];
 }
 
 export interface Finding {
@@ -88,6 +90,29 @@ export interface ScanStats {
   truncatedFiles: number;
   downloadedBytes: number;
   decompressedBytes: number;
+  /** ZIP files whose contents were read, and those that could not be (too large, ZIP64, damaged). */
+  archivesOpened: number;
+  archivesSkipped: number;
+  /** Files read from inside ZIPs, and those skipped (encrypted, unsupported method, over a limit). */
+  archiveMembers: number;
+  archiveMembersSkipped: number;
+  archiveBytes: number;
+}
+
+/**
+ * GitHub's tarball honours .gitattributes export-ignore, so a file can reach
+ * everyone who runs "git clone" yet be missing from the archive GitRay reads.
+ * The scan compares the archive with the commit's file list to catch that.
+ */
+export interface ArchiveCheck {
+  /**
+   * ok: the archive holds every file. hidden: some files were missing and were
+   * fetched separately. skipped: not checked (partial scan, or no repository).
+   * unavailable: GitHub did not return the full file list.
+   */
+  status: "ok" | "hidden" | "skipped" | "unavailable";
+  hidden: number;
+  scanned: number;
 }
 
 /** Why a scan stopped early: the limit that was exceeded and its value. */
@@ -106,6 +131,7 @@ export interface ScanResult {
   ruleScores: Record<string, number>;
   stats: ScanStats;
   partial: PartialScan | null;
+  archiveCheck: ArchiveCheck;
   rulesRun: string[];
   startedAt: string;
   durationMs: number;
@@ -120,5 +146,10 @@ export function emptyStats(): ScanStats {
     truncatedFiles: 0,
     downloadedBytes: 0,
     decompressedBytes: 0,
+    archivesOpened: 0,
+    archivesSkipped: 0,
+    archiveMembers: 0,
+    archiveMembersSkipped: 0,
+    archiveBytes: 0,
   };
 }

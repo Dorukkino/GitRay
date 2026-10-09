@@ -1,0 +1,6 @@
+# path: 
+# lines: 0
+# weight: 5
+# format: repo
+# ---
+{"context": {"exportIgnored": ["tools/helper.js", "tests/a.php", "tests/b.php", "tests/c.php"]}}

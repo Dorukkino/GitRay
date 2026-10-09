@@ -2,7 +2,7 @@
 
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { gzipSync } from "node:zlib";
+import { deflateRawSync, gzipSync } from "node:zlib";
 
 const enc = new TextEncoder();
 
@@ -161,12 +161,26 @@ export class FakeGitHub {
   redirectTo = `https://codeload.github.com/octo/demo/legacy.tar.gz/${SHA}`;
   requests: FakeRequest[] = [];
   overrides = new Map<string, Handler>();
+  /** The commit's file list (git/trees API); null answers 404. */
+  tree: { path: string; type: "blob" | "tree" | "commit"; size: number }[] | null = null;
+  treeTruncated = false;
+  /** Files served by raw.githubusercontent.com for the commit. */
+  rawFiles = new Map<string, string | Uint8Array>();
 
   handle(url: URL): Response {
     const path = url.pathname;
     const override = this.overrides.get(path);
     if (override) return override(url);
     if (url.hostname === "codeload.github.com") return new Response(streamOf(this.tarball));
+    if (url.hostname === "raw.githubusercontent.com") {
+      const prefix = `/octo/demo/${SHA}/`;
+      const file = path.startsWith(prefix) ? this.rawFiles.get(decodeURIComponent(path.slice(prefix.length))) : undefined;
+      if (file === undefined) return new Response("404: Not Found", { status: 404 });
+      return new Response(streamOf(typeof file === "string" ? new TextEncoder().encode(file) : file));
+    }
+    if (path === `/repos/octo/demo/git/trees/${SHA}` && this.tree) {
+      return Response.json({ sha: SHA, tree: this.tree, truncated: this.treeTruncated });
+    }
     if (path === "/repos/octo/demo") return Response.json(this.repo);
     if (path.startsWith("/repos/octo/demo/commits/")) return new Response(SHA);
     if (path === "/users/octo") return Response.json(this.user);
@@ -192,6 +206,56 @@ export function walk(dir: string, exts: string[]): string[] {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) out.push(...walk(p, exts));
     else if (exts.some((e) => p.endsWith(e))) out.push(p);
+  }
+  return out;
+}
+
+export interface ZipFile {
+  name: string;
+  data?: string | Uint8Array;
+  deflate?: boolean;
+  encrypted?: boolean;
+  symlink?: boolean;
+  /** Compression method to declare (default: 8 if deflate, else 0). */
+  method?: number;
+}
+
+/** A minimal ZIP writer (no CRCs: GitRay does not check them). */
+export function makeZip(files: ZipFile[]): Uint8Array {
+  const parts: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  const le = (n: number, bytes: number) => Array.from({ length: bytes }, (_, i) => Math.floor(n / 256 ** i) % 256);
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const raw = typeof f.data === "string" ? enc.encode(f.data) : (f.data ?? new Uint8Array(0));
+    const body = f.deflate ? new Uint8Array(deflateRawSync(raw)) : raw;
+    const method = f.method ?? (f.deflate ? 8 : 0);
+    const flags = f.encrypted ? 1 : 0;
+    const local = new Uint8Array([
+      ...le(0x04034b50, 4), ...le(20, 2), ...le(flags, 2), ...le(method, 2), ...le(0, 4), ...le(0, 4),
+      ...le(body.length, 4), ...le(raw.length, 4), ...le(name.length, 2), ...le(0, 2), ...name,
+    ]);
+    const attrs = f.symlink ? 0xa1ff * 0x10000 : 0x81a4 * 0x10000;
+    central.push(new Uint8Array([
+      ...le(0x02014b50, 4), 20, 3, ...le(20, 2), ...le(flags, 2), ...le(method, 2), ...le(0, 4), ...le(0, 4),
+      ...le(body.length, 4), ...le(raw.length, 4), ...le(name.length, 2), ...le(0, 2), ...le(0, 2), ...le(0, 2),
+      ...le(0, 2), ...le(attrs, 4), ...le(offset, 4), ...name,
+    ]));
+    parts.push(local, body);
+    offset += local.length + body.length;
+  }
+  const cdSize = central.reduce((n, c) => n + c.length, 0);
+  const eocd = new Uint8Array([
+    ...le(0x06054b50, 4), ...le(0, 2), ...le(0, 2), ...le(files.length, 2), ...le(files.length, 2),
+    ...le(cdSize, 4), ...le(offset, 4), ...le(0, 2),
+  ]);
+  const all = [...parts, ...central, eocd];
+  const out = new Uint8Array(all.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of all) {
+    out.set(p, o);
+    o += p.length;
   }
   return out;
 }

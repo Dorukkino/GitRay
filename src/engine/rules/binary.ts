@@ -44,9 +44,10 @@ export function executableKind(b: Uint8Array): string | null {
   return null;
 }
 
-// Plain .js is left out: source archives (browser mods, web projects) are full of it.
-// Encoded or Windows Script Host formats (.jse, .wsf, .vbs) are not.
-const RISKY_NAME = /\.(?:exe|dll|scr|com|pif|msi|lnk|bat|cmd|ps1|vbs|vbe|jse|wsf|hta|jar|iso|img)$/i;
+// Names that matter even when the ZIP cannot be opened (too large, ZIP64): Windows
+// programs, launchers, encoded scripts and disk images. Plain scripts (.bat, .ps1,
+// .js) are left out: their contents are scanned when the ZIP is opened.
+const RISKY_NAME = /\.(?:exe|dll|scr|com|pif|msi|lnk|hta|vbe|jse|iso|img)$/i;
 
 export interface ZipInfo {
   encrypted: boolean;
@@ -107,7 +108,7 @@ const EXECUTABLE: Rule = {
     }
     const zip = zipInfo(file.head);
     const inner = zip?.names.find((n) => RISKY_NAME.test(n));
-    if (inner) yield { line: 0, text: inner, note: "ZIP archive containing an executable or script" };
+    if (inner) yield { line: 0, text: inner, note: "ZIP archive containing a Windows program, launcher or disk image" };
   },
 };
 

@@ -54,6 +54,7 @@ function result(findings: Finding[]): ScanResult {
     ruleScores: { "GR-CODE-002": 35 },
     stats: emptyStats(),
     partial: null,
+    archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     rulesRun: ["GR-CODE-002"],
     startedAt: "2026-10-01T00:00:00.000Z",
     durationMs: 5,

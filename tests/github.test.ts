@@ -139,3 +139,39 @@ describe("GitHubClient.streamTarball", () => {
     await expect(c.streamTarball(info, DEFAULT_LIMITS)).rejects.toBeInstanceOf(LimitExceeded);
   });
 });
+
+describe("GitHubClient.listTree and fetchRaw", () => {
+  it("lists the commit's files and reports a cut-short list", async () => {
+    const gh = new FakeGitHub();
+    gh.tree = [
+      { path: "a.txt", type: "blob", size: 3 },
+      { path: "dir", type: "tree", size: 0 },
+      { path: "sub", type: "commit", size: 0 },
+    ];
+    gh.treeTruncated = true;
+    const c = client(gh, "secret-token");
+    const info = await c.getRepoInfo(ref);
+    const tree = await c.listTree(info);
+    expect(tree).toEqual({
+      entries: [
+        { path: "a.txt", type: "blob", size: 3 },
+        { path: "dir", type: "tree", size: 0 },
+        { path: "sub", type: "commit", size: 0 },
+      ],
+      truncated: true,
+    });
+  });
+
+  it("downloads one file without the token and stops at the byte limit", async () => {
+    const gh = new FakeGitHub();
+    gh.rawFiles.set("dir/my file.js", "x".repeat(100));
+    const c = client(gh, "secret-token");
+    const info = await c.getRepoInfo(ref);
+    expect(await c.fetchRaw(info, "dir/my file.js", 10)).toMatchObject({ truncated: true });
+    expect((await c.fetchRaw(info, "dir/my file.js", 1000)).bytes.length).toBe(100);
+    const raw = gh.requests.filter((r) => r.url.hostname === "raw.githubusercontent.com");
+    expect(raw[0].url.pathname).toBe(`/octo/demo/${SHA}/dir/my%20file.js`);
+    expect(raw.every((r) => r.headers.get("authorization") === null)).toBe(true);
+    await expect(c.fetchRaw(info, "missing.js", 10)).rejects.toThrow(/HTTP 404/);
+  });
+});
