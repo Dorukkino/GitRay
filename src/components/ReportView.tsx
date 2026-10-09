@@ -17,7 +17,34 @@ const LIMIT_LABEL: Record<string, string> = {
   maxFileBytes: "file size",
   maxTotalBytes: "unpacked size",
   timeBudgetMs: "time budget",
+  maxHiddenFiles: "hidden files",
 };
+
+/** What the comparison of GitHub's archive with the commit's file list found. */
+function archiveCheckText(report: Report): { text: string; warn: boolean } | null {
+  // Reports stored before this check existed have no archiveCheck.
+  const check = report.archiveCheck;
+  if (!check) return null;
+  switch (check.status) {
+    case "ok":
+      return { text: "GitHub's download archive holds every file of this commit.", warn: false };
+    case "hidden":
+      return {
+        text:
+          `${check.hidden} file${check.hidden === 1 ? " is" : "s are"} left out of GitHub's download archive ` +
+          `(.gitattributes export-ignore) but still arrive with git clone. GitRay downloaded and scanned ` +
+          `${check.scanned} of them separately.`,
+        warn: check.scanned < check.hidden,
+      };
+    case "unavailable":
+      return {
+        text: "GitHub did not return the commit's full file list, so files hidden from the download archive could not be checked.",
+        warn: true,
+      };
+    default:
+      return null;
+  }
+}
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -68,6 +95,9 @@ function FindingCard({ f }: { f: ReportFinding }) {
         </span>
         {f.docContext && (
           <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">in documentation, weight reduced</span>
+        )}
+        {f.inArchive && (
+          <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">inside a ZIP file</span>
         )}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -128,6 +158,8 @@ export function ReportView({ report }: { report: Report }) {
     ([, list]) => list.length > 0,
   );
   const filesScanned = report.stats.textFiles + report.stats.binaryFiles;
+  const archiveMembers = report.stats.archiveMembers ?? 0;
+  const archiveCheck = archiveCheckText(report);
 
   return (
     <div className="space-y-8">
@@ -180,9 +212,20 @@ export function ReportView({ report }: { report: Report }) {
         <p className="mt-4 text-xs text-slate-500">
           {report.rulesRun} rules · {formatBytes(report.stats.downloadedBytes)} downloaded,{" "}
           {formatBytes(report.stats.decompressedBytes)} unpacked in memory · {report.stats.binaryFiles} binary files
-          inspected by header only · {(report.durationMs / 1000).toFixed(1)} s · scanned{" "}
-          {new Date(report.startedAt).toUTCString()}
+          inspected by header only
+          {archiveMembers > 0 && (
+            <>
+              {" "}
+              · {archiveMembers} files read from inside {report.stats.archivesOpened} ZIP archive
+              {report.stats.archivesOpened === 1 ? "" : "s"}
+            </>
+          )}
+          {(report.stats.archivesSkipped ?? 0) > 0 && <> · {report.stats.archivesSkipped} ZIP archives too large to open</>}{" "}
+          · {(report.durationMs / 1000).toFixed(1)} s · scanned {new Date(report.startedAt).toUTCString()}
         </p>
+        {archiveCheck && (
+          <p className={`mt-2 text-xs ${archiveCheck.warn ? "text-amber-300/90" : "text-slate-500"}`}>{archiveCheck.text}</p>
+        )}
       </section>
 
       {report.partial && (

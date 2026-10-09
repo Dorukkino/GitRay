@@ -37,6 +37,16 @@ function printReport(r: Report): void {
   out.push(
     `Scanned ${r.stats.textFiles} text and ${r.stats.binaryFiles} binary files with ${r.rulesRun} rules in ${(r.durationMs / 1000).toFixed(1)} s`,
   );
+  if (r.stats.archiveMembers > 0) {
+    out.push(`Read ${r.stats.archiveMembers} files from inside ${r.stats.archivesOpened} ZIP archives`);
+  }
+  const check = {
+    ok: "Download archive check: complete",
+    hidden: `Download archive check: ${r.archiveCheck.hidden} files hidden by export-ignore, ${r.archiveCheck.scanned} scanned separately`,
+    unavailable: "Download archive check: file list unavailable",
+    skipped: null,
+  }[r.archiveCheck.status];
+  if (check) out.push(check);
   if (r.rules.length) {
     out.push("", "Score breakdown:");
     for (const rule of r.rules) out.push(`  +${String(rule.points).padStart(2)}  ${rule.id}  ${rule.title} (${rule.findings})`);

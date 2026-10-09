@@ -7,7 +7,8 @@
  *   # lines: 3, 5        (positive only: expected finding lines; 0 for binary/repo rules)
  *   # weight: 45         (optional: expected highest weight)
  *   # repo: octo/demo    (optional: the repository being scanned)
- *   # format: text       (text | hex | repo; repo = JSON overrides for the repository metadata)
+ *   # format: text       (text | hex | repo; repo = JSON overrides for the repository metadata,
+ *                         with an optional "context" key merged into the ScanContext)
  *   # ---
  *   <content>
  *
@@ -112,9 +113,9 @@ function run(fx: Fixture): Finding[] {
     return runBinaryRule(rule, { path: fx.path, head, size: head.length }, ctx);
   }
   if (fx.format === "repo") {
-    const overrides = JSON.parse(fx.content) as Partial<RepoInfo>;
+    const { context, ...overrides } = JSON.parse(fx.content) as Partial<RepoInfo> & { context?: Partial<ScanContext> };
     const merged = { ...BASE_INFO, ...overrides };
-    return runRepoRule(rule, merged, { ...ctx, info: merged });
+    return runRepoRule(rule, merged, { ...ctx, ...context, info: merged });
   }
   return runTextRule(rule, { path: fx.path, content: expandCodePoints(fx.content), truncated: false }, ctx);
 }

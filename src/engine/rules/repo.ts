@@ -53,4 +53,26 @@ const NEW_REPO: Rule = {
   },
 };
 
-export const RULES: readonly Rule[] = [NEW_ACCOUNT, NEW_REPO];
+const ARCHIVE_GAP: Rule = {
+  id: "GR-REPO-003",
+  title: "Files are left out of GitHub's download archive",
+  category: "repo",
+  weight: 5,
+  why:
+    "A .gitattributes export-ignore rule keeps these files out of the archive GitHub " +
+    "serves, yet \"git clone\" still delivers them. Packages often use it to drop tests, " +
+    "but it is also a way to hide a payload from scanners that read the archive. GitRay " +
+    "downloads these files separately and scans them like the rest.",
+  *scanRepo(_info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
+    const hidden = ctx.exportIgnored ?? [];
+    if (hidden.length === 0) return;
+    const sample = hidden.slice(0, 3).join(", ");
+    yield {
+      line: 0,
+      text: "",
+      note: `${plural(hidden.length, "file")} missing from the archive (${sample}${hidden.length > 3 ? ", ..." : ""})`,
+    };
+  },
+};
+
+export const RULES: readonly Rule[] = [NEW_ACCOUNT, NEW_REPO, ARCHIVE_GAP];

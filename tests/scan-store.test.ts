@@ -4,6 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { Report, Verdict } from "../src/engine";
+import { emptyStats } from "../src/engine/types";
 import type { Db } from "../src/lib/db";
 import { PostgresScanStore } from "../src/lib/scan-store";
 import { sanitize } from "../src/engine/text";
@@ -39,15 +40,8 @@ function report(fullName: string, verdict: Verdict, startedAt: string, score = v
     score,
     complete: true,
     partial: null,
-    stats: {
-      entriesSeen: 1,
-      textFiles: 1,
-      binaryFiles: 0,
-      skippedNonRegular: 0,
-      truncatedFiles: 0,
-      downloadedBytes: 1,
-      decompressedBytes: 1,
-    },
+    stats: { ...emptyStats(), entriesSeen: 1, textFiles: 1 },
+    archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     rules: score ? [{ id: "GR-CODE-001", title: "Decodes hidden code and executes it", category: "code", points: 45, findings: 2 }] : [],
     findings: [],
     omittedFindings: 0,

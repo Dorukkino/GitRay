@@ -6,8 +6,9 @@
 
 import { allRules } from "./rules";
 import { sanitize } from "./text";
-import type { Category, Finding, ScanResult, Verdict } from "./types";
+import type { ArchiveCheck, Category, Finding, ScanResult, Verdict } from "./types";
 import { ENGINE_VERSION } from "./version";
+import { ARCHIVE_SEPARATOR } from "./zip";
 
 export const MAX_REPORT_FINDINGS = 400;
 export const MAX_FINDINGS_PER_RULE = 40;
@@ -38,6 +39,8 @@ export interface ReportFinding {
   docContext: boolean;
   /** Link to the exact line on github.com, built from validated parts. */
   githubUrl: string | null;
+  /** The finding is in a file inside a ZIP ("release.zip!/setup/run.js"). */
+  inArchive: boolean;
 }
 
 export interface ReportRule {
@@ -79,6 +82,8 @@ export interface Report {
   score: number;
   complete: boolean;
   partial: { limit: string; limitValue: number; reason: string; filesScanned: number } | null;
+  /** Whether GitHub's archive held every file of the commit (see ArchiveCheck). */
+  archiveCheck: ArchiveCheck;
   stats: ScanResult["stats"];
   rules: ReportRule[];
   findings: ReportFinding[];
@@ -92,8 +97,12 @@ export interface Report {
 
 function githubLine(fullName: string, sha: string, f: Finding): string | null {
   if (!f.path || !FULL_NAME.test(fullName) || !SHA.test(sha)) return null;
-  const path = f.path.split("/").map(encodeURIComponent).join("/");
-  return `https://github.com/${fullName}/blob/${sha}/${path}${f.line > 0 ? `#L${f.line}` : ""}`;
+  // A file inside a ZIP has no page of its own: link to the ZIP.
+  const separator = f.path.indexOf(ARCHIVE_SEPARATOR);
+  const inArchive = separator !== -1;
+  const filePath = inArchive ? f.path.slice(0, separator) : f.path;
+  const path = filePath.split("/").map(encodeURIComponent).join("/");
+  return `https://github.com/${fullName}/blob/${sha}/${path}${f.line > 0 && !inArchive ? `#L${f.line}` : ""}`;
 }
 
 function byImportance(a: Finding, b: Finding): number {
@@ -153,6 +162,7 @@ export function toReport(result: ScanResult): Report {
           filesScanned: result.stats.textFiles + result.stats.binaryFiles,
         }
       : null,
+    archiveCheck: { ...result.archiveCheck },
     stats: { ...result.stats },
     rules: Object.entries(result.ruleScores)
       .map(([id, points]) => {
@@ -179,6 +189,7 @@ export function toReport(result: ScanResult): Report {
       note: f.note ? sanitize(f.note, 300) : null,
       docContext: f.docContext,
       githubUrl: fullName && repo ? githubLine(fullName, repo.headSha, f) : null,
+      inArchive: f.path.includes(ARCHIVE_SEPARATOR),
     })),
     omittedFindings: result.findings.length - kept.length,
     releaseAssets: (repo?.releaseAssets ?? []).map((a) => {

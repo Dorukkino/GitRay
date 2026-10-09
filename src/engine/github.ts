@@ -13,6 +13,7 @@ import { ENGINE_VERSION } from "./version";
 import type { ReleaseAsset, RepoInfo, RepoRef } from "./types";
 
 export const API_URL = "https://api.github.com";
+const RAW_URL = "https://raw.githubusercontent.com";
 const TARBALL_HOSTS = new Set(["api.github.com", "codeload.github.com"]);
 const MAX_API_REDIRECTS = 3;
 const MAX_RELEASES = 10;
@@ -29,6 +30,13 @@ export interface GitHubClientOptions {
 }
 
 type Json = Record<string, unknown>;
+
+export interface TreeEntry {
+  path: string;
+  /** blob: file or symlink; tree: directory; commit: submodule. */
+  type: "blob" | "tree" | "commit";
+  size: number;
+}
 
 function isObject(v: unknown): v is Json {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -173,6 +181,67 @@ export class GitHubClient {
       }
     }
     return assets;
+  }
+
+    /**
+   * Every path in the commit (one API request). `truncated` means GitHub cut
+   * the list short (very large repositories), so it cannot be used to compare.
+   */
+  async listTree(info: RepoInfo, signal?: AbortSignal): Promise<{ entries: TreeEntry[]; truncated: boolean }> {
+    if (!SHA.test(info.headSha) || !FULL_NAME.test(info.fullName)) throw new GitHubError("Invalid tree target");
+    const data = await this.getJson(`/repos/${info.fullName}/git/trees/${info.headSha}?recursive=1`, signal);
+    if (!isObject(data) || !Array.isArray(data.tree)) throw new GitHubError("Unexpected tree response");
+    const entries: TreeEntry[] = [];
+    for (const e of data.tree) {
+      if (!isObject(e) || typeof e.path !== "string") continue;
+      if (e.type !== "blob" && e.type !== "tree" && e.type !== "commit") continue;
+      entries.push({ path: e.path, type: e.type, size: num(e.size) });
+    }
+    return { entries, truncated: data.truncated === true };
+  }
+
+  /**
+   * Download one file of the commit from raw.githubusercontent.com (not an API
+   * request, no token sent), reading at most `maxBytes`.
+   */
+  async fetchRaw(
+    info: RepoInfo,
+    path: string,
+    maxBytes: number,
+    signal?: AbortSignal,
+  ): Promise<{ bytes: Uint8Array; truncated: boolean }> {
+    if (!SHA.test(info.headSha) || !FULL_NAME.test(info.fullName)) throw new GitHubError("Invalid file target");
+    const encoded = path.split("/").map(encodeURIComponent).join("/");
+    const resp = await this.request(`${RAW_URL}/${info.fullName}/${info.headSha}/${encoded}`, {
+      signal,
+      auth: false,
+      download: true,
+    });
+    if (!resp.ok || !resp.body) {
+      await resp.body?.cancel();
+      throw new GitHubError(`Could not download a file from GitHub (HTTP ${resp.status})`);
+    }
+    const parts: Uint8Array[] = [];
+    let total = 0;
+    let truncated = false;
+    for await (const chunk of iterBody(resp.body)) {
+      const room = maxBytes - total;
+      if (chunk.length > room) {
+        parts.push(chunk.subarray(0, room));
+        total = maxBytes;
+        truncated = true;
+        break;
+      }
+      parts.push(chunk);
+      total += chunk.length;
+    }
+    const bytes = new Uint8Array(total);
+    let off = 0;
+    for (const p of parts) {
+      bytes.set(p, off);
+      off += p.length;
+    }
+    return { bytes, truncated };
   }
 
   /** Stream the raw (still gzipped) tarball of a commit. */

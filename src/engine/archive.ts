@@ -18,6 +18,7 @@ import { ArchiveError, GitRayError, LimitExceeded } from "./errors";
 import { MAX_TAR_META_BYTES, type Limits } from "./limits";
 import { decode } from "./text";
 import type { BinaryFile, ScanStats, TextFile } from "./types";
+import { isZipPath } from "./zip";
 
 const BLOCK = 512;
 
@@ -181,13 +182,15 @@ const padding = (size: number): number => (BLOCK - (size % BLOCK)) % BLOCK;
 /**
  * Iterate the regular files of a gzipped tarball. Throws LimitExceeded
  * mid-iteration; entries yielded so far stay valid, so callers can report a
- * partial scan. `stats` is updated in place.
+ * partial scan. `stats` is updated in place. `seen` collects the path of every
+ * entry (links and directories included), to compare with the commit's files.
  */
 export async function* readArchive(
   chunks: AsyncIterable<Uint8Array>,
   limits: Limits,
   stats: ScanStats,
   deadline = Number.POSITIVE_INFINITY,
+  seen?: Set<string>,
 ): AsyncGenerator<ArchiveEntry> {
   const compressed = countBytes(chunks, limits.maxDownloadBytes, "maxDownloadBytes", "download size", (n) => {
     stats.downloadedBytes = n;
@@ -197,7 +200,7 @@ export async function* readArchive(
   });
   const reader = new ByteReader(decompressed);
   try {
-    yield* readTar(reader, limits, stats, deadline);
+    yield* readTar(reader, limits, stats, deadline, seen);
   } finally {
     await reader.close();
   }
@@ -218,6 +221,7 @@ async function* readTar(
   limits: Limits,
   stats: ScanStats,
   deadline: number,
+  seen: Set<string> | undefined,
 ): AsyncGenerator<ArchiveEntry> {
   let longName: string | null = null;
   let paxPath: string | null = null;
@@ -266,6 +270,8 @@ async function* readTar(
       throw new LimitExceeded("maxEntries", limits.maxEntries, `archive has more than ${limits.maxEntries} entries`);
     }
 
+    const path = stripRoot(name);
+    if (path) seen?.add(path);
     const regular = type === "0" || type === "7";
     if (!regular) {
       // Directories are expected; links, devices and FIFOs are never read.
@@ -274,8 +280,8 @@ async function* readTar(
       continue;
     }
 
-    const path = stripRoot(name);
-    const keep = Math.min(size, limits.maxFileBytes);
+    // ZIPs are read whole (up to their own limit) so their contents can be scanned.
+    const keep = Math.min(size, isZipPath(path) ? Math.max(limits.maxFileBytes, limits.maxArchiveBytes) : limits.maxFileBytes);
     const data = await reader.read(keep);
     if (data === null || !(await reader.skip(size - keep + padding(size)))) {
       throw new ArchiveError("truncated tar data");

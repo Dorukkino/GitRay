@@ -6,7 +6,7 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 
 ## What it checks
 
-27 rules in 8 categories (full list on the `/rules` page):
+28 rules in 8 categories (full list on the `/rules` page):
 
 | Category | Examples |
 | --- | --- |
@@ -14,8 +14,8 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 | Malicious code patterns | decode-and-exec, `curl \| sh`, browser password and cookie stores, SSH keys, crypto wallets, Discord/Telegram exfiltration, Windows LOLBins |
 | Hidden content | high-entropy blobs, Trojan Source bidi characters, code pushed off-screen with whitespace, invisible Unicode payloads |
 | Links and social engineering | executables outside the repo's own releases, file-sharing sites, link shorteners, archive passwords, "disable your antivirus" |
-| Binary files | committed PE/ELF/Mach-O executables, `.lnk` shortcuts, encrypted archives |
-| Repository signals | brand-new accounts and repositories (weak signals) |
+| Binary files | committed PE/ELF/Mach-O executables, `.lnk` shortcuts, encrypted archives; files inside ZIPs are unpacked in memory and scanned too |
+| Repository signals | brand-new accounts and repositories, files hidden from GitHub's download archive (weak signals) |
 
 Each rule adds its strongest finding once to a 0-100 score: **clean** below 30, **suspicious** from 30, **dangerous** from 70. When a safety limit stops the scan, the result is **incomplete**, never clean.
 
@@ -25,8 +25,9 @@ The latest result of every scanned repository is stored. Clean repositories are 
 
 1. Repository metadata, owner age and release digests come from the GitHub API. Release files are never downloaded; their SHA-256 can be looked up on VirusTotal.
 2. The source tarball is streamed and unpacked **in memory** with hard limits (download size, unpacked size, file count, bytes per file, time). Nothing touches the disk, links are never followed and nothing is executed.
-3. Every text file goes through the text rules; binary files are identified by their header bytes only.
-4. The report is sanitized (hidden characters revealed, URLs defanged) before the UI shows it.
+3. Every text file goes through the text rules; binary files are identified by their header bytes only. ZIP files are opened in memory (with zip-bomb limits) and their files scanned as well.
+4. GitHub's archive leaves out files marked `export-ignore` in `.gitattributes`, although `git clone` still delivers them. GitRay compares the archive with the commit's file list and downloads any missing file separately, so a payload cannot hide there.
+5. The report is sanitized (hidden characters revealed, URLs defanged) before the UI shows it.
 
 ## Run it
 

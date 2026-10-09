@@ -81,3 +81,77 @@ describe("scanTarball", () => {
     expect(result.stats.binaryFiles).toBe(1);
   });
 });
+
+describe("files left out of the download archive", () => {
+  const payload = 'eval(atob("Y29uc29sZS5sb2coImdpdHJheSB0ZXN0Iik="));\n';
+
+  it("downloads hidden files separately and scans them", async () => {
+    const gh = new FakeGitHub();
+    gh.tarball = makeTarball({ "README.md": "# demo\n", ".gitattributes": "tools/ export-ignore\n" });
+    gh.tree = [
+      { path: ".gitattributes", type: "blob", size: 22 },
+      { path: "README.md", type: "blob", size: 7 },
+      { path: "tools", type: "tree", size: 0 },
+      { path: "tools/helper.js", type: "blob", size: payload.length },
+      { path: "vendor/lib", type: "commit", size: 0 },
+    ];
+    gh.rawFiles.set("tools/helper.js", payload);
+    const result = await scan(gh);
+    expect(result.archiveCheck).toEqual({ status: "hidden", hidden: 1, scanned: 1 });
+    expect(result.findings.map((f) => [f.ruleId, f.path])).toEqual(
+      expect.arrayContaining([
+        ["GR-REPO-003", ""],
+        ["GR-CODE-001", "tools/helper.js"],
+      ]),
+    );
+    expect(result.verdict).toBe("suspicious");
+    const raw = gh.requests.find((r) => r.url.hostname === "raw.githubusercontent.com");
+    expect(raw?.headers.get("authorization")).toBeNull();
+  });
+
+  it("calls the scan incomplete when a hidden file cannot be downloaded", async () => {
+    const gh = new FakeGitHub();
+    gh.tree = [
+      { path: "README.md", type: "blob", size: 7 },
+      { path: "hidden.js", type: "blob", size: 10 },
+    ];
+    const result = await scan(gh);
+    expect(result.archiveCheck).toEqual({ status: "hidden", hidden: 1, scanned: 0 });
+    expect(result.partial?.limit).toBe("maxHiddenFiles");
+    expect(result.verdict).toBe("incomplete");
+  });
+
+  it("is ok when the archive matches the commit, symlinks included", async () => {
+    const gh = new FakeGitHub();
+    gh.tarball = new TarBuilder().file("README.md", "# demo\n").symlink("docs", "README.md").build();
+    gh.tree = [
+      { path: "README.md", type: "blob", size: 7 },
+      { path: "docs", type: "blob", size: 9 },
+    ];
+    const result = await scan(gh);
+    expect(result.archiveCheck).toEqual({ status: "ok", hidden: 0, scanned: 0 });
+    expect(result.verdict).toBe("clean");
+  });
+
+  it("does not block the scan when the file list is unavailable or cut short", async () => {
+    const missing = new FakeGitHub(); // no tree: the API answers 404
+    expect((await scan(missing)).archiveCheck.status).toBe("unavailable");
+
+    const truncated = new FakeGitHub();
+    truncated.tree = [{ path: "README.md", type: "blob", size: 7 }];
+    truncated.treeTruncated = true;
+    const result = await scan(truncated);
+    expect(result).toMatchObject({ verdict: "clean", partial: null, archiveCheck: { status: "unavailable" } });
+  });
+
+  it("skips the comparison when the archive itself was only partly read", async () => {
+    const gh = new FakeGitHub();
+    const b = new TarBuilder();
+    for (let i = 0; i < 10; i++) b.file(`f${i}.txt`, "x");
+    gh.tarball = b.build();
+    gh.tree = [{ path: "f0.txt", type: "blob", size: 1 }];
+    const result = await scan(gh, { maxEntries: 3 });
+    expect(result.archiveCheck.status).toBe("skipped");
+    expect(gh.requests.some((r) => r.url.pathname.includes("/git/trees/"))).toBe(false);
+  });
+});
