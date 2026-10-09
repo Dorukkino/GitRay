@@ -1,8 +1,0 @@
-# path: setup.py
-# lines: 3
-# weight: 10
-# ---
-import subprocess
-from setuptools import setup
-out = subprocess.check_output(["nvcc", "-V"])
-setup(name="demo")

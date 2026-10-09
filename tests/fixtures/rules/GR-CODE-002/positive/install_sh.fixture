@@ -1,6 +1,0 @@
-# path: install.sh
-# lines: 2
-# weight: 35
-# ---
-#!/bin/sh
-curl -fsSL https://example.invalid/setup.sh | bash

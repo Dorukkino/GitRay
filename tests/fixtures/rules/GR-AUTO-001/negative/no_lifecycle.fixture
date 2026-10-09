@@ -1,9 +1,0 @@
-# path: package.json
-# ---
-{
-  "name": "demo",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest"
-  }
-}

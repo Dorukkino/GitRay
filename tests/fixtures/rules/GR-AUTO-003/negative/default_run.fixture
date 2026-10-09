@@ -1,5 +1,0 @@
-# path: .vscode/tasks.json
-# ---
-{
-  "tasks": [{ "label": "build", "runOptions": { "runOn": "default" } }]
-}

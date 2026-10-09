@@ -1,7 +1,0 @@
-# path: loader.py
-# lines: 3
-# weight: 45
-# ---
-import base64
-payload = "cHJpbnQoImdpdHJheS10ZXN0Iik="
-exec(base64.b64decode(payload))

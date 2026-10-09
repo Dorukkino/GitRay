@@ -1,9 +1,0 @@
-# path: README.md
-# ---
-# Demo
-
-Install:
-
-```sh
-curl -fsSL https://example.invalid/install.sh | sh
-```

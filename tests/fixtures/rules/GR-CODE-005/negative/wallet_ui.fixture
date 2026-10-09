@@ -1,4 +1,0 @@
-# path: wallet.js
-# ---
-const wallet = new Wallet();
-// show wallet balance

@@ -1,6 +1,0 @@
-# path: setup.py
-# lines: 2
-# weight: 35
-# ---
-from urllib.request import urlopen
-urlopen("https://example.invalid/x")

