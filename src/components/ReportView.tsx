@@ -110,7 +110,7 @@ function downloadJson(report: Report) {
   URL.revokeObjectURL(url);
 }
 
-export function ReportView({ report, demo = false }: { report: Report; demo?: boolean }) {
+export function ReportView({ report }: { report: Report }) {
   const [category, setCategory] = useState<Category | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const style = VERDICT_STYLE[report.verdict];
@@ -145,11 +145,6 @@ export function ReportView({ report, demo = false }: { report: Report; demo?: bo
               <div className="hidden md:block">
                 <VerdictBadge verdict={report.verdict} size="lg" />
               </div>
-              {demo && (
-                <span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-medium text-violet-300 ring-1 ring-violet-400/30">
-                  Demo: fake repository, harmless samples
-                </span>
-              )}
               {!report.complete && (
                 <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300 ring-1 ring-sky-400/30">
                   Partial scan
@@ -159,13 +154,9 @@ export function ReportView({ report, demo = false }: { report: Report; demo?: bo
             {t ? (
               <div>
                 <h1 className="font-mono text-xl font-semibold break-all text-slate-50 sm:text-2xl">
-                  {demo ? (
-                    t.fullName
-                  ) : (
-                    <a href={t.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
-                      {t.fullName}
-                    </a>
-                  )}
+                  <a href={t.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
+                    {t.fullName}
+                  </a>
                 </h1>
                 {t.description && <p className="mt-1 text-sm text-slate-400">{t.description}</p>}
               </div>

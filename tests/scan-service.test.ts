@@ -2,11 +2,24 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Report } from "../src/engine";
 import { GitHubClient } from "../src/engine/github";
-import { type Deps, RATE_MAX, STORE_TTL_MS, resetScanService, runScan } from "../src/lib/scan-service";
+import {
+  type Deps,
+  FRESH_COOLDOWN_MS,
+  LOOKUP_MAX,
+  RATE_MAX,
+  STORE_TTL_MS,
+  clearScanCache,
+  clientKey,
+  resetScanService,
+  runScan,
+} from "../src/lib/scan-service";
 import { type ScanStore, nullScanStore } from "../src/lib/scan-store";
 import { FakeGitHub } from "./helpers";
 
-function deps(gh: FakeGitHub, now = () => 1_000_000, store: ScanStore = nullScanStore): Deps {
+// Reports carry the real scan time, so the service clock must be real too.
+const clock = (offsetMs = 0) => () => Date.now() + offsetMs;
+
+function deps(gh: FakeGitHub, now = clock(), store: ScanStore = nullScanStore): Deps {
   return { client: () => new GitHubClient({ fetch: gh.fetch }), now, store: () => store };
 }
 
@@ -48,16 +61,14 @@ describe("runScan", () => {
 
   it("expires the memory cache", async () => {
     const gh = new FakeGitHub();
-    let t = 1_000_000;
-    await runScan("octo/demo", "ip", deps(gh, () => t));
-    t += 11 * 60 * 1000;
-    expect((await runScan("octo/demo", "ip", deps(gh, () => t))).cached).toBe(false);
+    await runScan("octo/demo", "ip", deps(gh));
+    expect((await runScan("octo/demo", "ip", deps(gh, clock(2 * 60 * 1000)))).cached).toBe(false);
   });
 
   it("saves scans and serves recent stored scans without calling GitHub", async () => {
     const gh = new FakeGitHub();
     const store = new MapStore();
-    const now = () => Date.now();
+    const now = clock();
     await runScan("octo/demo", "ip", deps(gh, now, store));
     expect(store.saved.has("octo/demo")).toBe(true);
 
@@ -68,22 +79,48 @@ describe("runScan", () => {
     expect(gh.requests.length).toBe(calls);
 
     resetScanService();
-    const later = () => Date.now() + STORE_TTL_MS + 1000;
+    const later = clock(STORE_TTL_MS + 1000);
     expect((await runScan("octo/demo", "ip", deps(gh, later, store))).cached).toBe(false);
   });
 
-  it("scans again when fresh is asked", async () => {
+  it("scans again when fresh is asked, unless the last scan is under a minute old", async () => {
     const gh = new FakeGitHub();
-    await runScan("octo/demo", "ip", deps(gh));
-    const fresh = await runScan("octo/demo", "ip", deps(gh), { fresh: true });
-    expect(fresh.cached).toBe(false);
+    const store = new MapStore();
+    await runScan("octo/demo", "ip", deps(gh, clock(), store));
+    expect((await runScan("octo/demo", "ip", deps(gh, clock(), store), { fresh: true })).cached).toBe(true);
+
+    const later = clock(FRESH_COOLDOWN_MS + 1000);
+    expect((await runScan("octo/demo", "ip", deps(gh, later, store), { fresh: true })).cached).toBe(false);
+  });
+
+  it("does not keep results cut short by the time budget", async () => {
+    const gh = new FakeGitHub();
+    const store = new MapStore();
+    const slow: Deps = { ...deps(gh, clock(), store), limits: { timeBudgetMs: 0 } };
+    const r = await runScan("octo/demo", "ip", slow);
+    expect(r).toMatchObject({ status: 200, body: { verdict: "incomplete", partial: { limit: "timeBudgetMs" } } });
+    expect(store.saved.size).toBe(0);
+    expect((await runScan("octo/demo", "ip", deps(gh, clock(), store))).cached).toBe(false);
+  });
+
+  it("limits uncached lookups per client", async () => {
+    const gh = new FakeGitHub();
+    const store = new MapStore();
+    store.saved.set("octo/demo", (await runScan("octo/demo", "seed", deps(gh))).body as Report);
+    resetScanService();
+    for (let i = 0; i < LOOKUP_MAX; i++) {
+      clearScanCache();
+      expect((await runScan("octo/demo", "5.5.5.5", deps(gh, clock(), store))).status).toBe(200);
+    }
+    clearScanCache();
+    expect((await runScan("octo/demo", "5.5.5.5", deps(gh, clock(), store))).status).toBe(429);
   });
 
   it("keeps scanning when the database fails", async () => {
     const gh = new FakeGitHub();
     const store = new MapStore();
     store.broken = true;
-    const r = await runScan("octo/demo", "ip", deps(gh, () => Date.now(), store));
+    const r = await runScan("octo/demo", "ip", deps(gh, clock(), store));
     expect(r).toMatchObject({ status: 200, cached: false });
   });
 
@@ -113,5 +150,15 @@ describe("runScan", () => {
       status: 422,
       body: { error: { code: "archive_error" } },
     });
+  });
+});
+
+describe("clientKey", () => {
+  it("groups IPv6 clients by /64 and leaves IPv4 alone", () => {
+    expect(clientKey("203.0.113.7")).toBe("203.0.113.7");
+    expect(clientKey("2001:db8:1:2:aaaa::1")).toBe("2001:db8:1:2::/64");
+    expect(clientKey("2001:0db8:0001:0002:ffff:ffff:ffff:ffff")).toBe("2001:db8:1:2::/64");
+    expect(clientKey("2001:db8::1")).toBe("2001:db8:0:0::/64");
+    expect(clientKey("::1")).toBe("0:0:0:0::/64");
   });
 });

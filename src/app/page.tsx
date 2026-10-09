@@ -57,12 +57,6 @@ export default function Home() {
           <div className="mx-auto mt-9 max-w-2xl text-left">
             <ScanForm autoFocus />
           </div>
-          <p className="mt-6 text-sm text-slate-500">
-            Want to see what a bad result looks like?{" "}
-            <Link href="/demo" className="text-cyan-300 underline underline-offset-2 hover:text-cyan-200">
-              Open the demo report
-            </Link>
-          </p>
         </div>
       </section>
 

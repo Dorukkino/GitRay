@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { EmptyList, RepoList } from "@/components/RepoList";
 import { LIST_LIMIT, loadList } from "@/lib/lists";
@@ -9,8 +8,9 @@ export const metadata: Metadata = {
   description: "Recently scanned GitHub repositories that GitRay rated dangerous.",
 };
 
-// Rebuilt at most every 30 seconds, so the database is not queried on every visit.
-export const revalidate = 30;
+// Rebuilt at most once a minute, so the database is not queried on every visit
+// (and the free Neon database can sleep when nobody is looking).
+export const revalidate = 60;
 
 export default async function ScammerPage() {
   const { items, configured, failed } = await loadList("dangerous");
@@ -42,8 +42,7 @@ export default async function ScammerPage() {
           <EmptyList configured>The list could not be loaded right now. Try again in a minute.</EmptyList>
         ) : items.length === 0 ? (
           <EmptyList configured={configured}>
-            No dangerous repositories found yet. <Link href="/demo" className="text-cyan-300 underline">See the demo</Link>{" "}
-            for what one looks like.
+            No dangerous repositories found yet. Repositories that score 70 or more appear here.
           </EmptyList>
         ) : (
           <RepoList items={items} showReasons />

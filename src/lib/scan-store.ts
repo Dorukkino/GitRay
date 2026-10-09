@@ -33,6 +33,13 @@ export interface ScanStore {
   counts(): Promise<Record<Verdict, number>>;
 }
 
+/** Rows kept at most; the oldest scans are deleted beyond this (free plan: 0.5 GB). */
+export const MAX_ROWS = 5_000;
+/** One save in this many also prunes old rows. */
+const PRUNE_EVERY = 50;
+/** Postgres codes raised when two instances create the same table at the same time. */
+const ALREADY_EXISTS = new Set(["23505", "42P07", "42710"]);
+
 export function repoKey(fullName: string): string {
   return fullName.toLowerCase();
 }
@@ -82,12 +89,25 @@ export class PostgresScanStore implements ScanStore {
   readonly configured = true;
   private schema: Promise<void> | null = null;
 
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    private readonly random: () => number = Math.random,
+  ) {}
 
-  /** Creates the table on first use, so a fresh database needs no setup step. */
+  /**
+   * Creates the table on first use, so a fresh database needs no setup step.
+   * Serverless instances may race on it; losing that race is not an error.
+   */
   private ensureSchema(): Promise<void> {
     this.schema ??= (async () => {
-      for (const statement of SCHEMA) await this.db.query(statement);
+      for (const statement of SCHEMA) {
+        try {
+          await this.db.query(statement);
+        } catch (e) {
+          const code = typeof e === "object" && e !== null && "code" in e ? String(e.code) : "";
+          if (!ALREADY_EXISTS.has(code)) throw e;
+        }
+      }
     })().catch((e) => {
       this.schema = null;
       throw e;
@@ -107,7 +127,8 @@ export class PostgresScanStore implements ScanStore {
          full_name = EXCLUDED.full_name, head_sha = EXCLUDED.head_sha, verdict = EXCLUDED.verdict,
          score = EXCLUDED.score, complete = EXCLUDED.complete, description = EXCLUDED.description,
          stars = EXCLUDED.stars, findings = EXCLUDED.findings, top_rules = EXCLUDED.top_rules,
-         report = EXCLUDED.report, scanned_at = EXCLUDED.scanned_at`,
+         report = EXCLUDED.report, scanned_at = EXCLUDED.scanned_at
+       WHERE scans.scanned_at <= EXCLUDED.scanned_at`,
       [
         repoKey(t.fullName),
         t.fullName,
@@ -122,6 +143,18 @@ export class PostgresScanStore implements ScanStore {
         JSON.stringify(report),
         report.startedAt,
       ],
+    );
+    if (this.random() < 1 / PRUNE_EVERY) await this.prune();
+  }
+
+  /** Delete the oldest scans beyond MAX_ROWS. */
+  async prune(maxRows = MAX_ROWS): Promise<void> {
+    await this.ensureSchema();
+    await this.db.query(
+      `DELETE FROM scans WHERE repo_key IN (
+         SELECT repo_key FROM scans ORDER BY scanned_at DESC OFFSET $1
+       )`,
+      [maxRows],
     );
   }
 

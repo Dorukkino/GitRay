@@ -100,6 +100,17 @@ describe("revealing hidden characters", () => {
   it("bounds the length", () => {
     expect(sanitize("x".repeat(500), 10)).toHaveLength(10);
   });
+
+  it("never cuts an emoji in half", () => {
+    const emoji = String.fromCodePoint(0x1f600);
+    for (let pad = 0; pad < 4; pad++) {
+      const out = sanitize(`${"x".repeat(pad)}${emoji.repeat(10)}`, 8);
+      expect(out.isWellFormed()).toBe(true);
+      expect(out.length).toBeLessThanOrEqual(8);
+    }
+    const long = `${"a".repeat(5000)}${emoji.repeat(200)}`;
+    expect(snippet(long, 5000).isWellFormed()).toBe(true);
+  });
 });
 
 describe("snippet", () => {
