@@ -1,0 +1,5 @@
+# path: setup.py
+# lines: 1
+# weight: 10
+# ---
+exec(open("demo/version.py").read())

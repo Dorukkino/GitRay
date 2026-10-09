@@ -1,0 +1,9 @@
+# path: setup.py
+# lines: 4
+# weight: 35
+# ---
+import base64
+from setuptools import setup
+
+exec(base64.b64decode("cHJpbnQoImdpdHJheSB0ZXN0Iik="))
+setup(name="demo")

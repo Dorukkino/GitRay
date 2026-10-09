@@ -1,0 +1,3 @@
+# path: src/download.py
+# ---
+URL = "https://example.invalid/setup.exe"

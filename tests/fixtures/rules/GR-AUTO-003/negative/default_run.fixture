@@ -1,0 +1,6 @@
+# path: .vscode/tasks.json
+# ---
+{
+  "version": "2.0.0",
+  "tasks": [{ "label": "build", "command": "npm run build", "runOptions": { "runOn": "default" } }]
+}

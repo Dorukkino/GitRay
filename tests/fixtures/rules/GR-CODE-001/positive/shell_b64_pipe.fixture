@@ -1,0 +1,6 @@
+# path: install.sh
+# lines: 2
+# weight: 45
+# ---
+#!/bin/sh
+echo ZWNobyBnaXRyYXkgdGVzdA== | base64 -d | sh

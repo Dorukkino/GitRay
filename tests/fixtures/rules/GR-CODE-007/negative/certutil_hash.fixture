@@ -1,0 +1,4 @@
+# path: verify.bat
+# ---
+certutil -hashfile release.zip SHA256
+powershell -NoProfile -File build.ps1

@@ -1,0 +1,8 @@
+# path: App/App.csproj
+# ---
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PreBuildEvent></PreBuildEvent>
+    <PostBuildEvent />
+  </PropertyGroup>
+</Project>

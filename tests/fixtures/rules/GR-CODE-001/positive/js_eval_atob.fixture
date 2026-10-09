@@ -1,0 +1,6 @@
+# path: src/app.js
+# lines: 2
+# weight: 45
+# ---
+const p = "Y29uc29sZS5sb2coImdpdHJheSB0ZXN0Iik=";
+eval(atob(p));

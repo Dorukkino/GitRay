@@ -1,0 +1,6 @@
+# path: notes.txt
+# lines: 2
+# weight: 35
+# ---
+Quick setup:
+curl -s https://example.invalid/x.sh | sh

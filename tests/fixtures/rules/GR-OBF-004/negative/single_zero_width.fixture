@@ -1,0 +1,3 @@
+# path: names.js
+# ---
+const word = "zero{U+200B}width";

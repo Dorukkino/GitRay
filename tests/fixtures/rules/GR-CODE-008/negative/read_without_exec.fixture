@@ -1,0 +1,4 @@
+# path: main.py
+# ---
+text = open("notes.md").read()
+config = json.loads(fs.readFileSync("config.json"))

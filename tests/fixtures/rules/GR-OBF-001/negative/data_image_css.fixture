@@ -1,0 +1,3 @@
+# path: style.css
+# ---
+.logo { background: url("data:image/png;base64,lwQFSrKRH+z4c5Lbwj5lazUKbmQc9Wkt2yycEunJuF7JK7/COs0Qg2EIIESsgAdYgg/MRrqEBOkLafJ7B7XBSeIuO9qffZMP5Es+cnUsQylqpL1PheQC6UrVp1P0oJg06S+zCKdOob2bf+sEbClvpVaeSd4Y9OMU1ZO7a5HlVfuHtZoJqM1o8nGGLmcbjuaEVKaWhPmJMKeEGWUWUbKDIKPb8hKkpFT2udWde0PZ3sUTEOmac8ec4QJaCZecNxvOqnKzjS3rkgpEgNSswZTRZk+U8J4IqZKkVt2KV702FoTFPu8ZxkwEERUH10yOnFierqHQbpzGBGR0FjcUWaVVWmNashgHISJzW7S+IBgPRJEoCJ5Wj51+mRWAyvLAb6xc1gRr6lAxiiqf25M6"); }

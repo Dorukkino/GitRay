@@ -1,0 +1,9 @@
+# path: auth.py
+# lines: 3
+# weight: 30
+# ---
+def is_admin(user):
+    access_level = "user"
+    if access_level != "user{U+202E} {U+2066}# Check if admin{U+2069} {U+2066}":
+        return True
+    return False

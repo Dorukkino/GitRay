@@ -1,0 +1,4 @@
+# path: notify.py
+# ---
+import os
+HOOK = os.environ["DISCORD_WEBHOOK_URL"]  # e.g. https://discord.com/api/webhooks/<id>/<token>

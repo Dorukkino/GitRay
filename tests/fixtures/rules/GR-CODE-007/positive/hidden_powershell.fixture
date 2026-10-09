@@ -1,0 +1,5 @@
+# path: start.bat
+# lines: 1
+# weight: 35
+# ---
+powershell.exe -ep bypass -w hidden -File run.ps1

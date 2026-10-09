@@ -1,0 +1,11 @@
+# path: .github/workflows/ci.yml
+# lines: 7
+# weight: 5
+# ---
+name: ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsSL https://example.invalid/install.sh | bash

@@ -1,0 +1,5 @@
+# path: jwe.py
+# ---
+def parse(token):
+    header, encrypted_key, iv, ciphertext, tag = token.split(".")
+    return encrypted_key

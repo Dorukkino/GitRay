@@ -1,0 +1,5 @@
+# path: send.py
+# lines: 1
+# weight: 25
+# ---
+URL = "https://api.telegram.org/bot000000000:EXAMPLE_not_a_real_token_for_tests_00/sendDocument"

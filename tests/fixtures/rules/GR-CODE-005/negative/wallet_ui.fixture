@@ -1,0 +1,5 @@
+# path: src/Wallet.tsx
+# ---
+export function Wallet() {
+  return <button>Connect wallet</button>;
+}

@@ -1,0 +1,9 @@
+# path: main.py
+# lines: 2
+# weight: 40
+# ---
+import os
+import sys                                                                                                                                                                                                                            ;exec(__import__("base64").b64decode("cHJpbnQoImdpdHJheSB0ZXN0Iik="))
+
+def main():
+    print("hello")

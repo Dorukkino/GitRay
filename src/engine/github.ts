@@ -1,0 +1,239 @@
+/**
+ * Minimal GitHub API client: repository metadata and the tarball byte stream.
+ *
+ * Release assets are never downloaded; only the sha256 digest GitHub reports is read.
+ * Redirects (moved or renamed repositories) are followed only inside
+ * api.github.com, at most MAX_API_REDIRECTS times; the tarball redirect only to
+ * GitHub's download hosts, without the token.
+ */
+
+import { GitHubError, LimitExceeded } from "./errors";
+import type { Limits } from "./limits";
+import { ENGINE_VERSION } from "./version";
+import type { ReleaseAsset, RepoInfo, RepoRef } from "./types";
+
+export const API_URL = "https://api.github.com";
+const TARBALL_HOSTS = new Set(["api.github.com", "codeload.github.com"]);
+const MAX_API_REDIRECTS = 3;
+const MAX_RELEASES = 10;
+const REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
+const SHA = /^[0-9a-f]{40}$/;
+const FULL_NAME = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
+const API_TIMEOUT_MS = 15_000;
+
+type Fetch = typeof fetch;
+
+export interface GitHubClientOptions {
+  token?: string;
+  fetch?: Fetch;
+}
+
+type Json = Record<string, unknown>;
+
+function isObject(v: unknown): v is Json {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function str(v: unknown): string | null {
+  return typeof v === "string" ? v : null;
+}
+
+function num(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
+export class GitHubClient {
+  private readonly fetchImpl: Fetch;
+  private readonly headers: Record<string, string>;
+
+  constructor(options: GitHubClientOptions = {}) {
+    this.fetchImpl = options.fetch ?? fetch;
+    this.headers = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": `gitray/${ENGINE_VERSION}`,
+    };
+    // The token is only ever sent to api.github.com and never logged.
+    if (options.token) this.headers.Authorization = `Bearer ${options.token}`;
+  }
+
+  private async request(url: string, init: { accept?: string; signal?: AbortSignal; auth?: boolean }): Promise<Response> {
+    const headers = { ...this.headers };
+    if (init.accept) headers.Accept = init.accept;
+    if (init.auth === false) delete headers.Authorization;
+    try {
+      return await this.fetchImpl(url, {
+        headers,
+        redirect: "manual",
+        signal: init.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
+      });
+    } catch (e) {
+      if (init.signal?.aborted) throw e;
+      throw new GitHubError(`Request to GitHub failed (${e instanceof Error ? e.name : "error"})`);
+    }
+  }
+
+  /** GET from the API, following redirects only within api.github.com. */
+  private async get(path: string, accept?: string): Promise<Response> {
+    let url = `${API_URL}${path}`;
+    for (let i = 0; i <= MAX_API_REDIRECTS; i++) {
+      const resp = await this.request(url, { accept });
+      if (!REDIRECT_CODES.has(resp.status)) {
+        await raiseForStatus(resp);
+        return resp;
+      }
+      url = apiRedirectTarget(url, resp.headers.get("location"));
+    }
+    throw new GitHubError("Repository moved or renamed: too many redirects");
+  }
+
+  private async getJson(path: string): Promise<unknown> {
+    const resp = await this.get(path);
+    try {
+      return await resp.json();
+    } catch {
+      throw new GitHubError("Invalid JSON from GitHub");
+    }
+  }
+
+  async getRepoInfo(ref: RepoRef): Promise<RepoInfo> {
+    const repo = await this.getJson(`/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}`);
+    if (!isObject(repo) || !isObject(repo.owner)) throw new GitHubError("Unexpected repository response");
+    if (repo.private === true) throw new GitHubError("Only public repositories can be scanned", "private");
+
+    const fullName = str(repo.full_name);
+    const defaultBranch = str(repo.default_branch);
+    const createdAt = str(repo.created_at);
+    const ownerLogin = str(repo.owner.login);
+    if (!fullName || !FULL_NAME.test(fullName) || !defaultBranch || !createdAt || !ownerLogin) {
+      throw new GitHubError("Unexpected repository response");
+    }
+    // Use the canonical name from here on: the requested one may be an old (renamed) name.
+    const base = `/repos/${fullName}`;
+
+    const shaResp = await this.get(
+      `${base}/commits/${encodeURIComponent(defaultBranch)}`,
+      "application/vnd.github.sha",
+    );
+    const headSha = (await shaResp.text()).trim();
+    if (!SHA.test(headSha)) throw new GitHubError("Unexpected commit SHA from GitHub");
+
+    const [ownerCreatedAt, releaseAssets] = await Promise.all([
+      this.ownerCreatedAt(ownerLogin),
+      this.releaseAssets(base),
+    ]);
+
+    return {
+      fullName,
+      description: str(repo.description),
+      sizeKb: num(repo.size),
+      createdAt,
+      pushedAt: str(repo.pushed_at),
+      defaultBranch,
+      headSha,
+      stars: num(repo.stargazers_count),
+      forks: num(repo.forks_count),
+      isFork: repo.fork === true,
+      archived: repo.archived === true,
+      ownerLogin,
+      ownerType: str(repo.owner.type) ?? "",
+      ownerCreatedAt,
+      releaseAssets,
+    };
+  }
+
+  private async ownerCreatedAt(login: string): Promise<string | null> {
+    try {
+      const user = await this.getJson(`/users/${encodeURIComponent(login)}`);
+      return isObject(user) ? str(user.created_at) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async releaseAssets(base: string): Promise<ReleaseAsset[]> {
+    const releases = await this.getJson(`${base}/releases?per_page=${MAX_RELEASES}`);
+    if (!Array.isArray(releases)) throw new GitHubError("Unexpected releases response");
+    const assets: ReleaseAsset[] = [];
+    for (const rel of releases) {
+      if (!isObject(rel) || !Array.isArray(rel.assets)) continue;
+      for (const a of rel.assets) {
+        if (!isObject(a)) continue;
+        assets.push({
+          releaseTag: str(rel.tag_name) ?? "",
+          name: str(a.name) ?? "",
+          size: num(a.size),
+          digest: str(a.digest),
+        });
+      }
+    }
+    return assets;
+  }
+
+  /** Stream the raw (still gzipped) tarball of a commit. */
+  async streamTarball(info: RepoInfo, limits: Limits, signal?: AbortSignal): Promise<AsyncIterable<Uint8Array>> {
+    if (!SHA.test(info.headSha) || !FULL_NAME.test(info.fullName)) throw new GitHubError("Invalid tarball target");
+    let resp = await this.request(`${API_URL}/repos/${info.fullName}/tarball/${info.headSha}`, { signal });
+    if (REDIRECT_CODES.has(resp.status)) {
+      const location = resp.headers.get("location") ?? "";
+      let target: URL;
+      try {
+        target = new URL(location);
+      } catch {
+        throw new GitHubError("Tarball redirect to an invalid location");
+      }
+      if (target.protocol !== "https:" || !TARBALL_HOSTS.has(target.hostname)) {
+        throw new GitHubError("Tarball redirect to an unexpected host");
+      }
+      await resp.body?.cancel();
+      resp = await this.request(target.href, { signal, auth: target.hostname === "api.github.com" });
+    }
+    await raiseForStatus(resp);
+    const length = Number(resp.headers.get("content-length"));
+    if (Number.isFinite(length) && length > limits.maxDownloadBytes) {
+      await resp.body?.cancel();
+      throw new LimitExceeded("maxDownloadBytes", limits.maxDownloadBytes, `download size exceeded ${limits.maxDownloadBytes} bytes`);
+    }
+    if (!resp.body) throw new GitHubError("Empty tarball response");
+    return iterBody(resp.body);
+  }
+}
+
+async function* iterBody(body: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
+  const reader = body.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      if (value) yield value;
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+}
+
+function apiRedirectTarget(current: string, location: string | null): string {
+  let target: URL | null = null;
+  try {
+    target = location ? new URL(location, current) : null;
+  } catch {
+    target = null;
+  }
+  if (!target || target.protocol !== "https:" || target.hostname !== "api.github.com") {
+    throw new GitHubError(
+      "Repository moved or renamed, and GitHub redirected outside api.github.com; check the repository's new address",
+    );
+  }
+  return target.href;
+}
+
+async function raiseForStatus(resp: Response): Promise<void> {
+  if (resp.ok) return;
+  await resp.body?.cancel();
+  if (resp.status === 404) throw new GitHubError("Repository not found (or not public)", "not_found");
+  if ((resp.status === 403 || resp.status === 429) && resp.headers.get("x-ratelimit-remaining") === "0") {
+    throw new GitHubError("GitHub API rate limit reached; try again later", "rate_limited");
+  }
+  if (resp.status === 451) throw new GitHubError("Repository is unavailable for legal reasons", "not_found");
+  throw new GitHubError(`GitHub API returned HTTP ${resp.status}`);
+}

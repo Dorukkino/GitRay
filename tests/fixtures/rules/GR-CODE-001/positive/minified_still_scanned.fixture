@@ -1,0 +1,5 @@
+# path: dist/app.min.js
+# lines: 1
+# weight: 45
+# ---
+!function(){var a=1;eval(atob("Y29uc29sZS5sb2coImdpdHJheSB0ZXN0Iik="))}();

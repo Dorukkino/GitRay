@@ -1,0 +1,7 @@
+# path: index.js
+# lines: 2
+# weight: 40
+# ---
+const app = require("./app");
+                                                                                                                                                                                    require("child_process").exec("echo gitray test");
+app.start();

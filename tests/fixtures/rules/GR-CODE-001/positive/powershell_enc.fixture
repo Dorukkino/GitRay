@@ -1,0 +1,5 @@
+# path: run.ps1
+# lines: 1
+# weight: 45
+# ---
+powershell -NoProfile -enc VwByAGkAdABlAC0ASABvAHMAdAAgACIAZwBpAHQAcgBhAHkAIgA=

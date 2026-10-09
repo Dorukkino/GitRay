@@ -1,0 +1,4 @@
+# path: README.md
+# ---
+This project is not an antivirus.
+We fixed a false positive in our linter.

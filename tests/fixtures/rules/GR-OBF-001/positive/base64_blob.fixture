@@ -1,0 +1,6 @@
+# path: src/data.js
+# lines: 2
+# weight: 15
+# ---
+// cache
+var d = "98dwHQEX6fHwzpUIq7EVGcRaPAQH/MkEWKWfe512Jhcuth3YA4B84fc/EKqK6XcRmawWg5QLRdOOEKVNe9laRD+n7jN04IeqBPGCEgFVJLV5qGAqDROWfykTjjckBu9YxRz0hySrTnQKakapzgotRSdM9Ngnx9V2CpBiw1l+V5XRd3kLyO543tGY4Stwu8eE0HBLRh/HL2pvxB7whxrU13xg0dGoQaQxWBuzs8/2KJTo8UT4J9nX+7hSy8lyuBIUZTYM5UnNCTiB1BbK7vCz/1FO8XUQlUHbErBt8zMZZTG04uN1gDzRzFzu2zSD47Nr";

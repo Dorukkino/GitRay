@@ -1,0 +1,4 @@
+# path: scripts/fetch.sh
+# ---
+curl -fsSLo tool.tar.gz https://example.invalid/tool.tar.gz
+tar xzf tool.tar.gz

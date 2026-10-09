@@ -1,0 +1,3 @@
+# path: docs/ar.md
+# ---
+Arabic text with an embedding {U+202B}example{U+202C} is fine in documentation.

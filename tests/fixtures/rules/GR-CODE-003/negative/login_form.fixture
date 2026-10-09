@@ -1,0 +1,6 @@
+# path: templates/login.html
+# ---
+<form action="/login" method="post">
+  <label>Login data is never stored</label>
+  <input name="password" type="password">
+</form>

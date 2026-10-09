@@ -1,0 +1,6 @@
+# path: package.json
+# ---
+{
+  "name": "demo",
+  "scripts": { "build": "tsc", "test": "vitest", "start": "node index.js" }
+}
