@@ -7,7 +7,7 @@ import { allRules } from "../src/engine";
 import { localeOf, negotiateLocale, pickLocale, scanPath, switchLocalePath } from "../src/i18n/config";
 import { DICTIONARIES } from "../src/i18n/dictionaries";
 import { en } from "../src/i18n/dictionaries/en";
-import { fmt, plural } from "../src/i18n/format";
+import { fmt, plural, relativeTime } from "../src/i18n/format";
 import { proxy } from "../src/proxy";
 
 describe("locale negotiation", () => {
@@ -109,5 +109,15 @@ describe("format helpers", () => {
     expect(plural("en", 1, { one: "{n} file", other: "{n} files" })).toBe("1 file");
     expect(plural("en", 3, { one: "{n} file", other: "{n} files" })).toBe("3 files");
     expect(plural("tr", 3, { one: "{n} dosya", other: "{n} dosya" })).toBe("3 dosya");
+  });
+});
+
+describe("relativeTime", () => {
+  const now = Date.parse("2026-10-09T12:00:00Z");
+  it("says how long ago a scan was, in the page's language", () => {
+    expect(relativeTime("en", "2026-10-09T11:59:40Z", now)).toBe("now");
+    expect(relativeTime("en", "2026-10-09T11:57:00Z", now)).toBe("3 minutes ago");
+    expect(relativeTime("tr", "2026-10-09T10:00:00Z", now)).toBe("2 saat önce");
+    expect(relativeTime("tr", "2026-10-08T12:00:00Z", now)).toBe("dün");
   });
 });

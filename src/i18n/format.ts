@@ -38,3 +38,19 @@ export function rich(template: string, nodes: Record<string, ReactNode>): ReactN
     return createElement(Fragment, { key: i }, value);
   });
 }
+
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["day", 86_400_000],
+  ["hour", 3_600_000],
+  ["minute", 60_000],
+];
+
+/** "3 minutes ago" / "3 dakika önce"; anything under a minute is "now". */
+export function relativeTime(locale: Locale, iso: string, now: number): string {
+  const rtf = new Intl.RelativeTimeFormat(INTL_LOCALE[locale], { numeric: "auto" });
+  const diff = Date.parse(iso) - now;
+  for (const [unit, ms] of UNITS) {
+    if (Math.abs(diff) >= ms) return rtf.format(Math.round(diff / ms), unit);
+  }
+  return rtf.format(0, "second");
+}

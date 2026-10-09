@@ -46,6 +46,9 @@ class MapStore implements ScanStore {
   async counts() {
     return { clean: 0, suspicious: 0, dangerous: 0, incomplete: 0 };
   }
+  async countSince() {
+    return this.saved.size;
+  }
 }
 
 /** Shared counters in a map, as the database would keep them across instances. */

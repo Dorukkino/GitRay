@@ -470,6 +470,16 @@ Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imle
   - "FPS düşüşü var gibi" geri bildirimi ölçüldü (Chromium, 2000×1150, 2x piksel; yazılım çizimi olduğu için gerçek sayılar daha iyi ama karşılaştırma geçerli). Önce: sayfa dururken ortalama 18 ms/kare ve 16–22 takılma (33 ms üstü kare), kaydırırken ortalama 35 ms/kare (yaklaşık 29 FPS). Sebep tek tek kapatılarak bulundu: üst menünün ve kartların buzlu cam efekti (`backdrop-blur`); sayfa dururken takılma da menüdeki bulanıklık ile logonun ışın animasyonunun birleşiminden geliyordu. Bulanıklık kaldırıldı (menü artık düz zemin), kartlardaki büyüme efekti çıkarıldı (yalnızca kayma ve belirme). Sonra: dururken sabit 16,6 ms (60 FPS, sıfır takılma), kaydırırken ortalama 18,5 ms.
   - Link kutusundaki sabit "github.com/" öneki kaldırıldı. Kutu boş başlıyor; "https://github.com/sahip/repo" yalnızca gri örnek yazı. Tam link yapıştırılabiliyor (`/tree/...` linkleri ve `.git` sonu dahil, `parseTarget` zaten destekliyordu).
 
+### 9 Ekim 2026 (11. oturum): Son tarananlar ve haftalık sayı
+
+Kullanıcının istekleri: üst menüdeki "Tara"nın altında açılır bir pencereyle son taranan repolar, ayrı bir son tarananlar sayfası, ana sayfada menü ile "35 kural" yazısı arasında bu hafta taranan repo sayısı.
+
+- **Açılır pencere:** Menüdeki "Tara"nın yanında küçük bir ok var. Fareyle üstüne gelince (ya da telefonda oka dokununca) son taranan 6 repo açılıyor: kararın renginde bir nokta, repo adı, "2 dakika önce" gibi zaman. Altında "Tüm son taramaları gör" linki. Escape ya da dışarı tıklama kapatıyor. Veri `/api/recent`'tan geliyor; bu adres dakikada en fazla bir kez veritabanına soruyor.
+- **Son tarananlar sayfası** (`/tr/recent`, `/en/recent`): kararı ne olursa olsun son taranan 50 repo, her repo bir kez (yeniden taranan repo en üste çıkar). Temiz olmayanlarda en güçlü 3 kural kararın renginde etiket olarak görünüyor (Temiz repolarda etiket yok; küçük bulgular "sebep" değil). Safe Zone ve Scammer listeleri aynen duruyor.
+- **Haftalık sayı:** Ana sayfada en üstte "128 repo son 7 günde tarandı" gibi bir kutu; sayı açılışta sıfırdan sayarak yükseliyor. Sayılan şey son 7 günde taranmış farklı repolar (aynı repo iki kez taranırsa bir sayılır; veritabanından hazır gelen sonuç sayılmaz). Veritabanı yoksa kutu görünmüyor.
+- Bu ortamda veritabanı olmadığı için görünüş geçici sahte verilerle kontrol edildi (açık/koyu tema, Türkçe/İngilizce, telefon boyutu); sahte veriler commit'lenmedi. Gerçek verilerle canlıda görünecek.
+- Yeni testler: son tarananlar listesi (her karar, en yeni önce, yeniden tarama bir kez), 7 günlük sayım, "dakika önce" metinleri, Temiz repolarda sebep etiketlerinin gizlenmesi.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).

@@ -71,6 +71,31 @@ describe("PostgresScanStore", () => {
     store = new PostgresScanStore(pgliteDb(pg));
   });
 
+  it("lists every verdict in the recent scans list, newest first, each repository once", async () => {
+    await store.save(report("a/clean", "clean", "2026-10-01T00:00:00Z"));
+    await store.save(report("b/sus", "suspicious", "2026-10-03T00:00:00Z"));
+    await store.save(report("c/bad", "dangerous", "2026-10-02T00:00:00Z"));
+    await store.save(report("d/part", "incomplete", "2026-10-04T00:00:00Z"));
+    // A rescan moves the repository to the top instead of adding a row.
+    await store.save(report("a/clean", "clean", "2026-10-05T00:00:00Z"));
+    expect((await store.list("all", 10)).map((s) => `${s.fullName}:${s.verdict}`)).toEqual([
+      "a/clean:clean",
+      "d/part:incomplete",
+      "b/sus:suspicious",
+      "c/bad:dangerous",
+    ]);
+    expect(await store.list("all", 2)).toHaveLength(2);
+  });
+
+  it("counts repositories scanned since a date, a rescan once", async () => {
+    await store.save(report("a/old", "clean", "2026-09-20T00:00:00Z"));
+    await store.save(report("b/new", "dangerous", "2026-10-05T00:00:00Z"));
+    await store.save(report("c/new", "clean", "2026-10-06T00:00:00Z"));
+    await store.save(report("c/new", "clean", "2026-10-07T00:00:00Z"));
+    expect(await store.countSince(new Date("2026-10-01T00:00:00Z"))).toBe(2);
+    expect(await store.countSince(new Date("2026-10-08T00:00:00Z"))).toBe(0);
+  });
+
   it("lists clean repositories in the Safe Zone and dangerous ones in the Scammer list, newest first", async () => {
     await store.save(report("a/clean-old", "clean", "2026-10-01T00:00:00Z"));
     await store.save(report("b/clean-new", "clean", "2026-10-02T00:00:00Z"));

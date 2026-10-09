@@ -10,6 +10,13 @@ export const tr: Dictionary = {
       "(kurulumda çalışan scriptler, saklı yükler, şifre hırsızları, sahte indirme linkleri) karşı tarar.",
   },
   nav: { label: "Ana menü", scan: "Tara", safeZone: "Güvenli Bölge", scammer: "Dolandırıcılar", rules: "Kurallar" },
+  recentMenu: {
+    open: "Son taramaları göster",
+    title: "Son taranan repolar",
+    seeAll: "Tüm son taramaları gör",
+    empty: "Henüz tarama yok.",
+    failed: "Liste şu an yüklenemedi.",
+  },
   footer: {
     note: "GitRay taradığı kodu asla klonlamaz, derlemez ya da çalıştırmaz. Sonuçlar sezgiseldir, garanti değildir.",
     source: "GitHub'daki kaynak kodu",
@@ -19,6 +26,10 @@ export const tr: Dictionary = {
   logo: "GitRay ana sayfa",
 
   home: {
+    weekly: {
+      one: "repo son 7 günde tarandı",
+      other: "repo son 7 günde tarandı",
+    },
     badge: "{rules} kural · hiçbir şey klonlanmaz ya da çalıştırılmaz",
     titleBefore: "Bu GitHub reposunu ",
     titleHighlight: "klonlamak güvenli",
@@ -391,6 +402,18 @@ export const tr: Dictionary = {
       "yeniden tarayın ya da {link}.",
     report: "yanlış alarmı bildirin",
     empty: "Henüz tehlikeli repo bulunmadı. 70 ya da üstü puan alan repolar burada görünür.",
+  },
+
+  recent: {
+    metaTitle: "Son tarananlar",
+    metaDescription: "GitRay'de en son taranan GitHub repoları ve kararları.",
+    eyebrow: "Son tarananlar",
+    title: "Yakın zamanda taranan repolar",
+    intro:
+      "Kararı ne olursa olsun GitRay'de en son taranan {n} repo. Her repo bir kez, en son taramasıyla görünür; " +
+      "bütün bulguları görmek için repoyu açın.",
+    empty: "Henüz tarama yok. Eklemek için {link}.",
+    emptyLink: "bir repo tarayın",
   },
 
   rulesPage: {

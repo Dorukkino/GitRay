@@ -20,6 +20,13 @@ export const en = {
       "credential stealers, fake download links) without cloning or running anything.",
   },
   nav: { label: "Main", scan: "Scan", safeZone: "Safe Zone", scammer: "Scammer", rules: "Rules" },
+  recentMenu: {
+    open: "Show recent scans",
+    title: "Recently scanned",
+    seeAll: "See all recent scans",
+    empty: "No scans yet.",
+    failed: "The list could not be loaded right now.",
+  },
   footer: {
     note: "GitRay never clones, builds or runs the code it scans. Results are heuristics, not a guarantee.",
     source: "Source on GitHub",
@@ -29,6 +36,10 @@ export const en = {
   logo: "GitRay home",
 
   home: {
+    weekly: {
+      one: "repository scanned in the last 7 days",
+      other: "repositories scanned in the last 7 days",
+    } as PluralText,
     badge: "{rules} rules · nothing is cloned or executed",
     titleBefore: "Is this GitHub repo ",
     titleHighlight: "safe to clone",
@@ -394,6 +405,18 @@ export const en = {
       "every finding and why it counts. If a repository is listed by mistake, rescan it after a fix or {link}.",
     report: "report a false positive",
     empty: "No dangerous repositories found yet. Repositories that score 70 or more appear here.",
+  },
+
+  recent: {
+    metaTitle: "Recent scans",
+    metaDescription: "The GitHub repositories GitRay scanned most recently, with their verdicts.",
+    eyebrow: "Recent scans",
+    title: "Recently scanned repositories",
+    intro:
+      "The latest {n} repositories scanned on GitRay, whatever the verdict. Each repository appears once, with its " +
+      "most recent scan; open one to see every finding.",
+    empty: "No scans yet. {link} to add one.",
+    emptyLink: "Scan a repository",
   },
 
   rulesPage: {

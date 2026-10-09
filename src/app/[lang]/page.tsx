@@ -2,14 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { HeroScan } from "@/components/HeroScan";
-import { Lift, Reveal, ScrollReveal } from "@/components/motion";
+import { CountUp, Lift, Reveal, ScrollReveal } from "@/components/motion";
 import { ScanForm } from "@/components/ScanForm";
 import { CATEGORY_ORDER, VERDICT_STYLE } from "@/components/verdict";
 import { allRules } from "@/engine";
 import type { Category, Verdict } from "@/engine";
 import { isLocale, localePath } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { fmt } from "@/i18n/format";
+import { fmt, plural } from "@/i18n/format";
+import { loadWeeklyCount } from "@/lib/lists";
 
 const VERDICTS: Verdict[] = ["clean", "suspicious", "dangerous", "incomplete"];
 
@@ -22,12 +23,17 @@ const STEP_ICONS = [
   "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm5-2 4 4M8 9h6m-6 3h4",
 ];
 
+// Rebuilt at most once a minute for the weekly count, like the list pages.
+export const revalidate = 60;
+
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
   const dict = getDictionary(lang);
   const h = dict.home;
   const rules = allRules();
+  // Hidden without a database or when the query fails.
+  const weekly = await loadWeeklyCount();
   const counts = new Map<Category, number>();
   for (const r of rules) counts.set(r.category, (counts.get(r.category) ?? 0) + 1);
 
@@ -37,6 +43,14 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="bg-grid absolute inset-0" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-16 sm:pt-20 lg:grid-cols-[1.15fr_1fr]">
           <div>
+            {weekly !== null && (
+              <div className="animate-enter mb-5">
+                <div className="inline-flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-2.5 shadow-sm">
+                  <CountUp value={weekly} className="font-mono text-2xl font-bold text-gradient tabular-nums" />
+                  <span className="text-sm leading-tight text-muted">{plural(lang, weekly, h.weekly)}</span>
+                </div>
+              </div>
+            )}
             <p
               className="animate-enter inline-flex items-center gap-2 rounded-full border border-line bg-surface/80 px-3 py-1 text-xs text-muted shadow-sm"
               style={{ animationDelay: "60ms" }}

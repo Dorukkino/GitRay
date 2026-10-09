@@ -40,4 +40,10 @@ describe("RepoList", () => {
     expect(html).toContain("Tehlikeli");
     expect(html).toContain("puan 95");
   });
+
+  it("shows reasons only for repositories that are not clean", () => {
+    const clean = { ...item, fullName: "ok-org/tool", verdict: "clean" as const, score: 10 };
+    const html = renderToStaticMarkup(<RepoList items={[clean]} showReasons locale="en" dict={en} />);
+    expect(html).not.toContain("disable your antivirus");
+  });
 });
