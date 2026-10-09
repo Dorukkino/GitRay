@@ -1,0 +1,6 @@
+# path: 
+# lines: 12
+# weight: 70
+# format: repo
+# ---
+{"context": {"maliciousDependencies": [{"ecosystem": "npm", "name": "example-typosquat", "version": "1.0.2", "ids": ["MAL-2026-0001"], "path": "package-lock.json", "line": 12, "text": "    \"node_modules/example-typosquat\": {"}]}}

@@ -1,12 +1,14 @@
 /**
  * Scan orchestration: repository metadata -> tarball (and the ZIPs inside it)
- * -> files missing from the tarball -> rules -> score.
+ * -> files missing from the tarball -> dependencies against OSV -> rules -> score.
  */
 
 import { type ArchiveEntry, readArchive } from "./archive";
+import { DependencyIndex, isManifest, parseManifest } from "./deps";
 import { LimitExceeded } from "./errors";
 import type { GitHubClient, TreeEntry } from "./github";
 import { type Limits, withDefaults } from "./limits";
+import { type OsvClient, affectsAllVersions, isMalwareId } from "./osv";
 import { type Rule, allRules } from "./rules";
 import { runBinaryRule, runRepoRule, runTextRule } from "./rules/base";
 import { score } from "./scoring";
@@ -14,7 +16,9 @@ import { decode } from "./text";
 import {
   type ArchiveCheck,
   type Category,
+  type DependencyCheck,
   type Finding,
+  type MaliciousDependency,
   type PartialScan,
   type RepoInfo,
   type RepoRef,
@@ -30,9 +34,14 @@ export interface ScanOptions {
   rules?: readonly Rule[];
   /** Injectable clock for tests. */
   now?: () => Date;
+  /** Checks declared dependencies against OSV's malicious-package records when given. */
+  osv?: OsvClient;
 }
 
 const NOT_CHECKED: ArchiveCheck = { status: "skipped", hidden: 0, scanned: 0 };
+const DEPENDENCIES_NOT_CHECKED: DependencyCheck = { status: "skipped", packages: 0, malicious: 0 };
+/** OSV records fetched per scan to tell typosquats (all versions) from hijacked releases. */
+const MAX_OSV_DETAIL_LOOKUPS = 20;
 /** Hidden files downloaded at the same time. */
 const HIDDEN_CONCURRENCY = 6;
 /** Hidden files that can run or carry code are fetched first. */
@@ -74,9 +83,15 @@ async function collect(
   rules: readonly Rule[],
   ctx: ScanContext,
   findings: Finding[],
+  deps?: DependencyIndex,
 ): Promise<PartialScan | null> {
   try {
-    for await (const entry of entries) findings.push(...scanEntry(entry, rules, ctx));
+    for await (const entry of entries) {
+      findings.push(...scanEntry(entry, rules, ctx));
+      if (deps && entry.kind === "text" && isManifest(entry.file.path)) {
+        deps.add(parseManifest(entry.file.path, entry.file.content));
+      }
+    }
     return null;
   } catch (e) {
     if (e instanceof LimitExceeded) return partialFrom(e);
@@ -90,6 +105,7 @@ function finish(
   stats: ScanStats,
   partial: PartialScan | null,
   archiveCheck: ArchiveCheck,
+  dependencyCheck: DependencyCheck,
   rules: readonly Rule[],
   started: Date,
   now: () => Date,
@@ -104,6 +120,7 @@ function finish(
     stats,
     partial,
     archiveCheck,
+    dependencyCheck,
     rulesRun: rules.map((r) => r.id),
     startedAt: started.toISOString(),
     durationMs: Math.max(0, now().getTime() - started.getTime()),
@@ -127,7 +144,7 @@ export async function scanEntries(
   const ctx = contextFor(info, started);
   const findings: Finding[] = info ? rules.flatMap((rule) => runRepoRule(rule, info, ctx)) : [];
   const partial = await collect(withArchiveContents(entries, limits, stats, options.deadline), rules, ctx, findings);
-  return finish(info, findings, stats, partial, NOT_CHECKED, rules, started, now);
+  return finish(info, findings, stats, partial, NOT_CHECKED, DEPENDENCIES_NOT_CHECKED, rules, started, now);
 }
 
 export async function scanTarball(
@@ -179,6 +196,7 @@ interface ScanJob {
   findings: Finding[];
   signal: AbortSignal;
   deadline: number;
+  deps: DependencyIndex;
 }
 
 /** Download the files the tarball left out and scan them like the rest. */
@@ -218,7 +236,13 @@ async function scanHiddenFiles(job: ScanJob, hidden: TreeEntry[]): Promise<{ sca
     }
   });
 
-  let partial = await collect(withArchiveContents(entries, limits, stats, job.deadline), job.rules, job.ctx, job.findings);
+  let partial = await collect(
+    withArchiveContents(entries, limits, stats, job.deadline),
+    job.rules,
+    job.ctx,
+    job.findings,
+    job.deps,
+  );
   const missed = hidden.length - entries.length;
   if (!partial && missed > 0) {
     // These are exactly the files someone kept out of the archive: never call the scan clean without them.
@@ -258,6 +282,55 @@ async function checkArchiveGap(job: ScanJob, seen: Set<string>): Promise<{ check
 }
 
 /**
+ * Ask OSV about every declared package. Exact versions (lockfiles) are matched
+ * directly; packages declared only by range count when a malicious-package
+ * record covers every version (a typosquat), not when only some releases were
+ * hijacked, since the version that would be installed is unknown.
+ */
+async function checkDependencies(job: ScanJob, osv: OsvClient | undefined): Promise<DependencyCheck> {
+  const { deps } = job;
+  if (deps.size === 0) return { status: "none", packages: 0, malicious: 0 };
+  if (!osv) return { status: "skipped", packages: deps.size, malicious: 0 };
+  const queries = deps.queries().slice(0, job.limits.maxDependencyQueries);
+  let results: string[][];
+  try {
+    results = await osv.queryBatch(queries, job.signal);
+  } catch {
+    // A missing extra check must not turn a finished scan into an error.
+    return { status: "unavailable", packages: deps.size, malicious: 0 };
+  }
+
+  const found: MaliciousDependency[] = [];
+  let lookups = 0;
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    const ids = results[i].filter(isMalwareId);
+    if (ids.length === 0) continue;
+    if (!q.version) {
+      let everyVersion = false;
+      for (const id of ids) {
+        if (lookups >= MAX_OSV_DETAIL_LOOKUPS) break;
+        lookups += 1;
+        try {
+          everyVersion = affectsAllVersions(await osv.getVuln(id, job.signal), q.name, q.ecosystem);
+        } catch {
+          everyVersion = false;
+        }
+        if (everyVersion) break;
+      }
+      if (!everyVersion) continue;
+    }
+    const sites = deps.sitesOf(q.ecosystem, q.name);
+    const site = sites.find((s) => s.version === (q.version ?? null)) ?? sites[0];
+    if (!site) continue;
+    found.push({ ecosystem: q.ecosystem, name: q.name, version: q.version ?? null, ids, path: site.path, line: site.line, text: site.text });
+  }
+  const rule = job.rules.find((r) => r.id === "GR-DEP-001");
+  if (rule && found.length) job.findings.push(...runRepoRule(rule, job.info, { ...job.ctx, maliciousDependencies: found }));
+  return { status: found.length ? "found" : "ok", packages: deps.size, malicious: found.length };
+}
+
+/**
  * Scan a public GitHub repository. Every limit hit, even before the download
  * starts (size pre-check, Content-Length, time budget), gives a partial result.
  */
@@ -277,9 +350,11 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
     const ctx = contextFor(info, started);
     const stats = emptyStats();
     const findings = rules.flatMap((rule) => runRepoRule(rule, info, ctx));
-    const job: ScanJob = { client, info, rules, ctx, limits, stats, findings, signal: controller.signal, deadline };
+    const deps = new DependencyIndex();
+    const job: ScanJob = { client, info, rules, ctx, limits, stats, findings, signal: controller.signal, deadline, deps };
     let partial: PartialScan | null = null;
     let archiveCheck = NOT_CHECKED;
+    let dependencyCheck = DEPENDENCIES_NOT_CHECKED;
     try {
       if (controller.signal.aborted) throw timeLimit();
       if (info.sizeKb > limits.maxRepoSizeKb) {
@@ -292,15 +367,16 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
       const seen = new Set<string>();
       const chunks = await client.streamTarball(info, limits, controller.signal);
       const tarEntries = readArchive(abortable(chunks, controller.signal, timeLimit), limits, stats, deadline, seen);
-      partial = await collect(withArchiveContents(tarEntries, limits, stats, deadline), rules, ctx, findings);
+      partial = await collect(withArchiveContents(tarEntries, limits, stats, deadline), rules, ctx, findings, deps);
       // A partial archive cannot be compared with the file list: files are missing anyway.
       if (!partial) ({ check: archiveCheck, partial } = await checkArchiveGap(job, seen));
+      dependencyCheck = await checkDependencies(job, options.osv);
     } catch (e) {
       if (e instanceof LimitExceeded) partial = partialFrom(e);
       else if (controller.signal.aborted) partial = partialFrom(timeLimit());
       else throw e;
     }
-    return finish(info, findings, stats, partial, archiveCheck, rules, started, now);
+    return finish(info, findings, stats, partial, archiveCheck, dependencyCheck, rules, started, now);
   } finally {
     clearTimeout(timer);
   }

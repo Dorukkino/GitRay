@@ -6,7 +6,7 @@
 
 import { allRules } from "./rules";
 import { sanitize } from "./text";
-import type { ArchiveCheck, Category, Finding, ScanResult, Verdict } from "./types";
+import type { ArchiveCheck, Category, DependencyCheck, Finding, ScanResult, Verdict } from "./types";
 import { ENGINE_VERSION } from "./version";
 import { ARCHIVE_SEPARATOR } from "./zip";
 
@@ -84,6 +84,8 @@ export interface Report {
   partial: { limit: string; limitValue: number; reason: string; filesScanned: number } | null;
   /** Whether GitHub's archive held every file of the commit (see ArchiveCheck). */
   archiveCheck: ArchiveCheck;
+  /** Declared dependencies checked against OSV's malicious-package records. */
+  dependencyCheck: DependencyCheck;
   stats: ScanResult["stats"];
   rules: ReportRule[];
   findings: ReportFinding[];
@@ -163,6 +165,7 @@ export function toReport(result: ScanResult): Report {
         }
       : null,
     archiveCheck: { ...result.archiveCheck },
+    dependencyCheck: { ...result.dependencyCheck },
     stats: { ...result.stats },
     rules: Object.entries(result.ruleScores)
       .map(([id, points]) => {

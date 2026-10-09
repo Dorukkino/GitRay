@@ -133,3 +133,14 @@ describe("readArchive", () => {
     expect(entries).toEqual([]);
   });
 });
+
+describe("large files that must be read whole", () => {
+  it("reads lockfiles past the per-file limit", async () => {
+    const lock = JSON.stringify({ packages: { "node_modules/a": { version: "1.0.0" } }, pad: "x".repeat(5000) });
+    const { entries, stats } = await read(makeTarball({ "package-lock.json": lock, "notes.txt": "y".repeat(5000) }), { maxFileBytes: 100 });
+    const texts = Object.fromEntries(entries.map((e) => [e.file.path, e.kind === "text" ? e.file.content : ""]));
+    expect(texts["package-lock.json"]).toBe(lock);
+    expect(texts["notes.txt"]).toHaveLength(100);
+    expect(stats.truncatedFiles).toBe(1);
+  });
+});

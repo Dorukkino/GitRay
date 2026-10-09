@@ -56,10 +56,21 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   social: "Social engineering",
   binary: "Binary files",
   repo: "Repository signals",
+  dependencies: "Malicious dependencies",
   ci: "CI workflows",
 };
 
-export const CATEGORY_ORDER: Category[] = ["autorun", "code", "obfuscation", "links", "social", "binary", "repo", "ci"];
+export const CATEGORY_ORDER: Category[] = [
+  "dependencies",
+  "autorun",
+  "code",
+  "obfuscation",
+  "links",
+  "social",
+  "binary",
+  "repo",
+  "ci",
+];
 
 export function VerdictBadge({ verdict, size = "md" }: { verdict: Verdict; size?: "md" | "lg" }) {
   const s = VERDICT_STYLE[verdict];

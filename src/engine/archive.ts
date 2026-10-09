@@ -16,6 +16,7 @@ import { createGunzip } from "node:zlib";
 
 import { ArchiveError, GitRayError, LimitExceeded } from "./errors";
 import { MAX_TAR_META_BYTES, type Limits } from "./limits";
+import { isLockfile } from "./deps";
 import { decode } from "./text";
 import type { BinaryFile, ScanStats, TextFile } from "./types";
 import { isZipPath } from "./zip";
@@ -280,8 +281,10 @@ async function* readTar(
       continue;
     }
 
-    // ZIPs are read whole (up to their own limit) so their contents can be scanned.
-    const keep = Math.min(size, isZipPath(path) ? Math.max(limits.maxFileBytes, limits.maxArchiveBytes) : limits.maxFileBytes);
+    // ZIPs and lockfiles are read whole (up to maxArchiveBytes): a ZIP's directory is at
+    // its end, and a lockfile cut short is no longer valid JSON or YAML.
+    const whole = isZipPath(path) || isLockfile(path);
+    const keep = Math.min(size, whole ? Math.max(limits.maxFileBytes, limits.maxArchiveBytes) : limits.maxFileBytes);
     const data = await reader.read(keep);
     if (data === null || !(await reader.skip(size - keep + padding(size)))) {
       throw new ArchiveError("truncated tar data");

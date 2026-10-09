@@ -20,6 +20,24 @@ const LIMIT_LABEL: Record<string, string> = {
   maxHiddenFiles: "hidden files",
 };
 
+/** What the OSV dependency check found. */
+function dependencyCheckText(report: Report): { text: string; warn: boolean } | null {
+  // Reports stored before this check existed have no dependencyCheck.
+  const check = report.dependencyCheck;
+  if (!check) return null;
+  const packages = `${check.packages} package${check.packages === 1 ? "" : "s"}`;
+  switch (check.status) {
+    case "ok":
+      return { text: `Checked ${packages} against OSV's malicious-package list: none is known malware.`, warn: false };
+    case "found":
+      return { text: `${check.malicious} of ${packages} declared here are known malware according to OSV.`, warn: true };
+    case "unavailable":
+      return { text: "OSV could not be reached, so dependencies were not checked against known malware.", warn: true };
+    default:
+      return null;
+  }
+}
+
 /** What the comparison of GitHub's archive with the commit's file list found. */
 function archiveCheckText(report: Report): { text: string; warn: boolean } | null {
   // Reports stored before this check existed have no archiveCheck.
@@ -160,6 +178,7 @@ export function ReportView({ report }: { report: Report }) {
   const filesScanned = report.stats.textFiles + report.stats.binaryFiles;
   const archiveMembers = report.stats.archiveMembers ?? 0;
   const archiveCheck = archiveCheckText(report);
+  const dependencyCheck = dependencyCheckText(report);
 
   return (
     <div className="space-y-8">
@@ -225,6 +244,9 @@ export function ReportView({ report }: { report: Report }) {
         </p>
         {archiveCheck && (
           <p className={`mt-2 text-xs ${archiveCheck.warn ? "text-amber-300/90" : "text-slate-500"}`}>{archiveCheck.text}</p>
+        )}
+        {dependencyCheck && (
+          <p className={`mt-1 text-xs ${dependencyCheck.warn ? "text-amber-300/90" : "text-slate-500"}`}>{dependencyCheck.text}</p>
         )}
       </section>
 

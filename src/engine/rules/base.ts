@@ -4,6 +4,8 @@ import { isDocPath, iterScanLines, snippet } from "../text";
 import type { BinaryFile, Category, Finding, RepoInfo, ScanContext, TextFile } from "../types";
 
 export interface Hit {
+  /** For repository-level rules: the file the finding is about (default: none). */
+  path?: string;
   line: number;
   /** The line (or window) the hit is on, and where in it; used for the snippet. */
   text: string;
@@ -92,7 +94,7 @@ export function runBinaryRule(rule: Rule, file: BinaryFile, ctx: ScanContext): F
 
 export function runRepoRule(rule: Rule, info: RepoInfo, ctx: ScanContext): Finding[] {
   if (!rule.scanRepo) return [];
-  return Array.from(rule.scanRepo(info, ctx), (hit) => toFinding(rule, "", hit, false));
+  return Array.from(rule.scanRepo(info, ctx), (hit) => toFinding(rule, hit.path ?? "", hit, false));
 }
 
 /** Reports the first match on each line (at most one hit per line). */
