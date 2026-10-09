@@ -1,0 +1,9 @@
+# path: setup.py
+# lines: 4
+# weight: 10
+# ---
+import subprocess
+"""If your curl is built against OpenSSL, set PYCURL_SSL_LIBRARY."""
+libraries.append("curl")
+p = subprocess.Popen((curl_config(), "--version"), stdout=subprocess.PIPE)
+fail("Curl directory does not exist: %s" % curl_dir)

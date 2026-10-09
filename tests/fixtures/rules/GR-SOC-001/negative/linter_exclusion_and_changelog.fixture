@@ -1,0 +1,3 @@
+# path: docs/tech-debt.md
+# ---
+Work on pkg/cmd until staticcheck is clean, then add the exclusion.

@@ -1,0 +1,7 @@
+# path: build/azure-pipelines/cli/install-rust.yml
+# lines: 3
+# weight: 5
+# ---
+steps:
+  - script: |
+      curl https://example.invalid/rustup.sh -sSf | sh -s -- -y

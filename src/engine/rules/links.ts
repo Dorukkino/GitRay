@@ -5,7 +5,7 @@
  * and a request to turn off the antivirus.
  */
 
-import { iterScanLines } from "../text";
+import { basename, iterScanLines, splitLines } from "../text";
 import type { RepoInfo, ScanContext, TextFile } from "../types";
 import type { Hit, Rule } from "./base";
 
@@ -14,7 +14,8 @@ export const DOC_PATTERNS = ["*.md", "*.markdown", "*.mdown", "*.rst", "*.adoc",
 const RISKY_EXTENSIONS = [
   ".zip", ".rar", ".7z", ".iso", ".img",
   // Windows
-  ".exe", ".msi", ".msix", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".hta", ".lnk", ".com", ".pif",
+  // (".com" is left out: it ends far more domain-like names, "github.com/org/site.com", than DOS programs.)
+  ".exe", ".msi", ".msix", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".hta", ".lnk", ".pif",
   // macOS, Linux, Android
   ".dmg", ".pkg", ".appimage", ".apk",
   // Java (runs on any OS)
@@ -26,6 +27,8 @@ const SHORTENERS = new Set([
   "rebrand.ly", "t.ly", "tiny.cc", "buff.ly", "v.gd", "s.id", "shorturl.gg", "tny.im", "lnkd.in",
   "adf.ly", "linkvertise.com", "link-to.net", "direct-link.net", "lootlabs.gg", "loot-link.com",
 ]);
+/** Ad-gated "unlock the download" sites: every link to them is a gate, whatever its path. */
+const AD_GATES = new Set(["adf.ly", "linkvertise.com", "link-to.net", "direct-link.net", "lootlabs.gg", "loot-link.com"]);
 
 /** File-sharing sites: downloads without an extension in the URL, rarely scanned by anyone. */
 const FILE_HOSTS = [
@@ -39,7 +42,30 @@ const FILE_HOSTS = [
   "anonymfile.com", "filetransfer.io", "buzzheavier.com", "dbree.me",
 ];  // prettier-ignore
 
-const URL_RE = /https?:\/\/[^\s<>"'()[\]`]+/gi;
+/**
+ * Reserved example names (RFC 2606, RFC 6761) that documentation uses as placeholders.
+ * ".invalid" stays in scope: nobody writes it in real docs, and our fixtures use it.
+ */
+function isPlaceholderHost(host: string): boolean {
+  return /(?:^|\.)example\.(?:com|net|org)$/.test(host) || /(?:^|\.)(?:example|test|localhost)$/.test(host);
+}
+
+/** Pages about a package or topic whose name merely ends like a file ("lodash.zip", "Cmd.exe"). */
+const PAGE_PATHS: readonly [string, RegExp][] = [
+  ["npmjs.com", /^\/package\//],
+  ["pypi.org", /^\/project\//],
+  ["crates.io", /^\/crates\//],
+  ["nuget.org", /^\/packages\//],
+  ["rubygems.org", /^\/gems\//],
+  ["wikipedia.org", /^\/wiki\//],
+];
+
+function isInfoPage(url: URL): boolean {
+  return PAGE_PATHS.some(([host, path]) => hostMatches(url.hostname, [host]) && path.test(url.pathname));
+}
+
+// Braces end a URL: "{{https://mega.nz/...}}" is a placeholder in a command template.
+const URL_RE = /https?:\/\/[^\s<>"'()[\]{}`]+/gi;
 // Links without a scheme ("www.mediafire.com/file/..."), only to well-known hosts.
 const BARE_RE = /(?<![\w@./-])(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<>"'()[\]`]*/gi;
 const PATH_ESCAPES = ["..", "%2e", "\\", "%5c", "%2f"];
@@ -59,7 +85,7 @@ function* extractLinks(segment: string): Generator<Link> {
   for (const m of segment.matchAll(URL_RE)) {
     const url = toUrl(m[0]);
     for (let i = m.index; i < m.index + m[0].length; i++) seen.add(i);
-    if (url) yield { url, index: m.index };
+    if (url && !isPlaceholderHost(url.hostname)) yield { url, index: m.index };
   }
   for (const m of segment.matchAll(BARE_RE)) {
     if (seen.has(m.index)) continue;
@@ -68,6 +94,19 @@ function* extractLinks(segment: string): Generator<Link> {
       yield { url, index: m.index };
     }
   }
+}
+
+function pathSegments(url: URL): string[] {
+  return url.pathname
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    });
 }
 
 function toUrl(raw: string): URL | null {
@@ -88,7 +127,7 @@ function ownDownload(url: URL, info: RepoInfo | null): "release" | "archive" | "
   const base = `/${info.fullName.toLowerCase()}/`;
   if (!path.startsWith(base)) return null;
   const rest = path.slice(base.length);
-  if (rest.startsWith("releases/download/")) return "release";
+  if (rest.startsWith("releases/download/") || rest.startsWith("releases/latest/download/")) return "release";
   const archive = /^archive\/(?:refs\/heads\/)?(.+?)\.(?:zip|tar\.gz)$/.exec(rest);
   if (!archive) return null;
   const ref = archive[1];
@@ -97,7 +136,7 @@ function ownDownload(url: URL, info: RepoInfo | null): "release" | "archive" | "
 
 function hasRiskyExtension(url: URL): boolean {
   const path = url.pathname.toLowerCase();
-  return RISKY_EXTENSIONS.some((ext) => path.endsWith(ext));
+  return RISKY_EXTENSIONS.some((ext) => path.endsWith(ext)) && !isInfoPage(url);
 }
 
 const DOWNLOAD_LINK: Rule = {
@@ -129,6 +168,9 @@ const DOWNLOAD_LINK: Rule = {
   },
 };
 
+const DOWNLOAD_CONTEXT =
+  /\b(?:download\w*|install\w*|setup|mirror|launcher|loader|crack\w*|cheat\w*|activat\w*|keygen|exe|zip|rar|7z|get\s+it|click\s+here)\b|📥|⬇/i;
+
 const SHORTENED_LINK: Rule = {
   id: "GR-LINK-002",
   title: "Link shortener hides the real destination",
@@ -142,12 +184,36 @@ const SHORTENED_LINK: Rule = {
     for (const { line, text } of iterScanLines(file.content)) {
       for (const { url, index } of extractLinks(text)) {
         if (!hostMatches(url.hostname, SHORTENERS)) continue;
+        // A short link is one slug ("bit.ly/3xYz"); deeper paths are the service's own pages.
+        const segments = pathSegments(url);
+        const gate = hostMatches(url.hostname, AD_GATES);
+        if (gate ? segments.length === 0 : segments.length !== 1) continue;
+        // Short links to surveys and articles are everywhere; a short *download* link is the lure.
+        if (!gate && !DOWNLOAD_CONTEXT.test(text)) continue;
         yield { line, text, column: index, note: `${url.hostname} link` };
         break;
       }
     }
   },
 };
+
+/** Documents and media: a book or picture shared on Dropbox is not a program. */
+const DOCUMENT_EXTENSIONS = /\.(?:pdf|epub|mobi|azw3|djvu|txt|md|csv|png|jpe?g|gif|webp|svg|mp3|mp4|webm|ogg|wav)$/i;
+
+/**
+ * A link to a shared file rather than to the service itself: file links carry an
+ * ID ("mega.nz/file/AbC#key", "gofile.io/d/x1Y2", "mediafire.com/?abc123").
+ * Homepages and pages like "dropbox.com/developers" or "gofile.io/api" do not.
+ */
+function looksLikeSharedFile(url: URL): boolean {
+  if (DOCUMENT_EXTENSIONS.test(url.pathname)) return false;
+  const segments = pathSegments(url);
+  if (url.search.length > 1 || url.hash.length > 1 || segments.length >= 2) return true;
+  if (segments.length === 0) return false;
+  const only = segments[0];
+  // One segment: an ID has digits or mixed case, or a file name has an extension.
+  return /\d/.test(only) || (/[a-z]/.test(only) && /[A-Z]/.test(only)) || /\.[a-z0-9]{2,4}$/i.test(only);
+}
 
 const FILE_HOST_LINK: Rule = {
   id: "GR-LINK-003",
@@ -165,6 +231,7 @@ const FILE_HOST_LINK: Rule = {
         const host = url.hostname.toLowerCase();
         const docsDownload = host === "docs.google.com" && url.pathname.startsWith("/uc");
         if (!docsDownload && !hostMatches(host, FILE_HOSTS)) continue;
+        if (!looksLikeSharedFile(url)) continue;
         yield { line, text, column: index, note: `${host} link` };
         break;
       }
@@ -172,8 +239,33 @@ const FILE_HOST_LINK: Rule = {
   },
 };
 
-const PASSWORD = /(?<![\p{L}\p{N}_])(?:şifre|parola|password|passwd|pass|pwd|pw|kennwort|contraseña|senha|пароль)(?![\p{L}\p{N}_])\s*[:=]/iu;
+const PASSWORD_WORD = String.raw`(?:şifre|parola|password|passwd|pass|pwd|pw|kennwort|contraseña|senha|пароль)`;
+/**
+ * A password handed out as a label at the start of a line, with markdown, list or
+ * emoji decoration: "Password: 1234", "**Archive password** - infected",
+ * "> şifre = 2026", "The password is 2025". Mentions inside a sentence
+ * ("Create an archive with a password:") and "password-protected" are not labels.
+ */
+const EN_DASH = String.fromCodePoint(0x2013);
+const EMOJI_VARIATION = String.fromCodePoint(0xfe0f);
+const PASSWORD_LABEL = new RegExp(
+  String.raw`^[\s>*_#|•\-+.\d)\p{Extended_Pictographic}${EMOJI_VARIATION}]*` +
+    String.raw`(?:(?:the|archive|zip|rar|7z|file|extraction|unzip|arşiv|dosya)\s+){0,2}` +
+    PASSWORD_WORD +
+    String.raw`[*_|]*(?:\s*[:=]|\s+[-${EN_DASH}]\s|\s+is\b:?)[\s*_\x60"']*([^\s*_\x60"'|]+)`,
+  "iu",
+);
 const ARCHIVE_MENTION = /\.(?:zip|rar|7z)\b|\b(?:zip|rar|7z|archive|arşiv\w*|arsiv\w*|archiv\w*)\b/i;
+const ARCHIVE_WINDOW = 10;
+
+/** Values that are not a password someone is told to type: placeholders, templates, comments, code. */
+function isRealPasswordValue(value: string, rest: string): boolean {
+  if (/^(?:#|\/\/|<|\[|\(|null|none|undefined|true|false)/i.test(value)) return false;
+  if (/^\$\w|\$\{|\{\{|\$\(/.test(value)) return false;
+  // "password: 'hunter2'," in a code sample: a quoted value followed by a comma.
+  if (/^\s*["'][^"']*["']\s*[,;)]/.test(rest)) return false;
+  return true;
+}
 
 const ARCHIVE_PASSWORD: Rule = {
   id: "GR-LINK-004",
@@ -187,9 +279,17 @@ const ARCHIVE_PASSWORD: Rule = {
     "and still reaches the victim.",
   *scanText(file: TextFile): Iterable<Hit> {
     if (!ARCHIVE_MENTION.test(file.content)) return;
-    for (const { line, text } of iterScanLines(file.content)) {
-      const m = PASSWORD.exec(text);
-      if (m) yield { line, text, column: m.index };
+    const lines = splitLines(file.content);
+    for (let i = 0; i < lines.length; i++) {
+      const text = lines[i];
+      const m = PASSWORD_LABEL.exec(text);
+      if (!m) continue;
+      const valueAt = m.index + m[0].length - m[1].length;
+      if (!isRealPasswordValue(m[1], text.slice(Math.max(0, valueAt - 1)))) continue;
+      // The archive has to be nearby, not anywhere in a long document.
+      const near = lines.slice(Math.max(0, i - ARCHIVE_WINDOW), i + ARCHIVE_WINDOW + 1).join("\n");
+      if (!ARCHIVE_MENTION.test(near)) continue;
+      yield { line: i + 1, text, column: m.index };
     }
   },
 };
@@ -198,9 +298,14 @@ const DISABLE_AV_PATTERNS: readonly RegExp[] = [
   /\b(?:disable|turn\s+off|deactivate|pause|uninstall|close|exit|whitelist)\s+(?:your\s+|the\s+|all\s+|any\s+)?(?:anti-?virus(?:es)?|av\b|windows\s+defender|defender|real-?time\s+protection|virus\s+(?:&\s+threat\s+)?protection|security\s+software|smart\s?screen)/i,
   /\b(?:anti-?virus|defender|av\b|virustotal)[^.\n]{0,80}\bfalse[\s-]positive/i,
   /\bfalse[\s-]positive[^.\n]{0,80}\b(?:anti-?virus|defender|av\b|virustotal)/i,
-  /\badd\s+(?:an?\s+|the\s+)?(?:folder\s+|file\s+)?(?:to\s+(?:the\s+)?)?exclusions?\b/i,
+  // "Add the folder to exclusions"; a bare "add an exclusion" needs an antivirus nearby
+  // ("... then add the exclusion" is also how linters are configured).
+  /\badd\s+(?:the\s+|this\s+|your\s+|our\s+)?(?:game\s+|install(?:ation)?\s+|program\s+)?(?:folder|file|directory|program|app|exe|it)\s+to\s+(?:the\s+|your\s+)?(?:exclusions?|exceptions?|whitelist|allow\s?list)\b/i,
+  /\badd\s+(?:an?\s+|the\s+)?exclusions?\b(?=[^\n]{0,120}\b(?:anti-?virus|defender|av|windows\s+security)\b)|\b(?:anti-?virus|defender|av|windows\s+security)\b[^\n]{0,120}\badd\s+(?:an?\s+|the\s+)?exclusions?\b/i,
   /(?<!\p{L})(?:antivir[üu]s|defender)\p{L}*\s+(?:\S+\s+){0,2}(?:kapat|devre\s+d[ıi][şs][ıi])/iu,
 ];
+
+const RELEASE_NOTES = /^(?:change(?:s|log)|history|news|release[-_ ]?notes|releases)(?:\.[a-z]+)?$/i;
 
 const DISABLE_ANTIVIRUS: Rule = {
   id: "GR-SOC-001",
@@ -213,6 +318,8 @@ const DISABLE_ANTIVIRUS: Rule = {
     "positive\" is the signature move of fake cheat, crack and tool repositories: the " +
     "download would be blocked otherwise.",
   *scanText(file: TextFile): Iterable<Hit> {
+    // Release notes report history ("fewer antivirus false positives"); nobody follows them as instructions.
+    if (RELEASE_NOTES.test(basename(file.path))) return;
     for (const { line, text } of iterScanLines(file.content)) {
       for (const p of DISABLE_AV_PATTERNS) {
         const m = p.exec(text);

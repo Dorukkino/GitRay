@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   SCAN_WINDOW,
+  closingQuote,
   decode,
   defang,
+  isCommentLine,
   isDocPath,
   isSourcePath,
   iterScanLines,
+  openQuoteAt,
   revealHidden,
   sanitize,
   shannonEntropy,
@@ -32,8 +35,25 @@ describe("iterScanLines", () => {
     const line = "x".repeat(SCAN_WINDOW * 2 + 5);
     const windows = [...iterScanLines(`${line}\nshort`)];
     expect(windows.filter((w) => w.line === 1).length).toBeGreaterThan(2);
-    expect(windows.at(-1)).toEqual({ line: 2, text: "short" });
+    expect(windows.at(-1)).toEqual({ line: 2, text: "short", offset: 0 });
     expect(windows.every((w) => w.text.length <= SCAN_WINDOW)).toBe(true);
+    // Each window says where it starts, so a rule can tell a token cut by the window.
+    expect(windows.filter((w) => w.line === 1).map((w) => w.offset)).toEqual([0, 9000, 18000]);
+  });
+
+  it("spots comment lines and string literals", () => {
+    expect(isCommentLine("  # curl x | sh")).toBe(true);
+    expect(isCommentLine("// note")).toBe(true);
+    expect(isCommentLine(" * docs")).toBe(true);
+    expect(isCommentLine("#!/bin/sh")).toBe(false);
+    expect(isCommentLine('#define CMD "curl x | sh"')).toBe(false);
+    expect(isCommentLine("rem = 3 % 2")).toBe(false);
+    expect(isCommentLine("REM download")).toBe(true);
+    expect(isCommentLine("curl x | sh # comment")).toBe(false);
+    const line = 'a = "x \\" y"; b()';
+    expect(openQuoteAt(line, 6)).toBe('"');
+    expect(openQuoteAt(line, line.length)).toBe(null);
+    expect(closingQuote(line, 6, '"')).toBe(line.indexOf('";'));
   });
 });
 

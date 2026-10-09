@@ -1,0 +1,5 @@
+# path: install.ps1
+# lines: 1
+# weight: 35
+# ---
+iex "& { $(irm https://example.invalid/install.ps1) } -Quiet"

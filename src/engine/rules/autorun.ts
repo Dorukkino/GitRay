@@ -3,7 +3,7 @@
  * folder is opened. This is where repo malware hurts the person who clones it.
  */
 
-import { iterScanLines, splitLines } from "../text";
+import { isCommentLine, iterScanLines, splitLines } from "../text";
 import type { TextFile } from "../types";
 import { DOWNLOAD_TOOL, type Hit, type Rule, URL_PATTERN, lineAt, lineText, regexRule } from "./base";
 
@@ -20,7 +20,38 @@ const LIFECYCLE_SCRIPTS = [
 ];
 
 const RISKY_COMMAND =
-  /\b(?:curl|wget|powershell|pwsh|iwr|irm|certutil|bitsadmin|mshta)\b|https?:\/\/|\b(?:ba)?sh\s+-c\b|\bnode\s+-e\b|\bpython[0-9.]*\s+-c\b|\beval\b|\bbase64\b|\|\s*(?:ba)?sh\b/i;
+  /\b(?:curl|wget|powershell|pwsh|iwr|irm|certutil|bitsadmin|mshta)\b|https?:\/\/|\b(?:ba)?sh\s+-c\b|\beval\b|\bbase64\b|\|\s*(?:ba)?sh\b/i;
+/** Inline programs ("node -e '...'", "python -c '...'") are risky when they reach for processes, the network or decoding. */
+const INLINE_PROGRAM = /\b(?:node\s+(?:-e|-p|--eval|--print)|python[0-9.]*\s+-c)\s+(.*)$/i;
+const RISKY_INLINE = /child_process|\bexec|\bspawn|\bsubprocess|\bos\.system|\brequire\s*\(\s*["'](?:https?|net|dns|tls)["']|\bfetch\s*\(|\burllib|\brequests\b|\bsocket\b|\bBuffer\.from\b|\batob\b|\bb64decode\b|\bFunction\s*\(|\bimport\s*\(/i;
+
+function riskyLifecycleCommand(command: string): boolean {
+  if (RISKY_COMMAND.test(command)) return true;
+  const inline = INLINE_PROGRAM.exec(command);
+  return inline !== null && RISKY_INLINE.test(inline[1]);
+}
+
+/**
+ * Well-known commands that only install git hooks or enforce a package manager.
+ * Matched exactly: anything added to them is reported as usual.
+ */
+const BENIGN_LIFECYCLE = new Set([
+  "husky",
+  "husky install",
+  "npx husky",
+  "npx husky install",
+  "husky || true",
+  "is-ci || husky",
+  "is-ci || husky install",
+  "simple-git-hooks",
+  "npx simple-git-hooks",
+  "lefthook install",
+  "npx lefthook install",
+  "npx only-allow npm",
+  "npx only-allow pnpm",
+  "npx only-allow yarn",
+  "npx only-allow bun",
+]);
 
 function findKeyLine(content: string, key: string): { line: number; text: string } {
   const pattern = new RegExp(`"${key}"\\s*:`);
@@ -33,7 +64,8 @@ const NPM_LIFECYCLE: Rule = {
   id: "GR-AUTO-001",
   title: "package.json runs a script on install",
   category: "autorun",
-  weight: 15,
+  // Running the project's own script is common; that script is scanned by the other rules.
+  weight: 10,
   appliesTo: ["package.json"],
   why:
     "npm runs lifecycle scripts (preinstall, postinstall, ...) automatically during " +
@@ -51,7 +83,8 @@ const NPM_LIFECYCLE: Rule = {
     for (const name of LIFECYCLE_SCRIPTS) {
       const command = (scripts as Record<string, unknown>)[name];
       if (typeof command !== "string") continue;
-      const risky = RISKY_COMMAND.test(command);
+      if (BENIGN_LIFECYCLE.has(command.trim().replace(/\s+/g, " "))) continue;
+      const risky = riskyLifecycleCommand(command);
       const { line, text } = findKeyLine(file.content, name);
       yield {
         line,
@@ -71,6 +104,18 @@ const SETUP_DECODE = /\b(?:b64decode|b32decode|b85decode|a85decode|decompress|fr
 const IMPORT_ONLY = /^\s*(?:import\s|from\s+\S+\s+import\s)/;
 /** Able to run processes at all (imports included: an alias can hide the call). */
 const PROCESS_CAPABILITY = /\bsubprocess\b|\bos\.(?:system|popen|exec\w*|spawn\w*)\b|\bfrom[ \t]+os[ \t]+import[^\n]*\b(?:system|popen|exec\w*|spawn\w*)\b/;
+
+/**
+ * A download tool as the first item of an argument list (["curl", ...]) or as the
+ * start of a command string followed by an option, URL or variable ("curl -fsSL ...").
+ * Messages that merely start with the word ("Curl directory does not exist") do not count.
+ */
+const TOOL_AS_COMMAND = new RegExp(
+  String.raw`[\[(,=]\s*[rbuf]?["']\s*` +
+    DOWNLOAD_TOOL.source +
+    String.raw`(?:\.exe)?(?:["']\s*[,\]]|\s+(?:-|https?:|\$|\{|%|[\w.-]+\.[a-z]{2,}\/))`,
+  "i",
+);
 
 const SETUP_PY: Rule = {
   id: "GR-AUTO-002",
@@ -107,9 +152,10 @@ const SETUP_PY: Rule = {
       }
     }
     // Aliased calls ("from subprocess import run as r; r(['curl', ...])") hide the
-    // process call, so a download tool anywhere in a file that can run processes counts.
+    // process call, so a download tool given as a command anywhere in a file that can
+    // run processes counts. Prose ("if your curl is built against ...") does not.
     if (!escalated && PROCESS_CAPABILITY.test(file.content)) {
-      const m = DOWNLOAD_TOOL.exec(file.content);
+      const m = TOOL_AS_COMMAND.exec(file.content);
       if (m) {
         const line = lineAt(file.content, m.index);
         yield { line, text: lineText(file.content, line), weight: 35, note: "can run processes and names a download tool" };
@@ -131,15 +177,17 @@ const VSCODE_FOLDER_OPEN = regexRule({
   patterns: [/["']?runOn["']?\s*:\s*["']folderOpen["']/i],
 });
 
+// PowerShell running a script from the repository is an ordinary build step (that
+// script is scanned on its own). Downloads, encoded or hidden commands and LOLBins are not.
 const MSBUILD_RISKY =
-  /\b(?:powershell|pwsh|curl|wget|certutil|bitsadmin|mshta|rundll32|regsvr32|wscript|cscript|iex|invoke-expression|invoke-webrequest|frombase64string)\b|\s-e(?:nc(?:odedcommand)?)?\s|https?:\/\//i;
+  /\b(?:curl|wget|certutil|bitsadmin|mshta|rundll32|regsvr32|wscript|cscript|iex|invoke-expression|invoke-webrequest|invoke-restmethod|iwr|irm|downloadstring|downloadfile|net\.webclient|start-bitstransfer|frombase64string)\b|\s-e(?:nc(?:odedcommand)?)?\s|\s-(?:w|win|windowstyle)\s+hidden\b|https?:\/\//i;
 const MSBUILD_EVENT = /<(PreBuildEvent|PostBuildEvent|PreLinkEvent)>([\s\S]{0,5000}?)<\/\1>|<Exec\b[^>]{0,2000}?\bCommand\s*=\s*"([^"]{0,5000})"/gi;
 
 const MSBUILD_EVENTS: Rule = {
   id: "GR-AUTO-004",
   title: "Visual Studio project runs a command on build",
   category: "autorun",
-  weight: 15,
+  weight: 10,
   appliesTo: ["*.csproj", "*.vbproj", "*.fsproj", "*.vcxproj", "*.vcproj", "*.props", "*.targets", "*.proj"],
   why:
     "Build events and Exec tasks run commands as soon as the project is built in Visual " +
@@ -155,7 +203,7 @@ const MSBUILD_EVENTS: Rule = {
         line,
         text: lineText(file.content, line),
         weight: risky ? 40 : undefined,
-        note: risky ? "build command uses PowerShell, download tools or URLs" : "build command runs on every build",
+        note: risky ? "build command downloads, decodes or hides what it runs" : "build command runs on every build",
       };
     }
   },
@@ -216,21 +264,86 @@ export const PIPE_TO_SHELL_PATTERNS: readonly RegExp[] = [
     "i",
   ),
   /\b(?:iex|invoke-expression)\s*\(?\s*\(?\s*(?:new-object\s+(?:system\.)?net\.webclient\)\s*\.downloadstring|iwr|irm|invoke-webrequest|invoke-restmethod)\b/i,
+  // iex "& { $(irm https://...) }": the script block form used by many PowerShell installers.
+  /\b(?:iex|invoke-expression)\s*["']?\s*&\s*\{\s*\$\(\s*(?:iwr|irm|invoke-webrequest|invoke-restmethod)\b/i,
 ];
 
-export const WORKFLOW_PATHS = [".github/workflows/*.yml", ".github/workflows/*.yaml"];
+/** CI configuration: these commands run on a build server, not on the machine of whoever clones. */
+export const CI_PATHS = [
+  ".github/workflows/*.yml",
+  ".github/workflows/*.yaml",
+  ".gitlab-ci.yml",
+  ".gitlab/ci/*.yml",
+  ".travis.yml",
+  ".circleci/*.yml",
+  "appveyor.yml",
+  ".appveyor.yml",
+  "bitbucket-pipelines.yml",
+  ".drone.yml",
+  ".woodpecker.yml",
+  ".woodpecker/*.yml",
+  ".buildkite/*.yml",
+  "cloudbuild.yaml",
+  "cloudbuild.yml",
+  "codemagic.yaml",
+  "Jenkinsfile",
+  "azure-pipelines*.yml",
+  "azure-pipelines/*.yml",
+  "azure-pipelines/*/*.yml",
+  "azure-pipelines/*/*/*.yml",
+  ".azure-pipelines/*.yml",
+  ".pipelines/*.yml",
+];
 
-const CI_PIPE_TO_SHELL = regexRule({
+/** Container builds: RUN lines execute inside the container being built. */
+export const CONTAINER_BUILD_PATHS = ["Dockerfile", "Dockerfile.*", "*.dockerfile", "Containerfile", "Containerfile.*"];
+
+const INTERPRETER_AT_END = /(?:python[0-9.]*|perl|ruby|node)$/;
+const EVALUATES_INPUT = /\b(?:eval|exec|execSync|system|compile|spawn|popen|Function)\b/;
+
+/**
+ * "curl ... | perl -ne '...'" feeds the download to a program written on the
+ * command line: the download is data, not code. Unless that program evaluates it.
+ */
+function readsDownloadAsData(interpreter: string, rest: string): boolean {
+  const args = rest.split(/[|;&)]/, 1)[0].trim().split(/\s+/);
+  let inline = false;
+  for (const arg of args) {
+    if (!arg.startsWith("-") || arg === "-" || arg === "--") break;
+    if (interpreter.startsWith("python")) inline ||= /^-[A-Za-z]*c$/.test(arg);
+    else if (interpreter === "node") inline ||= /^(?:-p?e|-p|--eval|--print)$/.test(arg);
+    else inline ||= /^-[A-Za-z]*[eE][A-Za-z]*$/.test(arg);
+    if (inline) break;
+  }
+  return inline && !EVALUATES_INPUT.test(rest);
+}
+
+/** Lines where a download is piped into a shell or interpreter. Comment lines never run. */
+export function* pipeToShellHits(file: TextFile): Iterable<Hit> {
+  for (const { line, text } of iterScanLines(file.content)) {
+    if (isCommentLine(text)) continue;
+    for (const p of PIPE_TO_SHELL_PATTERNS) {
+      const m = p.exec(text);
+      if (!m) continue;
+      const interpreter = INTERPRETER_AT_END.exec(m[0]);
+      if (interpreter && readsDownloadAsData(interpreter[0], text.slice(m.index + m[0].length))) continue;
+      yield { line, text, column: m.index };
+      break;
+    }
+  }
+}
+
+const CI_PIPE_TO_SHELL: Rule = {
   id: "GR-CI-001",
   title: "CI workflow pipes a download into a shell",
   category: "ci",
   weight: 5,
-  appliesTo: WORKFLOW_PATHS,
+  appliesTo: CI_PATHS,
   why:
-    "The workflow downloads a script and runs it in GitHub Actions. This runs on GitHub's " +
-    "servers, not on the machine of whoever clones the repository, so it weighs little; " +
-    "it still means whoever controls that URL controls the build.",
-  patterns: PIPE_TO_SHELL_PATTERNS,
-});
+    "The CI configuration downloads a script and runs it on the build server (GitHub Actions, " +
+    "GitLab CI, Azure Pipelines, ...). That is not the machine of whoever clones the " +
+    "repository, so it weighs little; it still means whoever controls that URL controls the build.",
+  scanText: pipeToShellHits,
+};
 
 export const RULES: readonly Rule[] = [NPM_LIFECYCLE, SETUP_PY, VSCODE_FOLDER_OPEN, MSBUILD_EVENTS, BUILD_RS, CI_PIPE_TO_SHELL];

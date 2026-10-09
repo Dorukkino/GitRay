@@ -49,6 +49,8 @@ export function executableKind(b: Uint8Array): string | null {
 // .js) are left out: their contents are scanned when the ZIP is opened.
 const RISKY_NAME = /\.(?:exe|dll|scr|com|pif|msi|lnk|hta|vbe|jse|iso|img)$/i;
 
+const PACKAGE_ARCHIVE = /\.(?:whl|egg|nupkg|snupkg)$/i;
+
 export interface ZipInfo {
   encrypted: boolean;
   names: string[];
@@ -108,7 +110,12 @@ const EXECUTABLE: Rule = {
     }
     const zip = zipInfo(file.head);
     const inner = zip?.names.find((n) => RISKY_NAME.test(n));
-    if (inner) yield { line: 0, text: inner, note: "ZIP archive containing a Windows program, launcher or disk image" };
+    if (!inner) return;
+    // Language packages (Python wheels, NuGet) ship native libraries and launchers for
+    // their package manager; nobody is lured into double-clicking inside one.
+    yield PACKAGE_ARCHIVE.test(file.path)
+      ? { line: 0, text: inner, weight: 5, note: "package archive (wheel, NuGet) containing a Windows program or library" }
+      : { line: 0, text: inner, note: "ZIP archive containing a Windows program, launcher or disk image" };
   },
 };
 

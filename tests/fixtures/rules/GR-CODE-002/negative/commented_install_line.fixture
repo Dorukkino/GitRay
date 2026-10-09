@@ -1,0 +1,7 @@
+# path: tools/install.sh
+# ---
+#!/bin/sh
+# Usage:
+#   sh -c "$(curl -fsSL https://example.invalid/install.sh)"
+#   curl -fsSL https://example.invalid/install.sh | bash
+echo "installing"

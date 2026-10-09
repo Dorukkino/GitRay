@@ -1,0 +1,9 @@
+# path: package.json
+# ---
+{
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "simple-git-hooks",
+    "prepare": "husky"
+  }
+}

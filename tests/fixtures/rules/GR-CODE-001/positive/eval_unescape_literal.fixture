@@ -1,0 +1,5 @@
+# path: index.js
+# lines: 1
+# weight: 45
+# ---
+eval(unescape("%63%6f%6e%73%6f%6c%65%2e%6c%6f%67%28%31%29"));

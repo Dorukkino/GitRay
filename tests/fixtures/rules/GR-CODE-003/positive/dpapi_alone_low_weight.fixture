@@ -1,0 +1,6 @@
+# path: src/SecureStringHelper.cs
+# lines: 2
+# weight: 10
+# ---
+[DllImport("crypt32.dll")]
+internal static extern bool CryptUnprotectData(ref DATA_BLOB pDataIn, string desc, IntPtr entropy, IntPtr reserved, IntPtr prompt, int flags, ref DATA_BLOB pDataOut);

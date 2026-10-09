@@ -1,0 +1,5 @@
+# path: test/recordings/type_foo.ts
+# ---
+export default [
+  { "data": "foo                                                                                                                                                                        \x1b[m\r\n" },
+];
