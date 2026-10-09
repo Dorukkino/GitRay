@@ -2,8 +2,20 @@
 
 /** Shared Motion pieces. MotionConfig in Providers turns movement off for visitors who ask for reduced motion. */
 
-import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "motion/react";
 import { type ReactNode, useEffect, useRef } from "react";
+
+import { INTL_LOCALE } from "@/i18n/config";
+import { useI18n } from "@/i18n/provider";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -123,4 +135,19 @@ export function ScrollReveal({ children, className, column = 0 }: { children: Re
       </motion.div>
     </div>
   );
+}
+
+/** A number that counts up from zero when the page opens. */
+export function CountUp({ value, className }: { value: number; className?: string }) {
+  const { locale } = useI18n();
+  const reduce = useReducedMotion();
+  const shown = useMotionValue(0);
+  const text = useTransform(shown, (v) => Math.round(v).toLocaleString(INTL_LOCALE[locale]));
+
+  useEffect(() => {
+    const controls = animate(shown, value, { duration: reduce ? 0 : 1.6, ease: EASE });
+    return () => controls.stop();
+  }, [shown, value, reduce]);
+
+  return <motion.span className={className}>{text}</motion.span>;
 }

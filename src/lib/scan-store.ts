@@ -1,6 +1,7 @@
 /**
- * Stores the latest scan of each repository. Feeds the Safe Zone (clean) and
- * Scammer (dangerous) lists and serves repeat scans without calling GitHub.
+ * Stores the latest scan of each repository. Feeds the Safe Zone (clean),
+ * Scammer (dangerous) and recent scans lists and the weekly count on the home
+ * page, and serves repeat scans without calling GitHub.
  *
  * Only the sanitized report (engine/report.ts) is stored, never repository
  * files. Without DATABASE_URL the site works as before and the lists are empty.
@@ -22,7 +23,8 @@ export interface ScanSummary {
   scannedAt: string;
 }
 
-export type ListedVerdict = "clean" | "dangerous";
+/** "all" is the recent scans list: every verdict, newest first. */
+export type ListedVerdict = "clean" | "dangerous" | "all";
 
 export interface ScanStore {
   readonly configured: boolean;
@@ -31,6 +33,8 @@ export interface ScanStore {
   fresh(repoKey: string, since: Date): Promise<Report | null>;
   list(verdict: ListedVerdict, limit: number): Promise<ScanSummary[]>;
   counts(): Promise<Record<Verdict, number>>;
+  /** Repositories whose latest scan is newer than `since` (a rescan counts once). */
+  countSince(since: Date): Promise<number>;
 }
 
 /** Rows kept at most; the oldest scans are deleted beyond this (free plan: 0.5 GB). */
@@ -60,6 +64,7 @@ const SCHEMA = [
     scanned_at  timestamptz NOT NULL
   )`,
   "CREATE INDEX IF NOT EXISTS scans_verdict_scanned_at ON scans (verdict, scanned_at DESC)",
+  "CREATE INDEX IF NOT EXISTS scans_scanned_at ON scans (scanned_at DESC)",
 ];
 
 const EMPTY_COUNTS: Record<Verdict, number> = { clean: 0, suspicious: 0, dangerous: 0, incomplete: 0 };
@@ -170,11 +175,14 @@ export class PostgresScanStore implements ScanStore {
 
   async list(verdict: ListedVerdict, limit: number): Promise<ScanSummary[]> {
     await this.ensureSchema();
-    const rows = await this.db.query<SummaryRow>(
-      `SELECT full_name, head_sha, verdict, score, description, stars, findings, top_rules, scanned_at
-       FROM scans WHERE verdict = $1 ORDER BY scanned_at DESC LIMIT $2`,
-      [verdict, limit],
-    );
+    const columns = "full_name, head_sha, verdict, score, description, stars, findings, top_rules, scanned_at";
+    const rows =
+      verdict === "all"
+        ? await this.db.query<SummaryRow>(`SELECT ${columns} FROM scans ORDER BY scanned_at DESC LIMIT $1`, [limit])
+        : await this.db.query<SummaryRow>(
+            `SELECT ${columns} FROM scans WHERE verdict = $1 ORDER BY scanned_at DESC LIMIT $2`,
+            [verdict, limit],
+          );
     return rows.map((r) => ({
       fullName: r.full_name,
       headSha: r.head_sha,
@@ -197,6 +205,14 @@ export class PostgresScanStore implements ScanStore {
     for (const r of rows) if (r.verdict in out) out[r.verdict] = Number(r.n);
     return out;
   }
+
+  async countSince(since: Date): Promise<number> {
+    await this.ensureSchema();
+    const rows = await this.db.query<{ n: number }>("SELECT count(*)::int AS n FROM scans WHERE scanned_at > $1::timestamptz", [
+      since.toISOString(),
+    ]);
+    return Number(rows[0]?.n ?? 0);
+  }
 }
 
 /** Used when no database is configured: nothing is stored, lists are empty. */
@@ -211,6 +227,9 @@ export const nullScanStore: ScanStore = {
   },
   async counts() {
     return { ...EMPTY_COUNTS };
+  },
+  async countSince() {
+    return 0;
   },
 };
 

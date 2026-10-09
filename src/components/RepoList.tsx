@@ -7,7 +7,7 @@ import { ruleText } from "@/i18n/rules";
 import type { ScanSummary } from "@/lib/scan-store";
 
 import { Reveal } from "./motion";
-import { VerdictBadge } from "./verdict";
+import { VERDICT_STYLE, VerdictBadge } from "./verdict";
 
 // Stored summaries come from our own sanitized reports; React escapes them.
 
@@ -51,10 +51,14 @@ export function RepoList({
                 <span className="ml-auto text-xs text-subtle">{formatDate(s.scannedAt, locale)} UTC</span>
               </div>
               {s.description && <p className="mt-2 line-clamp-2 text-sm text-muted">{s.description}</p>}
-              {showReasons && s.topRules.length > 0 && (
+              {/* A clean repository's small findings are not reasons; the chips take the verdict's colour. */}
+              {showReasons && s.verdict !== "clean" && s.topRules.length > 0 && (
                 <ul className="mt-3 flex flex-wrap gap-1.5">
                   {s.topRules.map((r) => (
-                    <li key={r.id} className="rounded-md bg-dangerous/10 px-2 py-0.5 text-xs text-dangerous ring-1 ring-dangerous/20">
+                    <li
+                      key={r.id}
+                      className={`rounded-md px-2 py-0.5 text-xs ring-1 ${VERDICT_STYLE[s.verdict].bg} ${VERDICT_STYLE[s.verdict].text} ${VERDICT_STYLE[s.verdict].ring}`}
+                    >
                       {ruleText(dict, r.id, { title: r.title, why: "" }).title}{" "}
                       <span className="font-mono opacity-70">+{r.points}</span>
                     </li>
