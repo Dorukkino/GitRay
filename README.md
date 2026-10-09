@@ -6,11 +6,12 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 
 ## What it checks
 
-28 rules in 8 categories (full list on the `/rules` page):
+34 rules in 9 categories (full list on the `/rules` page):
 
 | Category | Examples |
 | --- | --- |
-| Runs automatically | npm `postinstall`, `setup.py`, VS Code `folderOpen` tasks, Visual Studio build events, Rust `build.rs` |
+| Malicious dependencies | packages in `package.json`, lockfiles or Python requirements that [OSV](https://osv.dev) lists as confirmed malware |
+| Runs automatically | npm `postinstall`, `setup.py`, VS Code tasks and settings, dev container `initializeCommand`, Claude Code / Cursor hooks and MCP servers, `.npmrc`, `.envrc`, Visual Studio build events, Rust `build.rs` |
 | Malicious code patterns | decode-and-exec, `curl \| sh`, browser password and cookie stores, SSH keys, crypto wallets, Discord/Telegram exfiltration, Windows LOLBins |
 | Hidden content | high-entropy blobs, Trojan Source bidi characters, code pushed off-screen with whitespace, invisible Unicode payloads |
 | Links and social engineering | executables outside the repo's own releases, file-sharing sites, link shorteners, archive passwords, "disable your antivirus" |
@@ -27,7 +28,8 @@ The latest result of every scanned repository is stored. Clean repositories are 
 2. The source tarball is streamed and unpacked **in memory** with hard limits (download size, unpacked size, file count, bytes per file, time). Nothing touches the disk, links are never followed and nothing is executed.
 3. Every text file goes through the text rules; binary files are identified by their header bytes only. ZIP files are opened in memory (with zip-bomb limits) and their files scanned as well.
 4. GitHub's archive leaves out files marked `export-ignore` in `.gitattributes`, although `git clone` still delivers them. GitRay compares the archive with the commit's file list and downloads any missing file separately, so a payload cannot hide there.
-5. The report is sanitized (hidden characters revealed, URLs defanged) before the UI shows it.
+5. Declared dependencies (lockfiles first, for exact versions) are checked against OSV's malicious-package records. Only confirmed malware counts, not ordinary vulnerabilities.
+6. The report is sanitized (hidden characters revealed, URLs defanged) before the UI shows it.
 
 ## Run it
 

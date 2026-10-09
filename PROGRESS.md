@@ -9,15 +9,16 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Parça | Durum |
 | --- | --- |
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
-| 28 kural, 8 kategori | Hazır |
+| 34 kural, 9 kategori | Hazır |
 | ZIP içeriğini tarama, `export-ignore` ile saklanan dosyaları yakalama | Hazır (5. oturum) |
 | Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar, ilerleme | Hazır |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
-| Testler | 16 dosya, 540 test |
+| Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); canlıda doğrulanmalı |
+| Testler | 18 dosya, 620 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
-| VirusTotal API, OSV | Yok (dış servis: önce kullanıcıya sorulacak) |
+| VirusTotal API | Yok (API anahtarı gerekiyor, kullanıcıya sorulacak) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
 
@@ -189,10 +190,36 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - Gerçek tarama: `Dorukkino/GitRay`, 315 dosyalık liste arşivle karşılaştırıldı, eksik yok, 2,4 sn.
 - Kullanıcının repoları yeni motorla yeniden tarandı: theme-store 64 ZIP'i açılarak (yaklaşık 2.000 dosya, 45 MB) 15 puanla Temiz. Puanın tamamı, bir mod'un içinde font diye kaydedilmiş base64 HTML dosyalarından geliyor. PocketWallet ve KinoCoach 0.
 
+### 9 Ekim 2026 (6. oturum): Otomatik çalışma yolları ve zararlı bağımlılıklar
+
+**İstek:** "Ne eksik?" sorusuna verilen öneri listesinden 2 (eksik otomatik çalışma yolları) ve 1 (zararlı bağımlılıklar, OSV) yapıldı. Kullanıcı OSV'yi onayladı.
+
+**Otomatik çalışma yolları** (`src/engine/rules/devtools.ts`, 5 yeni kural):
+- `GR-AUTO-006` dev container `initializeCommand` (konteynerde değil senin bilgisayarında çalışır): +15, indirme ya da çözme varsa +40.
+- `GR-AUTO-007` repodaki bir programı gösteren VS Code ayarları (`git.path`, `*.executablePath`, terminal profilleri, `go.alternateTools`): +30. `.venv`, `venv`, `node_modules` ve yalnızca komut adı (`git`) yok sayılır.
+- `GR-AUTO-008` Claude Code hook'ları (statusLine ve yardımcı komutlar dahil), Cursor hook'ları, Gemini CLI; +25, riskliyse +40. Proje MCP sunucuları +10, riskliyse +35 (genelde kullanıcı onayı istenir).
+- `GR-AUTO-009` `.npmrc`: kod yükleyen `node-options` (`--require`, `--import`, `--loader`) ya da standart olmayan `script-shell`: +35.
+- `GR-AUTO-010` uzaktan kod çeken `.envrc` (direnv): +20.
+- Bu ayar dosyaları yorum ve sondaki virgül içerebildiği için küçük bir JSONC ayrıştırıcı eklendi (`text.parseJsonc`).
+
+**Zararlı bağımlılıklar** (`deps.ts`, `osv.ts`, `GR-DEP-001` +70):
+- 9 bağımlılık dosyası biçimi okunuyor; kilit dosyalarındaki geçişli (transitive) bağımlılıklar da dahil.
+- OSV'den yalnızca zararlı paket kayıtları (`MAL-`) kullanılıyor. Kilit dosyasında tam sürüm varsa doğrudan eşleşme aranıyor. Yalnızca aralık varsa paket ancak **her sürümü** zararlıysa (typosquat) işaretleniyor. Bazı sürümleri ele geçirilmiş popüler paketler (2025'teki chalk/debug saldırısı gibi) işaretlenmiyor; yoksa bu paketleri kullanan her repo yanlış alarm verirdi.
+- OSV'ye ulaşılamazsa tarama bozulmuyor, raporda "OSV could not be reached" yazıyor.
+
+**Doğrulama:**
+- 620 test geçiyor. Kapsananlar:
+  - 9 dosya biçiminin ayrıştırılması (kesilmiş kilit dosyası, yerel/git kaynakları, takma adlar dahil)
+  - sahte bir OSV sunucusuyla uçtan uca senaryolar: kilit dosyasındaki zararlı sürüm, yalnızca her sürümü zararlıysa işaretleme, CVE'lerin yok sayılması, OSV'nin kapalı olması, `node_modules` ve ZIP içinin okunmaması
+  - beş yeni kuralın pozitif ve negatif örnekleri
+- Gerçek tarama (`Dorukkino/GitRay`): 586 paket okundu, arşiv kontrolü tam, 2,7 sn.
+- **Doğrulanmadı:** `api.osv.dev` bu çalışma ortamının ağ politikasında kapalı, OSV burada "unavailable" döndü. Gerçek OSV yanıtıyla doğrulama canlı sitede yapılacak.
+- Kullanıcının üç reposu yeni kurallarla yanlış alarm vermedi (PocketWallet'taki `.claude/settings.json` yalnızca plugin ayarı içeriyor).
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. **Gerçek repolarda kalibrasyon** (devam ediyor; kullanıcının üç reposu tamamlandı).
-2. **Yapay zekâ araçlarının otomatik çalışan ayarları** (`.claude/settings.json` hooks, Cursor kuralları vb.) için yeni bir otomatik çalışma kuralı.
+2. **Canlıda OSV doğrulaması:** Vercel'deki sitede bir repo taranınca raporda "Checked N packages against OSV's malicious-package list" satırı görünmeli.
 3. **Alt modüller** (`.gitmodules`): tarball başka repolardaki alt modülleri içermez, `git clone --recursive` ise getirir. En azından raporda gösterilmeli.
 4. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor. En az şu repolar taranıp sonuçlar bu dosyaya yazılmalı: `octocat/Hello-World` (Temiz beklenir), `nvm-sh/nvm` (README'deki `curl | bash` belgede olduğu için puan almamalı), `pallets/flask`, `microsoft/vscode`, `pypa/pip`, `NVIDIA/apex` (`setup.py` alt süreç çalıştırıyor: 10 puan, Temiz beklenir). Yanlış alarm veren kurallar ayarlanmalı.
 3. **Liste kalitesi.** Scammer listesi herkese açık olduğu için yanlış alarmlar orada daha görünür olur. Kalibrasyondan sonra gerekirse listeye girme eşiği yükseltilebilir ya da çok yıldızlı / eski repolar için ek kontrol eklenebilir.

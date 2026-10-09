@@ -20,7 +20,7 @@ Portföy projesi, ticari değil. Hedef: çalışan bir MVP, temiz mimari, açık
 
 ## Maliyet kısıtı
 Her şey ücretsiz olmalı; yalnızca domain (ve ileride gerekirse VPS) ücretli olabilir.
-Şu anki ücretsiz bileşenler: Vercel Hobby planı (ticari olmayan kullanım), GitHub API (kişisel token, yalnızca public okuma), Neon Postgres ücretsiz planı (Vercel'in Storage sekmesinden eklenir, 0,5 GB), npm paketleri.
+Şu anki ücretsiz bileşenler: Vercel Hobby planı (ticari olmayan kullanım), GitHub API (kişisel token, yalnızca public okuma), Neon Postgres ücretsiz planı (Vercel'in Storage sekmesinden eklenir, 0,5 GB), OSV API (osv.dev, anahtarsız; kullanıcı 9 Ekim 2026'da onayladı), npm paketleri.
 Ücretli bir API, SaaS veya kütüphane ekleme. Yeni bir dış servis (KV, VirusTotal API, OSV vb.) eklemeden önce kullanıcıya sor.
 
 ## Mimari
@@ -32,6 +32,7 @@ Next.js 16 eğitim verisindeki sürümden farklı: kod yazmadan önce `node_modu
   - `text.ts` güvenilmez metin yardımcıları: satır bölme, uzun satır pencereleri, entropi, `defang`, `sanitize`, `snippet`, `revealHidden`, belge/kaynak kodu tespiti, UTF-16 BOM çözme
   - `github.ts` GitHub API istemcisi (metadata, son commit SHA, sahip hesap yaşı, release digest'leri, tarball akışı)
   - `archive.ts` bellekte, akışla ve limitli tar okuyucu (kendi tar ayrıştırıcımız; pax ve GNU uzun ad başlıkları, checksum kontrolü). `.zip` dosyaları 20 MB'a kadar bütün olarak okunur; arşivdeki her yolu (link ve klasörler dahil) `seen` kümesine yazar.
+  - `deps.ts` bağımlılık dosyalarını okur (`package.json`, `package-lock.json`/`npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `requirements*.txt`, `pyproject.toml`, `poetry.lock`, `uv.lock`, `Pipfile.lock`); `node_modules/` ve ZIP içindekiler okunmaz. `osv.ts` OSV istemcisi. Kilit dosyaları da ZIP'ler gibi 20 MB'a kadar bütün okunur (büyük projelerde 1 MB'ı aşarlar; yarım bir kilit dosyası ayrıştırılamaz). Daha büyükse `package.json`'daki aralıklara düşülür.
   - `zip.ts` repodaki ZIP'lerin içini bellekte açar (merkezi dizin okunur; yalnızca stored/deflate, şifreli üyeler, symlink'ler ve ZIP64 atlanır). Üye yolu `arşiv.zip!/iç/yol` biçimindedir. Limitler: ZIP başına 2.000 üye, tarama başına toplam 50 MB açılmış veri (zip bombası), ZIP içinde ZIP en fazla 2 seviye. ZIP üyelerinde yalnızca içerik kuralları (`code`, `obfuscation`, `binary`) çalışır (`ARCHIVE_MEMBER_CATEGORIES`): arşivin içindeki bir README ziyaretçiye gösterilmez, içindeki `package.json` klonlayınca çalışmaz.
   - `rules/` kurallar: `base.ts` (Rule arayüzü, `regexRule`, yol eşleme), kategori başına bir modül (`autorun`, `code`, `obfuscation`, `links`, `binary`, `repo`), `index.ts` kayıt
   - `scoring.ts` puan, `scanner.ts` orkestrasyon, `report.ts` güvenli JSON rapor (arayüzün kullandığı tek biçim)
@@ -48,8 +49,10 @@ Next.js 16 eğitim verisindeki sürümden farklı: kod yazmadan önce `node_modu
 1. Repo bilgisini al (GitHub API): kanonik ad (yeniden adlandırılmış repolarda yönlendirme yalnızca `api.github.com` içinde ve en fazla 3 kez izlenir), boyut, oluşturulma tarihi, varsayılan dal, son commit SHA, sahip hesap yaşı, son 10 release'in dosyaları ve `digest` değerleri. Token yalnızca `api.github.com`'a gönderilir, `codeload.github.com`'a gönderilmez, hiçbir yerde loglanmaz.
 2. Tarball'ı commit SHA'sı ile akış halinde indir ve bellekte limitlerle oku; içindeki ZIP'leri de aç. Süre bütçesi (45 sn) metadata isteklerini de kapsar.
 2b. **Arşiv bütünlüğü kontrolü.** GitHub tarball'ı `git archive` ile üretir ve `.gitattributes` içindeki `export-ignore` dosyalarını dışarıda bırakır; `git clone` ise onları getirir. Bu, payload'ı tarayıcılardan saklamanın bir yoludur. Tarama tam bittiyse commit'in dosya listesi Git Trees API ile alınır (1 istek), arşivde olmayan dosyalar `raw.githubusercontent.com`'dan (API kotası harcamaz, token gönderilmez) ayrıca indirilip taranır (en fazla 300 dosya ve 20 MB; önce çalıştırılabilir/kod dosyaları). İndirilemeyen saklı dosya varsa tarama Eksik sayılır (`maxHiddenFiles`). Liste alınamazsa ya da GitHub listeyi kısaltırsa (`truncated`) kontrol "unavailable" olur ama tarama bozulmaz. Saklı dosya bulunursa `GR-REPO-003` (+5) eklenir. Sonuç raporda `archiveCheck` olarak yer alır. Bir tarama artık yaklaşık 6 API isteği kullanır. Metin dosyaları (UTF-8, BOM'lu UTF-16) metin kurallarına, ikili dosyalar (ilk 8 KB'ta NUL) yalnızca başlık baytlarına bakan ikili kurallarına gider.
-3. Kuralları çalıştır (28 kural, ayrıntılar `/rules` sayfasında ve `src/engine/rules/`):
-   - Otomatik çalışanlar (`GR-AUTO-*`): `package.json` yaşam döngüsü scriptleri, `setup.py`, `.vscode/tasks.json` `folderOpen`, Visual Studio build olayları, Rust `build.rs`
+2c. **Bağımlılık kontrolü** (`GR-DEP-001`, +70, tek başına Tehlikeli). Tarama sırasında bağımlılık dosyaları toplanır, sonra OSV'ye toplu sorgu atılır (`/v1/querybatch`, 1000'lik parçalar, en fazla 5.000 sorgu). Yalnızca `MAL-` ile başlayan kayıtlar (OpenSSF malicious-packages) dikkate alınır: GitRay zararlı yazılım arar, sıradan güvenlik açığı (CVE) aramaz. Kilit dosyasındaki tam sürüm doğrudan sorgulanır. Yalnızca aralıkla bildirilen paket (`^1.2.0`) için kayıt **her sürümü** kapsıyorsa (typosquat) bulgu üretilir; yalnızca bazı sürümleri ele geçirilmiş popüler paketler (chalk/debug saldırısı gibi) kurulacak sürüm bilinmediği için işaretlenmez, yoksa her repo yanlış alarm verir. Bunu ayırt etmek için tarama başına en fazla 20 kayıt detayı çekilir (`/v1/vulns/{id}`, örnek başına önbellekli). OSV'ye ulaşılamazsa kontrol "unavailable" olur, tarama asla bozulmaz. Sonuç raporda `dependencyCheck` olarak yer alır.
+3. Kuralları çalıştır (34 kural, ayrıntılar `/rules` sayfasında ve `src/engine/rules/`):
+   - Otomatik çalışanlar (`GR-AUTO-*`): `package.json` yaşam döngüsü scriptleri, `setup.py`, `.vscode/tasks.json` `folderOpen`, Visual Studio build olayları, Rust `build.rs`, dev container `initializeCommand` (`GR-AUTO-006`), repodaki bir programı gösteren VS Code ayarları (`GR-AUTO-007`), yapay zekâ asistanı hook'ları ve MCP sunucuları (`GR-AUTO-008`), kod enjekte eden `.npmrc` (`GR-AUTO-009`), uzaktan kod çeken `.envrc` (`GR-AUTO-010`)
+   - Zararlı bağımlılıklar (`GR-DEP-001`): yukarıdaki 2c
    - Kod kalıpları (`GR-CODE-*`): çözüp çalıştırma, `curl | sh`, tarayıcı şifre/çerez dosyaları, SSH anahtarları, kripto cüzdanları, Discord/Telegram'a veri gönderme, Windows LOLBin'leri ve Defender istisnası, dosya içeriğini çalıştırma
    - Gizleme (`GR-OBF-*`): yüksek entropili metin, Trojan Source yön karakterleri, boşlukla ekran dışına itilmiş kod, görünmez Unicode payload'ları
    - Linkler ve sosyal mühendislik (`GR-LINK-*`, `GR-SOC-001`): repo dışı exe/arşiv linkleri, dosya paylaşım siteleri, link kısaltıcılar, arşiv şifresi, "antivirüsü kapat" talimatı
@@ -87,9 +90,11 @@ Next.js 16 eğitim verisindeki sürümden farklı: kod yazmadan önce `node_modu
 ## Bu bulut ortamına özel notlar (Claude Code on the web)
 - Node'un `fetch`'i proxy ortam değişkenini kendiliğinden okumaz: ağa çıkan komutları `NODE_USE_ENV_PROXY=1` ile çalıştır (örn. `NODE_USE_ENV_PROXY=1 npm run build`, `GITHUB_TOKEN= NODE_USE_ENV_PROXY=1 npm run scan -- Dorukkino/GitRay`).
 - Konteynerdeki `GITHUB_TOKEN` proxy'ye özeldir; kendi isteklerimize eklenince 401 döner. Bu ortamda `GITHUB_TOKEN=` (boş) ile çalıştır.
-- Proxy GitHub API'sinde yalnızca oturuma bağlı repoya (Dorukkino/GitRay) izin verir; `/users/...` ve başka repolar 403 döner. Başka repoların gerçek taraması yerelde ya da Vercel'de denenmeli.
+- Proxy GitHub API'sinde yalnızca oturuma bağlı repoya (Dorukkino/GitRay) izin verir; `/users/...` ve başka repolar 403 döner. Başka repoların gerçek taraması yerelde ya da Vercel'de denenmeli. Public repolar `git clone` ile okunabilir (kodu çalıştırmadan, yalnızca dosya okuyarak tarandı).
+- `api.osv.dev` bu ortamın ağ politikasında kapalı; OSV kontrolü burada "unavailable" döner. Gerçek doğrulama Vercel'de yapılır (ya da ortam ayarlarında Allowed domains'e eklenir).
 
 ## Açık kararlar
 - Kalıcı depolama: **karar verildi (9 Ekim 2026)**, kullanıcı Safe Zone ve Scammer listelerini istedi; Neon Postgres (ücretsiz, Vercel entegrasyonu) seçildi.
+- OSV: **onaylandı (9 Ekim 2026)**. VirusTotal hâlâ açık karar (API anahtarı gerektirir).
 - VirusTotal API (günde 500 / dakikada 4 hash sorgusu) ve OSV entegrasyonu: ücretsiz ama dış servis, kullanıcıya sorulacak. Şu an yalnızca VirusTotal arama linki veriliyor.
 - Arayüz dili şimdilik İngilizce (portföy, uluslararası kitle); Türkçe seçeneği istenirse eklenebilir.
