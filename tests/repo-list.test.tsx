@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { RepoList } from "../src/components/RepoList";
+import { en } from "../src/i18n/dictionaries/en";
+import { tr } from "../src/i18n/dictionaries/tr";
 import type { ScanSummary } from "../src/lib/scan-store";
 
 const item: ScanSummary = {
@@ -18,16 +20,24 @@ const item: ScanSummary = {
 
 describe("RepoList", () => {
   it("links to the scan page and shows why a repository is listed", () => {
-    const html = renderToStaticMarkup(<RepoList items={[item]} showReasons />);
-    expect(html).toContain('href="/scan/evil-org/free-tool"');
+    const html = renderToStaticMarkup(<RepoList items={[item]} showReasons locale="en" dict={en} />);
+    expect(html).toContain('href="/en/scan/evil-org/free-tool"');
     expect(html).toContain("Asks you to disable your antivirus");
     expect(html).toContain("score 95");
   });
 
   it("escapes stored text instead of rendering it as HTML", () => {
-    const html = renderToStaticMarkup(<RepoList items={[item]} showReasons={false} />);
+    const html = renderToStaticMarkup(<RepoList items={[item]} showReasons={false} locale="en" dict={en} />);
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img src=x");
     expect(html).not.toContain("disable your antivirus");
+  });
+
+  it("speaks Turkish, including the rule titles stored in English", () => {
+    const html = renderToStaticMarkup(<RepoList items={[item]} showReasons locale="tr" dict={tr} />);
+    expect(html).toContain('href="/tr/scan/evil-org/free-tool"');
+    expect(html).toContain("Antivirüsünüzü kapatmanızı istiyor");
+    expect(html).toContain("Tehlikeli");
+    expect(html).toContain("puan 95");
   });
 });

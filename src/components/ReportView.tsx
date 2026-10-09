@@ -1,129 +1,109 @@
 "use client";
 
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { Category, Report, ReportCheckedFile, ReportFinding, ReportSubmodule, Reputation, Severity } from "@/engine";
+import { type Locale, INTL_LOCALE, scanPath } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { fmt, plural, rich } from "@/i18n/format";
+import { useI18n } from "@/i18n/provider";
+import { ruleText } from "@/i18n/rules";
 
-import { CATEGORY_LABEL, CATEGORY_ORDER, SEVERITY_STYLE, ScoreGauge, VERDICT_STYLE, VerdictBadge } from "./verdict";
+import { Reveal } from "./motion";
+import { ScoreGauge } from "./ScoreGauge";
+import { CATEGORY_ORDER, SEVERITY_STYLE, VERDICT_STYLE, VerdictBadge } from "./verdict";
 
 // Everything shown here comes from the report, where repository-controlled
 // strings are already sanitized. React escapes all of it; nothing is rendered
 // as HTML and no link points at a URL taken from the repository.
 
-const LIMIT_LABEL: Record<string, string> = {
-  maxRepoSizeKb: "repository size",
-  maxDownloadBytes: "download size",
-  maxEntries: "number of files",
-  maxFileBytes: "file size",
-  maxTotalBytes: "unpacked size",
-  timeBudgetMs: "time budget",
-  maxHiddenFiles: "hidden files",
-};
+type Check = { text: string; warn: boolean };
 
 /** What the OSV dependency check found. Always says something, so the check is never invisible. */
-function dependencyCheckText(report: Report): { text: string; warn: boolean } {
+function dependencyCheckText(report: Report, locale: Locale, dict: Dictionary): Check {
+  const t = dict.report.dependency;
   const check = report.dependencyCheck;
   // Reports stored before this check existed have no dependencyCheck.
-  if (!check) return { text: "Not checked: this report is older than the dependency check. Scan again to include it.", warn: false };
-  const packages = `${check.packages} package${check.packages === 1 ? "" : "s"}`;
+  if (!check) return { text: t.older, warn: false };
+  const packages = plural(locale, check.packages, t.packages);
   switch (check.status) {
     case "ok":
-      return { text: `Checked ${packages} against OSV's list of known malicious packages: none found.`, warn: false };
+      return { text: fmt(t.ok, { packages }), warn: false };
     case "found":
-      return { text: `${check.malicious} of ${packages} declared here are known malware according to OSV.`, warn: true };
+      return { text: fmt(t.found, { malicious: check.malicious, packages }), warn: true };
     case "unavailable":
-      return { text: "OSV could not be reached, so dependencies were not checked against known malware.", warn: true };
+      return { text: t.unavailable, warn: true };
     case "none":
-      return {
-        text: "No dependency files (package.json, requirements.txt, pyproject.toml or lockfiles), so there was nothing to check.",
-        warn: false,
-      };
+      return { text: t.none, warn: false };
     default:
-      return {
-        text: report.partial ? "Not checked, because the scan stopped early." : "Not checked.",
-        warn: report.partial !== null,
-      };
+      return { text: report.partial ? t.notCheckedPartial : t.notChecked, warn: report.partial !== null };
   }
 }
 
 /** What the VirusTotal lookups found. Always says something, so the check is never invisible. */
-function reputationCheckText(report: Report): { text: string; warn: boolean } {
+function reputationCheckText(report: Report, locale: Locale, dict: Dictionary): Check {
+  const t = dict.report.reputation;
   const check = report.reputationCheck;
   // Reports stored before this check existed have no reputationCheck.
-  if (!check) return { text: "Not checked: this report is older than the VirusTotal check. Scan again to include it.", warn: false };
+  if (!check) return { text: t.older, warn: false };
   const files = check.files;
   const looked = files.filter((f) => f.reputation.status !== "skipped");
   const unknown = looked.filter((f) => f.reputation.status === "unknown").length;
   const flagged = files.filter((f) => f.reputation.status === "found" && f.reputation.stats.malicious > 0).length;
-  const unknownText = unknown
-    ? ` ${unknown} ${unknown === 1 ? "is" : "are"} unknown to VirusTotal, which does not mean safe.`
-    : "";
-  const filesText = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
   // Reports from engine 0.6 have no notLookedUp.
   const more = check.notLookedUp ?? 0;
-  const moreText = more
-    ? ` ${more} more file${more === 1 ? " was" : "s were"} not looked up (at most 10 per scan).`
-    : "";
+  const tail = [unknown ? plural(locale, unknown, t.unknown) : "", more ? plural(locale, more, t.more) : ""].filter(Boolean);
+  const join = (head: string) => [head, ...tail].join(" ");
   switch (check.status) {
     case "found":
-      return {
-        text: `Antivirus engines flag ${flagged} of ${filesText(files.length)} looked up by fingerprint.${unknownText}${moreText}`,
-        warn: true,
-      };
+      return { text: join(fmt(t.found, { flagged, files: plural(locale, files.length, t.files) })), warn: true };
     case "ok":
-      return {
-        text: `Looked up ${filesText(looked.length)} by fingerprint: no antivirus engine flags them.${unknownText}${moreText}`,
-        warn: false,
-      };
+      return { text: join(fmt(t.ok, { files: plural(locale, looked.length, t.files) })), warn: false };
     case "partial":
-      return {
-        text:
-          `Looked up ${looked.length} of ${filesText(files.length)}; the rest wait for VirusTotal's shared quota ` +
-          `(4 a minute, 500 a day) and are looked up when the repository is scanned again.${unknownText}${moreText}`,
-        warn: false,
-      };
+      return { text: join(fmt(t.partial, { looked: looked.length, files: plural(locale, files.length, t.files) })), warn: false };
     case "unavailable":
-      return { text: "VirusTotal could not be reached, so programs and release files were not looked up.", warn: true };
+      return { text: t.unavailable, warn: true };
     case "not_configured":
-      return { text: "Not looked up automatically on this site. Use the VirusTotal links next to the release files.", warn: false };
+      return { text: t.notConfigured, warn: false };
     default:
-      return { text: "Nothing to look up: no programs in the repository and no release files.", warn: false };
+      return { text: t.none, warn: false };
   }
 }
 
-function reputationText(r: Reputation): { text: string; tone: "bad" | "ok" | "muted" } {
+function reputationText(r: Reputation, dict: Dictionary): { text: string; tone: "bad" | "ok" | "muted" } {
+  const t = dict.report.reputation;
   if (r.status === "found") {
     const s = r.stats;
     const total = s.malicious + s.suspicious + s.harmless + s.undetected;
-    return s.malicious > 0
-      ? { text: `${s.malicious}/${total} engines detect it`, tone: "bad" }
-      : { text: `0/${total} engines detect it`, tone: "ok" };
+    return { text: fmt(t.detects, { bad: s.malicious, total }), tone: s.malicious > 0 ? "bad" : "ok" };
   }
-  if (r.status === "unknown") return { text: "unknown to VirusTotal", tone: "muted" };
-  const reason = { error: "lookup failed", quota: "not looked up yet (shared quota)", limit: "not looked up (10 per scan)" }[r.reason];
-  return { text: reason, tone: "muted" };
+  if (r.status === "unknown") return { text: t.unknownFile, tone: "muted" };
+  return { text: t.reasons[r.reason], tone: "muted" };
 }
 
 /** Each fingerprint looked up, with a link built from the validated SHA-256 only. */
 function CheckedFiles({ files }: { files: ReportCheckedFile[] }) {
+  const { dict } = useI18n();
+  const t = dict.report.reputation;
   return (
-    <ul className="mt-2 space-y-1 text-xs">
+    <ul className="mt-3 space-y-1.5 text-xs">
       {files.map((f) => {
-        const r = reputationText(f.reputation);
-        const tone = { bad: "text-red-300", ok: "text-emerald-300/90", muted: "text-slate-500" }[r.tone];
+        const r = reputationText(f.reputation, dict);
+        const tone = { bad: "text-dangerous font-semibold", ok: "text-clean", muted: "text-subtle" }[r.tone];
         return (
-          <li key={`${f.source}:${f.sha256}`} className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-mono break-all text-slate-300">{f.name}</span>
-            <span className="text-slate-500">{f.source === "release" ? "release file" : "in the repository"}</span>
+          <li key={`${f.source}:${f.sha256}`} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-sunken/50 px-3 py-1.5">
+            <span className="font-mono break-all text-fg">{f.name}</span>
+            <span className="text-subtle">{f.source === "release" ? t.releaseFile : t.inRepository}</span>
             <span className={tone}>{r.text}</span>
             <a
               href={f.virusTotalUrl}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="text-slate-400 underline decoration-slate-600 underline-offset-2 hover:text-slate-200"
+              className="text-accent underline decoration-accent/30 underline-offset-2 hover:text-accent-strong"
             >
-              VirusTotal
+              {t.link}
             </a>
           </li>
         );
@@ -133,62 +113,58 @@ function CheckedFiles({ files }: { files: ReportCheckedFile[] }) {
 }
 
 /** What the comparison of GitHub's archive with the commit's file list found. */
-function archiveCheckText(report: Report): { text: string; warn: boolean } | null {
+function archiveCheckText(report: Report, locale: Locale, dict: Dictionary): Check | null {
+  const t = dict.report.archive;
   // Reports stored before this check existed have no archiveCheck.
   const check = report.archiveCheck;
   if (!check) return null;
   switch (check.status) {
     case "ok":
-      return { text: "GitHub's download archive holds every file of this commit.", warn: false };
+      return { text: t.ok, warn: false };
     case "hidden":
-      return {
-        text:
-          `${check.hidden} file${check.hidden === 1 ? " is" : "s are"} left out of GitHub's download archive ` +
-          `(.gitattributes export-ignore) but still arrive with git clone. GitRay downloaded and scanned ` +
-          `${check.scanned} of them separately.`,
-        warn: check.scanned < check.hidden,
-      };
+      return { text: plural(locale, check.hidden, t.hidden, { scanned: check.scanned }), warn: check.scanned < check.hidden };
     case "unavailable":
-      return {
-        text: "GitHub did not return the commit's full file list, so files hidden from the download archive could not be checked.",
-        warn: true,
-      };
+      return { text: t.unavailable, warn: true };
     default:
       return null;
   }
 }
 
-function ExtraCheck({ label, check }: { label: string; check: { text: string; warn: boolean } }) {
+function ExtraCheck({ label, check }: { label: string; check: Check }) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-      <dt className="shrink-0 font-medium text-slate-400 sm:w-56">{label}</dt>
-      <dd className={check.warn ? "text-amber-300/90" : "text-slate-500"}>{check.text}</dd>
+      <dt className="flex shrink-0 items-center gap-2 font-medium text-muted sm:w-60">
+        <span className={`h-1.5 w-1.5 rounded-full ${check.warn ? "bg-suspicious" : "bg-clean"}`} />
+        {label}
+      </dt>
+      <dd className={check.warn ? "text-suspicious" : "text-subtle"}>{check.text}</dd>
     </div>
   );
 }
 
 /** Other repositories that "git clone --recursive" would add. Only validated owner/repo names become links (to our own scan page). */
 function Submodules({ list }: { list: ReportSubmodule[] }) {
+  const { locale, dict } = useI18n();
+  const t = dict.report.submodules;
   return (
-    <div className="mt-3 border-t border-slate-800 pt-3 text-xs">
-      <p className="text-amber-300/90">
-        {list.length} git submodule{list.length === 1 ? " is" : "s are"} not scanned. GitHub&apos;s download leaves them
-        out, but <code className="font-mono">git clone --recursive</code> downloads them from other repositories. Scan
-        them before cloning that way.
+    <div className="mt-4 border-t border-line pt-4 text-xs">
+      <p className="text-suspicious">
+        {plural(locale, list.length, t.count)}{" "}
+        {rich(t.text, { command: <code className="font-mono">git clone --recursive</code> })}
       </p>
       <ul className="mt-2 space-y-1">
         {list.map((s, i) => {
           const [owner, repo] = s.github?.split("/") ?? [];
           return (
-            <li key={i} className="flex flex-wrap items-baseline gap-x-2 font-mono break-all text-slate-400">
-              <span className="text-slate-300">{s.path}</span>
-              <span>from {s.url}</span>
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 font-mono break-all text-muted">
+              <span className="text-fg">{s.path}</span>
+              <span>{fmt(t.from, { url: s.url })}</span>
               {owner && repo && (
                 <Link
-                  href={`/scan/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`}
-                  className="font-sans text-cyan-300 underline decoration-cyan-700 underline-offset-2 hover:text-cyan-200"
+                  href={scanPath(locale, owner, repo)}
+                  className="font-sans text-accent underline decoration-accent/30 underline-offset-2 hover:text-accent-strong"
                 >
-                  scan {s.github}
+                  {fmt(t.scan, { repo: s.github ?? "" })}
                 </Link>
               )}
             </li>
@@ -206,22 +182,23 @@ function formatBytes(n: number): string {
 }
 
 /** Age at scan time (deterministic, so server and browser render the same text). */
-function age(iso: string | null, scannedAt: string): string {
-  if (!iso) return "unknown";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "unknown";
-  const days = Math.floor((Date.parse(scannedAt) - t) / 86_400_000);
-  if (days < 1) return "today";
-  if (days < 60) return `${days} day${days === 1 ? "" : "s"} ago`;
-  if (days < 730) return `${Math.floor(days / 30)} months ago`;
-  return `${Math.floor(days / 365)} years ago`;
+function age(iso: string | null, scannedAt: string, locale: Locale, dict: Dictionary): string {
+  const t = dict.report.age;
+  if (!iso) return t.unknown;
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return t.unknown;
+  const days = Math.floor((Date.parse(scannedAt) - then) / 86_400_000);
+  if (days < 1) return t.today;
+  if (days < 60) return plural(locale, days, t.days);
+  if (days < 730) return fmt(t.months, { n: Math.floor(days / 30) });
+  return fmt(t.years, { n: Math.floor(days / 365) });
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2">
-      <div className="text-[11px] tracking-wide text-slate-500 uppercase">{label}</div>
-      <div className="mt-0.5 truncate font-mono text-sm text-slate-200" title={value}>
+    <div className="rounded-xl border border-line bg-raised/70 px-3 py-2">
+      <div className="text-[11px] tracking-wide text-subtle uppercase">{label}</div>
+      <div className="mt-0.5 truncate font-mono text-sm text-fg" title={value}>
         {value}
       </div>
     </div>
@@ -229,60 +206,69 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function SeverityPill({ severity }: { severity: Severity }) {
+  const { dict } = useI18n();
   return (
     <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ring-1 ${SEVERITY_STYLE[severity]}`}>
-      {severity}
+      {dict.severity[severity]}
     </span>
   );
 }
 
+function Tag({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-md bg-sunken px-2 py-0.5 text-[11px] text-muted">{children}</span>;
+}
+
 function FindingCard({ f }: { f: ReportFinding }) {
-  const where = f.path ? `${f.path}${f.line > 0 ? `:${f.line}` : ""}` : "Repository metadata";
+  const { dict } = useI18n();
+  const t = dict.report;
+  const text = ruleText(dict, f.ruleId, { title: f.title, why: f.why });
+  const where = f.path ? `${f.path}${f.line > 0 ? `:${f.line}` : ""}` : t.metadata;
   return (
-    <article className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+    <motion.article
+      layout="position"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-2xl border border-line bg-surface/90 p-4 shadow-sm transition-colors hover:border-line-strong"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <SeverityPill severity={f.severity} />
-        <h4 className="font-medium text-slate-100">{f.title}</h4>
-        <span className="font-mono text-xs text-slate-500">
+        <h4 className="font-medium text-fg">{text.title}</h4>
+        <span className="font-mono text-xs text-subtle">
           {f.ruleId} · +{f.weight}
         </span>
-        {f.docContext && (
-          <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">in documentation, weight reduced</span>
-        )}
-        {f.inArchive && (
-          <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">inside a ZIP file</span>
-        )}
-        {f.testContext && (
-          <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">in a test file</span>
-        )}
+        {f.docContext && <Tag>{t.inDocs}</Tag>}
+        {f.inArchive && <Tag>{t.inZip}</Tag>}
+        {f.testContext && <Tag>{t.inTest}</Tag>}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="font-mono break-all text-cyan-200/90">{where}</span>
+        <span className="font-mono break-all text-accent">{where}</span>
         {f.githubUrl && (
           <a
             href={f.githubUrl}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-xs text-slate-400 underline decoration-slate-600 underline-offset-2 hover:text-slate-200"
+            className="text-xs text-muted underline decoration-line-strong underline-offset-2 hover:text-fg"
           >
-            view on GitHub
+            {t.viewOnGitHub}
           </a>
         )}
       </div>
-      {f.note && <p className="mt-1.5 text-sm text-slate-300">{f.note}</p>}
+      {f.note && <p className="mt-1.5 text-sm text-muted">{f.note}</p>}
       {f.snippet && (
-        <pre className="mt-3 overflow-x-auto rounded-lg border border-slate-800 bg-[#05080d] p-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-all text-slate-200">
+        <pre className="film mt-3 overflow-x-auto rounded-xl border border-film-line p-3 font-mono text-[13px] leading-relaxed break-all whitespace-pre-wrap">
           {f.snippet}
         </pre>
       )}
       <details className="group mt-3">
-        <summary className="cursor-pointer list-none text-sm text-slate-400 select-none hover:text-slate-200">
-          <span className="mr-1 inline-block transition group-open:rotate-90">›</span>
-          Why this matters
+        <summary className="cursor-pointer list-none text-sm text-muted select-none hover:text-fg">
+          <span className="mr-1 inline-block transition-transform group-open:rotate-90">›</span>
+          {t.whyMatters}
         </summary>
-        <p className="mt-2 pl-4 text-sm leading-relaxed text-slate-400">{f.why}</p>
+        <p className="mt-2 pl-4 text-sm leading-relaxed text-muted">{text.why}</p>
       </details>
-    </article>
+    </motion.article>
   );
 }
 
@@ -296,11 +282,41 @@ function downloadJson(report: Report) {
   URL.revokeObjectURL(url);
 }
 
+function FilterChip({
+  group,
+  active,
+  onClick,
+  children,
+}: {
+  group: string;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`relative rounded-full px-2.5 py-1 ring-1 transition-colors ${
+        active ? "text-on-accent ring-accent" : "text-muted ring-line hover:text-fg hover:ring-line-strong"
+      }`}
+    >
+      {active && (
+        <motion.span layoutId={`filter-${group}`} className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", stiffness: 500, damping: 36 }} />
+      )}
+      <span className="relative">{children}</span>
+    </button>
+  );
+}
+
 export function ReportView({ report }: { report: Report }) {
+  const { locale, dict } = useI18n();
+  const t = dict.report;
   const [category, setCategory] = useState<Category | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const style = VERDICT_STYLE[report.verdict];
-  const t = report.target;
+  const target = report.target;
 
   const categories = useMemo(() => {
     const present = new Set(report.findings.map((f) => f.category));
@@ -315,123 +331,138 @@ export function ReportView({ report }: { report: Report }) {
   );
   const filesScanned = report.stats.textFiles + report.stats.binaryFiles;
   const archiveMembers = report.stats.archiveMembers ?? 0;
-  const archiveCheck = archiveCheckText(report);
-  const dependencyCheck = dependencyCheckText(report);
-  const reputationCheck = reputationCheckText(report);
+  const archiveCheck = archiveCheckText(report, locale, dict);
+  const dependencyCheck = dependencyCheckText(report, locale, dict);
+  const reputationCheck = reputationCheckText(report, locale, dict);
+  const scannedAt = new Date(report.startedAt).toLocaleString(INTL_LOCALE[locale], {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  });
+  const line = [
+    fmt(t.line.rules, { n: report.rulesRun }),
+    fmt(t.line.sizes, { downloaded: formatBytes(report.stats.downloadedBytes), unpacked: formatBytes(report.stats.decompressedBytes) }),
+    fmt(t.line.binaries, { n: report.stats.binaryFiles }),
+    archiveMembers > 0 ? plural(locale, report.stats.archivesOpened, t.line.zips, { members: archiveMembers }) : "",
+    (report.stats.archivesSkipped ?? 0) > 0 ? fmt(t.line.zipsSkipped, { n: report.stats.archivesSkipped ?? 0 }) : "",
+    fmt(t.line.seconds, { s: (report.durationMs / 1000).toFixed(1) }),
+    fmt(t.line.scannedAt, { date: `${scannedAt} UTC` }),
+  ].filter(Boolean);
 
   return (
     <div className="space-y-8">
       {/* Summary */}
-      <section className={`rounded-2xl border border-slate-800 bg-slate-900/30 p-5 ring-1 sm:p-6 ${style.ring}`}>
-        <div className="flex flex-col gap-6 md:flex-row md:items-center">
+      <motion.section
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className={`relative overflow-hidden rounded-3xl border bg-surface/90 p-5 shadow-xl shadow-accent/5 sm:p-7 ${style.border}`}
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full opacity-20 blur-3xl" style={{ background: style.color }} />
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-5">
             <ScoreGauge score={report.score} verdict={report.verdict} />
             <div className="md:hidden">
-              <VerdictBadge verdict={report.verdict} size="lg" />
+              <VerdictBadge verdict={report.verdict} label={dict.verdicts[report.verdict].label} size="lg" />
             </div>
           </div>
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <div className="hidden md:block">
-                <VerdictBadge verdict={report.verdict} size="lg" />
+                <VerdictBadge verdict={report.verdict} label={dict.verdicts[report.verdict].label} size="lg" />
               </div>
               {!report.complete && (
-                <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300 ring-1 ring-sky-400/30">
-                  Partial scan
+                <span className="rounded-full bg-incomplete/12 px-2.5 py-1 text-xs font-medium text-incomplete ring-1 ring-incomplete/30">
+                  {t.partialScan}
                 </span>
               )}
             </div>
-            {t ? (
+            {target ? (
               <div>
-                <h1 className="font-mono text-xl font-semibold break-all text-slate-50 sm:text-2xl">
-                  <a href={t.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
-                    {t.fullName}
+                <h1 className="font-mono text-xl font-semibold break-all text-fg sm:text-2xl">
+                  <a href={target.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
+                    {target.fullName}
                   </a>
                 </h1>
-                {t.description && <p className="mt-1 text-sm text-slate-400">{t.description}</p>}
+                {target.description && <p className="mt-1 text-sm text-muted">{target.description}</p>}
               </div>
             ) : (
-              <h1 className="text-xl font-semibold text-slate-50">Scan result</h1>
+              <h1 className="text-xl font-semibold text-fg">{t.scanResult}</h1>
             )}
-            <p className="max-w-3xl text-sm leading-relaxed text-slate-300">{style.summary}</p>
+            <p className="max-w-3xl text-sm leading-relaxed text-fg/85">{dict.verdicts[report.verdict].summary}</p>
           </div>
         </div>
 
-        {t && (
-          <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="Commit" value={t.headSha.slice(0, 12)} />
-            <Stat label="Branch" value={t.defaultBranch} />
-            <Stat label="Repo created" value={age(t.createdAt, report.startedAt)} />
-            <Stat label="Owner since" value={age(t.owner.createdAt, report.startedAt)} />
-            <Stat label="Stars / forks" value={`${t.stars} / ${t.forks}`} />
-            <Stat label="Files scanned" value={`${filesScanned}`} />
+        {target && (
+          <div className="relative mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat label={t.stats.commit} value={target.headSha.slice(0, 12)} />
+            <Stat label={t.stats.branch} value={target.defaultBranch} />
+            <Stat label={t.stats.repoCreated} value={age(target.createdAt, report.startedAt, locale, dict)} />
+            <Stat label={t.stats.ownerSince} value={age(target.owner.createdAt, report.startedAt, locale, dict)} />
+            <Stat label={t.stats.starsForks} value={`${target.stars} / ${target.forks}`} />
+            <Stat label={t.stats.filesScanned} value={`${filesScanned}`} />
           </div>
         )}
-        <p className="mt-4 text-xs text-slate-500">
-          {report.rulesRun} rules · {formatBytes(report.stats.downloadedBytes)} downloaded,{" "}
-          {formatBytes(report.stats.decompressedBytes)} unpacked in memory · {report.stats.binaryFiles} binary files
-          inspected by header only
-          {archiveMembers > 0 && (
-            <>
-              {" "}
-              · {archiveMembers} files read from inside {report.stats.archivesOpened} ZIP archive
-              {report.stats.archivesOpened === 1 ? "" : "s"}
-            </>
-          )}
-          {(report.stats.archivesSkipped ?? 0) > 0 && <> · {report.stats.archivesSkipped} ZIP archives too large to open</>}{" "}
-          · {(report.durationMs / 1000).toFixed(1)} s · scanned {new Date(report.startedAt).toUTCString()}
-        </p>
-        <dl className="mt-4 space-y-1.5 border-t border-slate-800 pt-4 text-xs">
-          <ExtraCheck label="Malicious dependencies (OSV)" check={dependencyCheck} />
-          <ExtraCheck label="Antivirus engines (VirusTotal)" check={reputationCheck} />
-          {archiveCheck && <ExtraCheck label="Files hidden from the download" check={archiveCheck} />}
+        <p className="relative mt-4 text-xs text-subtle">{line.join(" · ")}</p>
+        <dl className="relative mt-4 space-y-2 border-t border-line pt-4 text-xs">
+          <ExtraCheck label={t.checks.dependencies} check={dependencyCheck} />
+          <ExtraCheck label={t.checks.reputation} check={reputationCheck} />
+          {archiveCheck && <ExtraCheck label={t.checks.hidden} check={archiveCheck} />}
         </dl>
         {(report.reputationCheck?.files.length ?? 0) > 0 && <CheckedFiles files={report.reputationCheck.files} />}
         {/* Reports stored before this check existed have no submodules. */}
         {(report.submodules?.length ?? 0) > 0 && <Submodules list={report.submodules} />}
-      </section>
+      </motion.section>
 
       {report.partial && (
-        <section className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-4 text-sm text-sky-100">
-          <strong className="font-semibold">Partial scan.</strong> The {LIMIT_LABEL[report.partial.limit] ?? report.partial.limit}{" "}
-          limit stopped the scan ({report.partial.reason}) after {report.partial.filesScanned} files. Attackers can hide a
-          payload behind large files, so a partial scan is never reported as clean.
-        </section>
+        <Reveal>
+          <section className="rounded-2xl border border-incomplete/30 bg-incomplete/8 p-4 text-sm text-fg">
+            {rich(t.partialBox, {
+              title: <strong className="font-semibold text-incomplete">{t.partialTitle}</strong>,
+              limit: t.limits[report.partial.limit] ?? report.partial.limit,
+              reason: report.partial.reason,
+              files: report.partial.filesScanned,
+            })}
+          </section>
+        </Reveal>
       )}
 
       {report.testFilesCapped && (
-        <section className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-100">
-          <strong className="font-semibold">Held at Suspicious.</strong> Most of the score comes from test files (tests/,
-          spec/, fixtures/). Test code does not run when you clone or install a repository, and security tools keep attack
-          samples there, so on their own these findings make a repository at most Suspicious. Nothing in this repository
-          runs by itself on install or when opened; if something did, the full score would count. Check the findings
-          marked &quot;in a test file&quot; before running the tests.
-        </section>
+        <Reveal>
+          <section className="rounded-2xl border border-suspicious/30 bg-suspicious/8 p-4 text-sm text-fg">
+            <strong className="font-semibold text-suspicious">{t.heldTitle}</strong> {t.heldText}
+          </section>
+        </Reveal>
       )}
 
       {/* Score breakdown */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-slate-100">Score breakdown</h2>
+      <Reveal as="section">
+        <h2 className="mb-3 text-lg font-semibold text-fg">{t.breakdownTitle}</h2>
         {report.rules.length === 0 ? (
-          <p className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 text-sm text-slate-400">
-            No rule matched. Score 0.
-          </p>
+          <p className="rounded-2xl border border-line bg-surface/80 p-4 text-sm text-muted">{t.noRule}</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-800">
+          <div className="overflow-hidden rounded-2xl border border-line bg-surface/80 shadow-sm">
             <table className="w-full text-sm">
               <tbody>
-                {report.rules.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-800/80 last:border-0">
-                    <td className="w-16 px-3 py-2 text-right font-mono font-semibold text-slate-100">+{r.points}</td>
-                    <td className="px-3 py-2">
-                      <div className="text-slate-200">{r.title}</div>
-                      <div className="font-mono text-xs text-slate-500">
-                        {r.id} · {CATEGORY_LABEL[r.category]} · {r.findings} finding{r.findings === 1 ? "" : "s"}
+                {report.rules.map((r, i) => (
+                  <tr key={r.id} className="border-b border-line/70 last:border-0">
+                    <td className="w-16 px-3 py-2.5 text-right font-mono font-semibold text-fg">+{r.points}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="text-fg">{ruleText(dict, r.id, { title: r.title, why: "" }).title}</div>
+                      <div className="font-mono text-xs text-subtle">
+                        {r.id} · {dict.categories[r.category].label} · {plural(locale, r.findings, t.findingCount)}
                       </div>
                     </td>
-                    <td className="hidden w-1/3 px-3 py-2 sm:table-cell">
-                      <div className="h-1.5 rounded-full bg-slate-800">
-                        <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, r.points * 2)}%`, background: style.stroke }} />
+                    <td className="hidden w-1/3 px-3 py-2.5 sm:table-cell">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-sunken">
+                        <motion.div
+                          className="h-1.5 rounded-full"
+                          style={{ background: style.color }}
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${Math.min(100, r.points * 2)}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.8, delay: 0.1 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -440,104 +471,78 @@ export function ReportView({ report }: { report: Report }) {
             </table>
           </div>
         )}
-        <p className="mt-2 text-xs text-slate-500">
-          Each rule adds its strongest finding once; the total is capped at 100. Clean below 30, suspicious from 30,
-          dangerous from 70.
-        </p>
-      </section>
+        <p className="mt-2 text-xs text-subtle">{t.breakdownNote}</p>
+      </Reveal>
 
       {/* Findings */}
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-100">
-            Findings <span className="text-slate-500">({report.findings.length + report.omittedFindings})</span>
+          <h2 className="text-lg font-semibold text-fg">
+            {t.findingsTitle} <span className="text-subtle">({report.findings.length + report.omittedFindings})</span>
           </h2>
           {report.findings.length > 0 && (
             <div className="flex flex-wrap gap-1.5 text-xs">
               {(["all", ...categories] as const).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCategory(c)}
-                  className={`rounded-full px-2.5 py-1 ring-1 transition ${
-                    category === c ? "bg-cyan-400/15 text-cyan-200 ring-cyan-400/40" : "text-slate-400 ring-slate-700 hover:text-slate-200"
-                  }`}
-                >
-                  {c === "all" ? "All" : CATEGORY_LABEL[c]}
-                </button>
+                <FilterChip key={c} group="category" active={category === c} onClick={() => setCategory(c)}>
+                  {c === "all" ? t.all : dict.categories[c].label}
+                </FilterChip>
               ))}
-              <span className="mx-1 w-px bg-slate-800" />
+              <span className="mx-1 w-px bg-line" />
               {(["all", "high", "medium", "low"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSeverity(s)}
-                  className={`rounded-full px-2.5 py-1 ring-1 transition ${
-                    severity === s ? "bg-cyan-400/15 text-cyan-200 ring-cyan-400/40" : "text-slate-400 ring-slate-700 hover:text-slate-200"
-                  }`}
-                >
-                  {s === "all" ? "Any severity" : s[0].toUpperCase() + s.slice(1)}
-                </button>
+                <FilterChip key={s} group="severity" active={severity === s} onClick={() => setSeverity(s)}>
+                  {s === "all" ? t.anySeverity : dict.severity[s][0].toLocaleUpperCase(INTL_LOCALE[locale]) + dict.severity[s].slice(1)}
+                </FilterChip>
               ))}
             </div>
           )}
         </div>
         {report.findings.length === 0 ? (
-          <p className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 text-sm text-slate-400">
-            Nothing to report. GitRay checked install hooks, build files, code patterns, hidden content, links and
-            binaries.
-          </p>
+          <p className="rounded-2xl border border-clean/30 bg-clean/8 p-4 text-sm text-fg">{t.nothing}</p>
         ) : (
           <div className="space-y-6">
-            {grouped.map(([cat, list]) => (
-              <div key={cat}>
-                <h3 className="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">{CATEGORY_LABEL[cat]}</h3>
-                <div className="space-y-3">
-                  {list.map((f, i) => (
-                    <FindingCard key={`${f.ruleId}-${f.path}-${f.line}-${i}`} f={f} />
-                  ))}
-                </div>
-              </div>
-            ))}
-            {shown.length === 0 && <p className="text-sm text-slate-500">No findings match the filters.</p>}
-            {report.omittedFindings > 0 && (
-              <p className="text-sm text-slate-500">
-                {report.omittedFindings} weaker findings are not listed to keep the report readable; they do not change
-                the score.
-              </p>
-            )}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {grouped.map(([cat, list]) => (
+                <motion.div key={cat} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <h3 className="mb-2 text-sm font-semibold tracking-wide text-subtle uppercase">{dict.categories[cat].label}</h3>
+                  <div className="space-y-3">
+                    {list.map((f, i) => (
+                      <FindingCard key={`${f.ruleId}-${f.path}-${f.line}-${i}`} f={f} />
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {shown.length === 0 && <p className="text-sm text-subtle">{t.noMatch}</p>}
+            {report.omittedFindings > 0 && <p className="text-sm text-subtle">{fmt(t.omitted, { n: report.omittedFindings })}</p>}
           </div>
         )}
       </section>
 
       {/* Release assets */}
       {report.releaseAssets.length > 0 && (
-        <section>
-          <h2 className="mb-1 text-lg font-semibold text-slate-100">Release files</h2>
-          <p className="mb-3 text-sm text-slate-400">
-            Release files are never downloaded. GitHub reports a SHA-256 digest for newer uploads; you can look it up on
-            VirusTotal. Without a digest the file cannot be checked.
-          </p>
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
+        <Reveal as="section">
+          <h2 className="mb-1 text-lg font-semibold text-fg">{t.releasesTitle}</h2>
+          <p className="mb-3 text-sm text-muted">{t.releasesIntro}</p>
+          <div className="overflow-x-auto rounded-2xl border border-line bg-surface/80 shadow-sm">
             <table className="w-full min-w-[560px] text-sm">
-              <thead className="bg-slate-900/60 text-left text-xs text-slate-400 uppercase">
+              <thead className="bg-sunken/70 text-left text-xs text-subtle uppercase">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Release</th>
-                  <th className="px-3 py-2 font-medium">File</th>
-                  <th className="px-3 py-2 font-medium">Size</th>
-                  <th className="px-3 py-2 font-medium">SHA-256</th>
+                  <th className="px-3 py-2 font-medium">{t.columns.release}</th>
+                  <th className="px-3 py-2 font-medium">{t.columns.file}</th>
+                  <th className="px-3 py-2 font-medium">{t.columns.size}</th>
+                  <th className="px-3 py-2 font-medium">{t.columns.sha256}</th>
                 </tr>
               </thead>
               <tbody>
                 {report.releaseAssets.map((a, i) => (
-                  <tr key={`${a.releaseTag}-${a.name}-${i}`} className="border-t border-slate-800/80">
-                    <td className="px-3 py-2 font-mono text-slate-300">{a.releaseTag}</td>
-                    <td className="px-3 py-2 font-mono break-all text-slate-200">{a.name}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-slate-400">{formatBytes(a.size)}</td>
+                  <tr key={`${a.releaseTag}-${a.name}-${i}`} className="border-t border-line/70">
+                    <td className="px-3 py-2 font-mono text-muted">{a.releaseTag}</td>
+                    <td className="px-3 py-2 font-mono break-all text-fg">{a.name}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-muted">{formatBytes(a.size)}</td>
                     <td className="px-3 py-2">
                       {a.sha256 ? (
                         <div className="flex flex-wrap items-center gap-2">
-                          <code className="font-mono text-xs text-slate-400" title={a.sha256}>
+                          <code className="font-mono text-xs text-subtle" title={a.sha256}>
                             {a.sha256.slice(0, 16)}…
                           </code>
                           {a.virusTotalUrl && (
@@ -545,14 +550,14 @@ export function ReportView({ report }: { report: Report }) {
                               href={a.virusTotalUrl}
                               target="_blank"
                               rel="noopener noreferrer nofollow"
-                              className="text-xs text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
+                              className="text-xs text-accent underline decoration-accent/30 underline-offset-2 hover:text-accent-strong"
                             >
-                              check on VirusTotal
+                              {t.checkOnVirusTotal}
                             </a>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-amber-300/90">no digest: cannot be checked</span>
+                        <span className="text-xs text-suspicious">{t.noDigest}</span>
                       )}
                     </td>
                   </tr>
@@ -560,15 +565,15 @@ export function ReportView({ report }: { report: Report }) {
               </tbody>
             </table>
           </div>
-        </section>
+        </Reveal>
       )}
 
       {/* Raw JSON */}
       <section>
-        <details className="group rounded-xl border border-slate-800 bg-slate-900/30">
-          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm text-slate-300 select-none">
+        <details className="group rounded-2xl border border-line bg-surface/80">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm text-muted select-none">
             <span>
-              <span className="mr-1 inline-block transition group-open:rotate-90">›</span> Raw JSON report
+              <span className="mr-1 inline-block transition-transform group-open:rotate-90">›</span> {t.rawTitle}
             </span>
             <button
               type="button"
@@ -576,12 +581,12 @@ export function ReportView({ report }: { report: Report }) {
                 e.preventDefault();
                 downloadJson(report);
               }}
-              className="rounded-md bg-slate-800 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-700"
+              className="rounded-full bg-sunken px-3 py-1 text-xs text-fg transition-colors hover:bg-line"
             >
-              Download
+              {t.download}
             </button>
           </summary>
-          <pre className="max-h-[480px] overflow-auto border-t border-slate-800 p-4 font-mono text-xs text-slate-400">
+          <pre className="film max-h-[480px] overflow-auto rounded-b-2xl border-t border-film-line p-4 font-mono text-xs">
             {JSON.stringify(report, null, 2)}
           </pre>
         </details>

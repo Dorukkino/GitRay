@@ -1,28 +1,177 @@
 @import "tailwindcss";
 
+/*
+ * Colours are tokens, so every component works in both themes. The light theme
+ * is a soft blue-grey (never stark white), the dark theme a dim navy taken from
+ * the logo (never black). Without a saved choice the system setting decides;
+ * public/theme.js applies a saved choice before the first paint.
+ */
+
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-2: var(--accent-2);
+  --color-on-accent: var(--on-accent);
+  --color-film: var(--film);
+  --color-film-line: var(--film-line);
+  --color-film-fg: var(--film-fg);
+  --color-bone: var(--bone);
+  --color-clean: var(--clean);
+  --color-suspicious: var(--suspicious);
+  --color-dangerous: var(--dangerous);
+  --color-incomplete: var(--incomplete);
 }
 
 :root {
+  color-scheme: light;
+  --bg: #edf2f9;
+  --surface: #f9fbfe;
+  --raised: #ffffff;
+  --sunken: #e3eaf4;
+  --line: #d5dfec;
+  --line-strong: #b9c8dc;
+  --fg: #0e1b33;
+  --muted: #47587a;
+  --subtle: #74839f;
+  --accent: #2c66c2;
+  --accent-strong: #1d4f9f;
+  --accent-2: #0b93b8;
+  --on-accent: #ffffff;
+  --film: #0b1a38;
+  --film-line: #1d3463;
+  --film-fg: #d6e6ff;
+  --bone: #2c66c2;
+  --glow-a: rgb(76 141 240 / 0.22);
+  --glow-b: rgb(34 184 214 / 0.16);
+  --grid: rgb(44 102 194 / 0.07);
+  --clean: #0b8457;
+  --suspicious: #b45f06;
+  --dangerous: #cf2e4a;
+  --incomplete: #0a6fb0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #141d31;
+    --surface: #1a253d;
+    --raised: #202d49;
+    --sunken: #111a2c;
+    --line: #2b3a5a;
+    --line-strong: #3b4e75;
+    --fg: #e7eefb;
+    --muted: #a6b3cd;
+    --subtle: #7988a6;
+    --accent: #6ea8ff;
+    --accent-strong: #98c2ff;
+    --accent-2: #53d3ea;
+    --on-accent: #0b1730;
+    --film: #0b1530;
+    --film-line: #1d3463;
+    --film-fg: #d6e6ff;
+    --bone: #cfe8ff;
+    --glow-a: rgb(76 141 240 / 0.2);
+    --glow-b: rgb(34 184 214 / 0.12);
+    --grid: rgb(150 190 255 / 0.05);
+    --clean: #4ddc9c;
+    --suspicious: #f8bd52;
+    --dangerous: #ff7d92;
+    --incomplete: #62c3ff;
+  }
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #070a10;
-  --foreground: #e2e8f0;
+  --bg: #141d31;
+  --surface: #1a253d;
+  --raised: #202d49;
+  --sunken: #111a2c;
+  --line: #2b3a5a;
+  --line-strong: #3b4e75;
+  --fg: #e7eefb;
+  --muted: #a6b3cd;
+  --subtle: #7988a6;
+  --accent: #6ea8ff;
+  --accent-strong: #98c2ff;
+  --accent-2: #53d3ea;
+  --on-accent: #0b1730;
+  --film: #0b1530;
+  --film-line: #1d3463;
+  --film-fg: #d6e6ff;
+  --bone: #cfe8ff;
+  --glow-a: rgb(76 141 240 / 0.2);
+  --glow-b: rgb(34 184 214 / 0.12);
+  --grid: rgb(150 190 255 / 0.05);
+  --clean: #4ddc9c;
+  --suspicious: #f8bd52;
+  --dangerous: #ff7d92;
+  --incomplete: #62c3ff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
 }
 
-/* Faint grid behind the hero. */
+::selection {
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+/* Soft light behind the page: two glows and a faint grid. */
+.page-backdrop {
+  background:
+    radial-gradient(60rem 30rem at 15% -10%, var(--glow-a), transparent 70%),
+    radial-gradient(50rem 28rem at 95% 0%, var(--glow-b), transparent 70%);
+}
+
 .bg-grid {
   background-image:
-    linear-gradient(to right, rgb(148 163 184 / 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(148 163 184 / 0.06) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
+}
+
+/* X-ray film: the dark panel used for code and the hero picture, in both themes. */
+.film {
+  background-color: var(--film);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 4px, rgb(29 52 99 / 0.35) 4px 5px);
+  color: var(--film-fg);
+}
+
+.text-gradient {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Entrance animation that needs no JavaScript: content is visible at first paint even before hydration. */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-enter {
+  animation: enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes scanline {
@@ -36,4 +185,11 @@ body {
 
 .animate-scanline {
   animation: scanline 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-enter,
+  .animate-scanline {
+    animation: none;
+  }
 }

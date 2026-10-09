@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { ReportView } from "../src/components/ReportView";
+import { tr } from "../src/i18n/dictionaries/tr";
+import { I18nProvider } from "../src/i18n/provider";
 import { toReport } from "../src/engine/report";
 import type { DependencyCheck, ScanResult } from "../src/engine/types";
 import { emptyStats } from "../src/engine/types";
@@ -86,7 +88,7 @@ describe("ReportView submodules", () => {
       />,
     );
     expect(html).toContain("2 git submodules are not scanned");
-    expect(html).toContain('href="/scan/octo/ok"');
+    expect(html).toContain('href="/en/scan/octo/ok"');
     expect(html).toContain("hxxps://evil[.]example[.]invalid/x.git");
     expect(html).not.toContain('href="hxxps');
   });
@@ -148,5 +150,48 @@ describe("ReportView dependency check", () => {
     delete old.dependencyCheck;
     const html = renderToStaticMarkup(<ReportView report={old as ReturnType<typeof report>} />);
     expect(html).toContain("older than the dependency check");
+  });
+});
+
+describe("ReportView in Turkish", () => {
+  it("translates the interface and rule texts, and links to the Turkish scan page", () => {
+    const r = report({ status: "ok", packages: 3, malicious: 0 });
+    const finding = {
+      ruleId: "GR-SOC-001",
+      title: "Asks you to disable your antivirus",
+      category: "social" as const,
+      severity: "medium" as const,
+      weight: 25,
+      path: "tests/readme.md",
+      line: 1,
+      snippet: "x",
+      why: "English explanation",
+      note: null,
+      docContext: false,
+      githubUrl: null,
+      inArchive: false,
+      testContext: true,
+    };
+    const html = renderToStaticMarkup(
+      <I18nProvider locale="tr" dict={tr}>
+        <ReportView
+          report={{
+            ...r,
+            verdict: "suspicious",
+            score: 69,
+            testFilesCapped: true,
+            findings: [finding],
+            submodules: [{ path: "lib/ok", url: "hxxps://github[.]com/octo/ok", github: "octo/ok" }],
+          }}
+        />
+      </I18nProvider>,
+    );
+    expect(html).toContain("Şüpheli&#x27;de tutuldu");
+    expect(html).toContain("test dosyasında");
+    expect(html).toContain("Antivirüsünüzü kapatmanızı istiyor");
+    expect(html).toContain("sahte hile, crack ve araç repolarının imzasıdır");
+    expect(html).toContain("3 paket, OSV");
+    expect(html).toContain('href="/tr/scan/octo/ok"');
+    expect(html).not.toContain("Score breakdown");
   });
 });
