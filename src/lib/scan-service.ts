@@ -13,6 +13,7 @@ import {
   GitHubClient,
   GitHubError,
   InvalidTarget,
+  ENGINE_VERSION,
   type Limits,
   OsvClient,
   type Report,
@@ -147,7 +148,9 @@ function remember(key: string, report: Report, now: number): void {
 
 async function fromStore(store: ScanStore, key: string, since: Date): Promise<Report | null> {
   try {
-    return await store.fresh(key, since);
+    const report = await store.fresh(key, since);
+    // A report from an older engine misses newer rules and checks: scan again.
+    return report?.engineVersion === ENGINE_VERSION ? report : null;
   } catch (e) {
     logError("scan store read failed", e);
     return null;

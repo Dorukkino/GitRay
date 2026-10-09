@@ -216,6 +216,17 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - **Doğrulanmadı:** `api.osv.dev` bu çalışma ortamının ağ politikasında kapalı, OSV burada "unavailable" döndü. Gerçek OSV yanıtıyla doğrulama canlı sitede yapılacak.
 - Kullanıcının üç reposu yeni kurallarla yanlış alarm vermedi (PocketWallet'taki `.claude/settings.json` yalnızca plugin ayarı içeriyor).
 
+### 9 Ekim 2026 (7. oturum): OSV satırı canlıda görünmüyordu
+
+**Sorun:** Kullanıcı canlı sitede OSV ile ilgili hiçbir şey görmedi. İki sebep vardı:
+- Site, son 1 saat içinde taranmış bir repo için veritabanındaki raporu veriyor. Kullanıcının repoları OSV kontrolü yayına girmeden önce taranmıştı; bu eski raporlarda `dependencyCheck` alanı yok, arayüz de bu durumda hiçbir şey göstermiyordu.
+- Bağımlılık dosyası olmayan repolarda (theme-store gibi) ve kısmi taramalarda da satır gizleniyordu.
+
+**Düzeltme:**
+- `ENGINE_VERSION` 0.2.0 oldu. Başka bir motor sürümüyle yapılmış kayıtlı rapor artık önbellekten verilmiyor, repo yeniden taranıyor. Kural her değiştiğinde bu sürüm artırılacak (CLAUDE.md'ye yazıldı).
+- Rapor özetinde artık her zaman bir "Malicious dependencies (OSV)" satırı var. Kaç paket kontrol edildi, bağımlılık dosyası yok mu, OSV'ye ulaşılamadı mı ya da rapor bu kontrolden eski mi, satırda yazıyor. Arşiv kontrolü de aynı listede gösteriliyor.
+- Testler: eski motor sürümüyle kaydedilmiş raporun yeniden taranması, arayüzde üç durumun (paket sayısı, dosya yok, eski rapor) yazılması.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. **Gerçek repolarda kalibrasyon** (devam ediyor; kullanıcının üç reposu tamamlandı).
