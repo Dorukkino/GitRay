@@ -128,6 +128,120 @@ export function isCommentLine(text: string): boolean {
   return COMMENT_LINE.test(text);
 }
 
+type CodeLanguage = "js" | "py" | "c";
+
+const JS_SUFFIXES = new Set([".js", ".mjs", ".cjs", ".jsx", ".ts", ".mts", ".cts", ".tsx", ".vue", ".svelte", ".astro"]);
+const PY_SUFFIXES = new Set([".py", ".pyw"]);
+const C_LIKE_SUFFIXES = new Set([
+  ".go", ".rs", ".java", ".kt", ".kts", ".cs", ".swift", ".scala", ".dart", ".groovy",
+  ".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".php",
+]);
+
+function codeLanguage(path: string): CodeLanguage | null {
+  const ext = extension(path);
+  if (JS_SUFFIXES.has(ext)) return "js";
+  if (PY_SUFFIXES.has(ext)) return "py";
+  return C_LIKE_SUFFIXES.has(ext) ? "c" : null;
+}
+
+/** Calls whose string arguments are regular expressions, matched against the code just before "(". */
+const PATTERN_CALL =
+  /(?:\bRegExp|\bre\.(?:compile|search|match|fullmatch|findall|finditer|sub|subn|split)|\bregexp\.(?:MustCompile|Compile|MatchString)|\bRegex(?:::new)?|\bPattern\.compile|\bpreg_(?:match|match_all|replace|split))\s*$/;
+/** After these, a "/" starts a regular expression literal rather than a division. */
+const REGEX_AFTER_CHAR = new Set("(,=:[!&|?{};+-*%<>~^".split(""));
+const REGEX_AFTER_WORD = /\b(?:return|typeof|case|do|else|in|of|new|delete|void|throw|yield|await)\s*$/;
+/**
+ * Code that runs text: with one of these outside the patterns, a pattern on the
+ * line may be a hidden payload (eval(/.../.source)) and keeps its full weight.
+ */
+const RUNS_TEXT =
+  /(?<![\w.$])(?:eval|exec|Function|system|popen)\s*\(|\b(?:execSync|execFileSync|execFile|spawnSync|spawn)\s*\(|\.(?:source|pattern)\b|child_process|subprocess|os\.system/;
+
+/**
+ * One line of code split into the regular expressions it defines (regex literals
+ * and the string arguments of regex constructors) and the rest, with strings,
+ * patterns and comments blanked out. A best-effort scan of one line, not a parser.
+ */
+function lexPatterns(line: string, lang: CodeLanguage): { patterns: [number, number][]; code: string } {
+  const patterns: [number, number][] = [];
+  let code = "";
+  let depth = 0;
+  let patternCall = -1;
+  let i = 0;
+  const n = line.length;
+  while (i < n) {
+    const c = line[i];
+    if ((lang === "py" && c === "#") || (lang !== "py" && c === "/" && line[i + 1] === "/")) break;
+    if (lang !== "py" && c === "/" && line[i + 1] === "*") {
+      const close = line.indexOf("*/", i + 2);
+      const end = close === -1 ? n : close + 2;
+      code += " ".repeat(end - i);
+      i = end;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      while (j < n && line[j] !== c) j += line[j] === "\\" ? 2 : 1;
+      const end = Math.min(n, j + 1);
+      const tagged = c === "`" && /\bString\.raw\s*$/.test(code);
+      if (tagged || (patternCall !== -1 && depth >= patternCall)) patterns.push([i, end]);
+      code += " ".repeat(end - i);
+      i = end;
+      continue;
+    }
+    if (lang === "js" && c === "/") {
+      const before = code.trimEnd();
+      if (before === "" || REGEX_AFTER_CHAR.has(before[before.length - 1]) || REGEX_AFTER_WORD.test(before)) {
+        let j = i + 1;
+        let inClass = false;
+        while (j < n) {
+          const d = line[j];
+          if (d === "\\") {
+            j += 2;
+            continue;
+          }
+          if (inClass) inClass = d !== "]";
+          else if (d === "[") inClass = true;
+          else if (d === "/") break;
+          j++;
+        }
+        if (j < n) {
+          j++;
+          while (j < n && /[a-z]/i.test(line[j])) j++;
+          patterns.push([i, j]);
+          code += " ".repeat(j - i);
+          i = j;
+          continue;
+        }
+      }
+    }
+    if (c === "(") {
+      if (PATTERN_CALL.test(code)) patternCall = depth + 1;
+      depth++;
+    } else if (c === ")") {
+      if (depth === patternCall) patternCall = -1;
+      depth = Math.max(0, depth - 1);
+    }
+    code += c;
+    i++;
+  }
+  return { patterns, code };
+}
+
+/**
+ * The text at `column` is a search pattern in source code: inside a regular
+ * expression literal or a string handed to a regex constructor, on a line that
+ * does not also run text. Detection tools describe attacks this way; a pattern
+ * is matched against data, never executed.
+ */
+export function inSearchPattern(path: string, line: string, column: number): boolean {
+  const lang = codeLanguage(path);
+  if (!lang) return false;
+  const { patterns, code } = lexPatterns(line, lang);
+  if (RUNS_TEXT.test(code)) return false;
+  return patterns.some(([start, end]) => column >= start && column < end);
+}
+
 /**
  * The quote character of the string literal open at `index` in a single line
  * (", ' or `), or null outside strings. Backslash escapes are honored; it is a

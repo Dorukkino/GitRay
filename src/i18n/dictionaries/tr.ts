@@ -327,6 +327,7 @@ export const tr: Dictionary = {
     scanResult: "Tarama sonucu",
     metadata: "Repo bilgisi",
     inDocs: "belgede, ağırlığı düşürüldü",
+    inPattern: "arama kalıbında ya da yorumda, ağırlığı düşürüldü",
     inZip: "ZIP dosyasının içinde",
     inTest: "test dosyasında",
     viewOnGitHub: "GitHub'da gör",
@@ -423,9 +424,10 @@ export const tr: Dictionary = {
       "GitRay reponun her dosyasında {count} kural çalıştırır. Bir kural, en güçlü bulgusuyla puana bir kez ağırlığını " +
       "ekler. Toplam en fazla 100'dür: {suspicious} altı temiz, {suspicious} ve üstü şüpheli, {dangerous} ve üstü " +
       "tehlikeli. Bazı kurallar daha güçlü kanıtta ağırlığını artırır (örneğin bir şey de indiren bir kurulum " +
-      "scripti). Kod kuralları, komutların genellikle örnek olduğu belgelerde daha az ağırlık taşır.",
-    ignoredInDocs: "belgelerde sayılmaz",
-    inDocs: "belgelerde +{n}",
+      "scripti). Kod kuralları, komutların genellikle örnek olduğu belgelerde ve kaynak kodundaki " +
+      "arama kalıplarında ve yorumlarda daha az ağırlık taşır: bunlar hiç çalışmaz, güvenlik araçları saldırıları böyle tarif eder.",
+    ignoredInDocs: "belgelerde, arama kalıplarında ve yorumlarda sayılmaz",
+    inDocs: "belgelerde, arama kalıplarında ve yorumlarda +{n}",
     files: "dosyalar: {list}",
   },
 

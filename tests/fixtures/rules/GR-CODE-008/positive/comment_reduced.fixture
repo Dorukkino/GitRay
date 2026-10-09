@@ -1,0 +1,5 @@
+# path: src/rules/exec.ts
+# lines: 1
+# weight: 3
+# ---
+// Python: exec(open("setup.txt").read()) runs a data file.

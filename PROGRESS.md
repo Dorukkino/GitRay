@@ -480,6 +480,16 @@ Kullanıcının istekleri: üst menüdeki "Tara"nın altında açılır bir penc
 - Bu ortamda veritabanı olmadığı için görünüş geçici sahte verilerle kontrol edildi (açık/koyu tema, Türkçe/İngilizce, telefon boyutu); sahte veriler commit'lenmedi. Gerçek verilerle canlıda görünecek.
 - Yeni testler: son tarananlar listesi (her karar, en yeni önce, yeniden tarama bir kez), 7 günlük sayım, "dakika önce" metinleri, Temiz repolarda sebep etiketlerinin gizlenmesi.
 
+### 9 Ekim 2026 (12. oturum): GitRay'in kendi taraması ve arama kalıbı bağlamı
+
+Kullanıcı sordu: GitRay'i GitRay'de taratınca neden Tehlikeli 100 çıkıyor? Kendi repomuz tarandı: 125 bulgunun 99'u testlerde (sahte zararlı örnekler), 13'ü belgelerde, 10'u kuralların kendi kaynak kodunda (`src/engine/rules/`: aranacak kalıpların listesi, örn. `certutil|bitsadmin|...|invoke-expression`), 2'si çeviri metinlerinde. Test sınırı devreye girmiyordu çünkü kural dosyaları test sayılmıyor ve oradaki bulgular tek başına 100'ü geçiyordu. İki seçenek anlatıldı (bırakmak ya da arama kalıbı bağlamı); kullanıcı öneriyi seçti.
+
+- **Arama kalıbı ve yorum bağlamı:** `GR-CODE-*` bulgusu kaynak kodunda bir regex'in içindeyse ya da yorum satırındaysa belgedeki gibi düşük puan alıyor; raporda "arama kalıbında ya da yorumda, ağırlığı düşürüldü" etiketi var. Aynı satırda metni çalıştıran bir şey varsa indirim yok. Bir regex'in metnini çalıştırmak (`eval(P.source)`) yeni bir `GR-CODE-001` kalıbıyla tam puan alıyor; böylece bu kural saldırganın işine yaramıyor.
+- **`curl | sh` argümansızsa sayılmıyor:** Sitenin kendi metni ("çözüp çalıştırma, curl | sh, ...") `GR-CODE-002` ile +35 alıyordu. İndirme komutunun en az bir argümanı olması gerekiyor artık.
+- **Sonuç:** GitRay kendi taramasında Tehlikeli 100 yerine **Şüpheli 69 (testler yüzünden tutuldu)** çıkıyor. Test dışı toplam 48: CLAUDE.md'deki "antivirüsü kapat" örneği (`GR-SOC-001` +25, bilerek bırakıldı: belge tuzaklarını zayıflatmamak için) ve belgelerdeki küçük puanlar.
+- `ENGINE_VERSION` 0.8.0 (veritabanındaki eski sonuçlar yeniden taranır).
+- Bilerek yapılmayan: repoya konan "beni tarama" listesi. Saldırgan zararlı dosyasını böyle gizlerdi.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
