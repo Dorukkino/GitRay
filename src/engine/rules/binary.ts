@@ -44,7 +44,9 @@ export function executableKind(b: Uint8Array): string | null {
   return null;
 }
 
-const RISKY_NAME = /\.(?:exe|dll|scr|com|pif|msi|lnk|bat|cmd|ps1|vbs|vbe|js|jse|wsf|hta|jar|iso|img)$/i;
+// Plain .js is left out: source archives (browser mods, web projects) are full of it.
+// Encoded or Windows Script Host formats (.jse, .wsf, .vbs) are not.
+const RISKY_NAME = /\.(?:exe|dll|scr|com|pif|msi|lnk|bat|cmd|ps1|vbs|vbe|jse|wsf|hta|jar|iso|img)$/i;
 
 export interface ZipInfo {
   encrypted: boolean;

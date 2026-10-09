@@ -13,7 +13,9 @@ const MIN_HEX_ESCAPES = 50;
 // Embedded images and fonts are legitimate in README, HTML, CSS and SVG files.
 // Script types (data:text/javascript, ...) stay in scope.
 const EMBEDDED_MEDIA =
-  /data:(?:image\/[\w.+-]+|font\/[\w.+-]+|application\/(?:x-)?font-[\w.+-]+|application\/vnd\.ms-fontobject)(?:;[\w.+-]+=[\w.+-]+)*;base64,[A-Za-z0-9+/=]+/gi;
+  /data:(?:image\/[\w.+-]+|font\/[\w.+-]+|application\/(?:x-)?font-[\w.+-]+|application\/vnd\.ms-fontobject)(?:;[\w.+-]+(?:=[\w.+-]+)?)*;base64,[A-Za-z0-9+/=]+/gi;
+// Tokens inside links (signed image URLs, JWTs in query strings) are not payloads.
+const LINK = /\bhttps?:\/\/[^\s"'<>()`]+/gi;
 const TOKEN = new RegExp(`[A-Za-z0-9+/=_-]{${MIN_TOKEN},}`, "g");
 const HEX_RUN = new RegExp(`[0-9a-fA-F]{${MIN_TOKEN},}`, "g");
 const HEX_ESCAPES = new RegExp(`(?:\\\\x[0-9a-fA-F]{2}){${MIN_HEX_ESCAPES},}`);
@@ -65,14 +67,20 @@ const HIGH_ENTROPY: Rule = {
     "decoded at runtime. They can also be harmless data (keys, fonts, test vectors), so " +
     "this is a weak signal on its own.",
   *scanText(file: TextFile): Iterable<Hit> {
+    // Mask on the whole file, not per window: a 300 KB inline image spans many
+    // windows and only the first one would still contain its "data:" prefix.
+    // Same-length replacements without newlines keep lines and columns aligned.
+    const blank = (m: string) => " ".repeat(m.length);
+    const masked = file.content.replace(EMBEDDED_MEDIA, blank).replace(LINK, blank);
+    const originals = iterScanLines(file.content);
     let last = 0;
-    for (const { line, text } of iterScanLines(file.content)) {
+    for (const { line, text } of iterScanLines(masked)) {
+      const original = originals.next().value?.text ?? text;
       if (line === last) continue;
-      // Same length, so columns still point into the original text.
-      const found = entropyNote(text.replace(EMBEDDED_MEDIA, (m) => " ".repeat(m.length)));
+      const found = entropyNote(text);
       if (found) {
         last = line;
-        yield { line, text, column: found.column, note: found.note };
+        yield { line, text: original, column: found.column, note: found.note };
       }
     }
   },

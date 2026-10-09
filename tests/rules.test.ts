@@ -186,6 +186,17 @@ describe("rule behaviour", () => {
     expect(findings[0].snippet).toContain("eval(atob(");
   });
 
+  it("ignores inline images longer than one scan window", () => {
+    // 120 KB of base64 on one line, like a background image in a theme's CSS.
+    const blob = Array.from({ length: 160_000 }, (_, i) => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(i * 7919 + (i >> 3) * 104729) % 64]).join("");
+    const css = `.bg {\n  background: url(data:image/png;base64,${blob});\n}\n`;
+    const ctx = { repo: null, info: null, now: NOW };
+    expect(runTextRule(getRule("GR-OBF-001"), { path: "chrome.css", content: css, truncated: false }, ctx)).toEqual([]);
+    const withPayload = `${css}var p = "${blob.slice(0, 400)}";\n`;
+    const found = runTextRule(getRule("GR-OBF-001"), { path: "chrome.css", content: withPayload, truncated: false }, ctx);
+    expect(found.map((f) => f.line)).toEqual([4]);
+  });
+
   it("marks code rules in documentation as doc context", () => {
     const findings = runTextRule(
       getRule("GR-CODE-004"),
