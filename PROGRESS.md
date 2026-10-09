@@ -9,12 +9,13 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Parça | Durum |
 | --- | --- |
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
-| 27 kural, 8 kategori | Hazır |
+| 28 kural, 8 kategori | Hazır |
+| ZIP içeriğini tarama, `export-ignore` ile saklanan dosyaları yakalama | Hazır (5. oturum) |
 | Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar, ilerleme | Hazır |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
-| Testler | 15 dosya, 511 test, motor satır kapsamı yaklaşık %96 |
+| Testler | 16 dosya, 540 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
 | VirusTotal API, OSV | Yok (dış servis: önce kullanıcıya sorulacak) |
 
@@ -167,10 +168,33 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - Yeni otomatik çalışma vektörleri: Claude Code (`.claude/settings.json` içindeki `hooks`), Cursor ve benzeri yapay zekâ araçlarının proje ayarları komut çalıştırabiliyor. VS Code `folderOpen` kuralına benzer bir kural eklenebilir.
 - Sızdırılmış gizli bilgiler (test dosyalarında şifre, API anahtarı) repoyu klonlayanı değil repo sahibini tehdit eder. Ayrı, puana katılmayan bir "bilgi" kategorisi olarak düşünülebilir.
 
+### 9 Ekim 2026 (5. oturum): ZIP içeriği ve `export-ignore` kaçışı
+
+**İstek:** 4. oturumda bulunan iki boşluğun kapatılması: (1) ZIP'lerin içinin taranmaması, (2) `export-ignore` ile dosya saklama.
+
+**1. ZIP içeriği** (`src/engine/zip.ts`):
+- Repodaki `.zip` dosyaları 20 MB'a kadar bütün olarak okunur, merkezi dizinden üyeler listelenir ve bellekte açılır (stored ve deflate). Hiçbir şey diske yazılmaz, çalıştırılmaz.
+- Zip bombasına karşı üye başına 1 MB okunur, tarama başına toplam 50 MB açılmış veri sınırı var; açma işlemi akış halinde ve okundukça yapılır. Şifreli üyeler, symlink'ler, bilinmeyen sıkıştırma ve ZIP64 atlanıp sayılır. ZIP içinde ZIP iki seviyeye kadar açılır.
+- Üyeler `arşiv.zip!/iç/yol` adıyla taranır; raporda "inside a ZIP file" etiketi var, "GitHub'da gör" linki ZIP dosyasına gider.
+- ZIP üyelerinde yalnızca içerik kuralları çalışır (zararlı kod, gizleme, ikili dosya). Link, sosyal mühendislik ve kurulum betiği kuralları çalışmaz: arşivin içindeki README kimseye gösterilmez, `package.json` klonlayınca çalışmaz. Bu karar theme-store kalibrasyonundan geldi (mod arşivlerindeki README linkleri ve `husky` yanlış alarm veriyordu).
+- `GR-BIN-001`'in "ZIP'in içinde şu var" isim kontrolü artık yalnızca Windows programları, başlatıcılar, şifrelenmiş betikler ve disk imajları için (ZIP açılamazsa işe yarar). Düz betiklerin (`.bat`, `.ps1`) içeriği zaten taranıyor.
+
+**2. `export-ignore` kaçışı** (`scanner.ts`, `github.ts`, `GR-REPO-003`):
+- Tarama tam bittiyse commit'in dosya listesi Git Trees API'den alınır ve arşivdeki yollarla karşılaştırılır. Eksik dosyalar `raw.githubusercontent.com`'dan ayrıca indirilip taranır (en fazla 300 dosya / 20 MB, önce kod ve çalıştırılabilir dosyalar; API kotası harcanmaz, token gönderilmez).
+- Saklı dosya varsa `GR-REPO-003` (+5) eklenir. İndirilemeyen saklı dosya kalırsa tarama Eksik sayılır, çünkü saldırganın saklamak istediği tam olarak bu dosyalardır.
+- Liste alınamazsa ya da GitHub listeyi kısaltırsa kontrol "unavailable" olur, tarama bozulmaz. Raporda ve arayüzde sonuç gösteriliyor.
+
+**Doğrulama:**
+- 540 test geçiyor. Yeni testler zip bombası, iç içe ZIP, şifreli/symlink üyeler, kısmen okunmuş ZIP, saklı dosyanın indirilip taranması, indirilemeyen saklı dosya, symlink'in "eksik" sayılmaması ve kısaltılmış listeyi kapsıyor.
+- Gerçek tarama: `Dorukkino/GitRay`, 315 dosyalık liste arşivle karşılaştırıldı, eksik yok, 2,4 sn.
+- Kullanıcının repoları yeni motorla yeniden tarandı: theme-store 64 ZIP'i açılarak (yaklaşık 2.000 dosya, 45 MB) 15 puanla Temiz. Puanın tamamı, bir mod'un içinde font diye kaydedilmiş base64 HTML dosyalarından geliyor. PocketWallet ve KinoCoach 0.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **ZIP içeriğini tarama** ve **`export-ignore` kaçışını kapatma** (4. oturumdaki fikirler).
-2. **Gerçek repolarda kalibrasyon** (devam ediyor; kullanıcının üç reposu tamamlandı). En az şu repolar taranıp sonuçlar bu dosyaya yazılmalı: `octocat/Hello-World` (Temiz beklenir), `nvm-sh/nvm` (README'deki `curl | bash` belgede olduğu için puan almamalı), `pallets/flask`, `microsoft/vscode`, `pypa/pip`, `NVIDIA/apex` (`setup.py` alt süreç çalıştırıyor: 10 puan, Temiz beklenir). Yanlış alarm veren kurallar ayarlanmalı.
+1. **Gerçek repolarda kalibrasyon** (devam ediyor; kullanıcının üç reposu tamamlandı).
+2. **Yapay zekâ araçlarının otomatik çalışan ayarları** (`.claude/settings.json` hooks, Cursor kuralları vb.) için yeni bir otomatik çalışma kuralı.
+3. **Alt modüller** (`.gitmodules`): tarball başka repolardaki alt modülleri içermez, `git clone --recursive` ise getirir. En azından raporda gösterilmeli.
+4. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor. En az şu repolar taranıp sonuçlar bu dosyaya yazılmalı: `octocat/Hello-World` (Temiz beklenir), `nvm-sh/nvm` (README'deki `curl | bash` belgede olduğu için puan almamalı), `pallets/flask`, `microsoft/vscode`, `pypa/pip`, `NVIDIA/apex` (`setup.py` alt süreç çalıştırıyor: 10 puan, Temiz beklenir). Yanlış alarm veren kurallar ayarlanmalı.
 3. **Liste kalitesi.** Scammer listesi herkese açık olduğu için yanlış alarmlar orada daha görünür olur. Kalibrasyondan sonra gerekirse listeye girme eşiği yükseltilebilir ya da çok yıldızlı / eski repolar için ek kontrol eklenebilir.
 4. **Güvenlik araçlarının kendi test dosyaları.** GitRay gibi tarayıcıların fixture'ları kaçınılmaz olarak Tehlikeli çıkıyor. Seçenekler: `tests/fixtures/` gibi yollar için bilgi notu (puanı düşürmeden), ya da kullanıcıya "bu bulgular test dosyalarında" diye gruplama. Klasöre göre puan düşürmek saldırganın payload'ı `tests/` içine saklamasına izin verir; bu yüzden puan düşürülmemeli.
 5. **VirusTotal ve OSV** (kullanıcıya sorulacak): release digest'lerini VirusTotal API ile otomatik sorgulama (günde 500 istek; kota dolarsa "atlandı"), `package.json` / `requirements.txt` bağımlılıklarını OSV ile kontrol.
