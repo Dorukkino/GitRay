@@ -75,7 +75,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {h.steps.map((s, i) => (
             <ScrollReveal key={s.title} column={i}>
-              <Lift className="h-full rounded-2xl border border-line bg-surface/80 p-6 shadow-sm backdrop-blur">
+              <Lift className="h-full rounded-2xl border border-line bg-surface p-6 shadow-sm">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/12 text-accent ring-1 ring-accent/20">
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d={STEP_ICONS[i] ?? STEP_ICONS[0]} />
@@ -102,7 +102,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CATEGORY_ORDER.map((c, i) => (
             <ScrollReveal key={c} column={i % 3}>
-              <Lift className="h-full rounded-2xl border border-line bg-surface/80 p-5 shadow-sm backdrop-blur transition-colors hover:border-accent/40">
+              <Lift className="h-full rounded-2xl border border-line bg-surface p-5 shadow-sm transition-colors hover:border-accent/40">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-semibold text-fg">{dict.categories[c].label}</h3>
                   <span className="rounded-full bg-sunken px-2 py-0.5 font-mono text-xs text-muted">{counts.get(c) ?? 0}</span>
