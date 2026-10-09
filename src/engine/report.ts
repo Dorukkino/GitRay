@@ -6,7 +6,8 @@
 
 import { allRules } from "./rules";
 import { isTestPath, sanitize } from "./text";
-import type { ArchiveCheck, Category, DependencyCheck, Finding, ScanResult, Verdict } from "./types";
+import type { ArchiveCheck, Category, CheckedFile, DependencyCheck, Finding, ReputationCheck, ScanResult, Verdict } from "./types";
+import type { Reputation } from "./virustotal";
 import { ENGINE_VERSION } from "./version";
 import { ARCHIVE_SEPARATOR } from "./zip";
 
@@ -43,6 +44,15 @@ export interface ReportFinding {
   inArchive: boolean;
   /** The finding is in test code or test data ("tests/", "*.test.ts"). */
   testContext: boolean;
+}
+
+export interface ReportCheckedFile {
+  source: CheckedFile["source"];
+  /** Repository path or "tag/asset name", sanitized. */
+  name: string;
+  sha256: string;
+  virusTotalUrl: string;
+  reputation: Reputation;
 }
 
 export interface ReportSubmodule {
@@ -100,6 +110,8 @@ export interface Report {
   testFilesCapped: boolean;
   /** Repositories "git clone --recursive" adds (.gitmodules). Not scanned; `github` can be scanned separately. */
   submodules: ReportSubmodule[];
+  /** Committed programs and release assets looked up on VirusTotal. */
+  reputationCheck: { status: ReputationCheck["status"]; files: ReportCheckedFile[] };
   stats: ScanResult["stats"];
   rules: ReportRule[];
   findings: ReportFinding[];
@@ -186,6 +198,18 @@ export function toReport(result: ScanResult): Report {
       url: sanitize(s.url, PATH_MAX),
       github: s.github && FULL_NAME.test(s.github) ? s.github : null,
     })),
+    reputationCheck: {
+      status: result.reputationCheck.status,
+      files: result.reputationCheck.files
+        .filter((f) => /^[0-9a-f]{64}$/.test(f.sha256))
+        .map((f) => ({
+          source: f.source,
+          name: sanitize(f.name, PATH_MAX),
+          sha256: f.sha256,
+          virusTotalUrl: `https://www.virustotal.com/gui/file/${f.sha256}`,
+          reputation: f.reputation,
+        })),
+    },
     stats: { ...result.stats },
     rules: Object.entries(result.ruleScores)
       .map(([id, points]) => {

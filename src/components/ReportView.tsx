@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import type { Category, Report, ReportFinding, ReportSubmodule, Severity } from "@/engine";
+import type { Category, Report, ReportCheckedFile, ReportFinding, ReportSubmodule, Reputation, Severity } from "@/engine";
 
 import { CATEGORY_LABEL, CATEGORY_ORDER, SEVERITY_STYLE, ScoreGauge, VERDICT_STYLE, VerdictBadge } from "./verdict";
 
@@ -45,6 +45,79 @@ function dependencyCheckText(report: Report): { text: string; warn: boolean } {
         warn: report.partial !== null,
       };
   }
+}
+
+/** What the VirusTotal lookups found. Always says something, so the check is never invisible. */
+function reputationCheckText(report: Report): { text: string; warn: boolean } {
+  const check = report.reputationCheck;
+  // Reports stored before this check existed have no reputationCheck.
+  if (!check) return { text: "Not checked: this report is older than the VirusTotal check. Scan again to include it.", warn: false };
+  const files = check.files;
+  const looked = files.filter((f) => f.reputation.status !== "skipped");
+  const unknown = looked.filter((f) => f.reputation.status === "unknown").length;
+  const flagged = files.filter((f) => f.reputation.status === "found" && f.reputation.stats.malicious > 0).length;
+  const unknownText = unknown
+    ? ` ${unknown} ${unknown === 1 ? "is" : "are"} unknown to VirusTotal, which does not mean safe.`
+    : "";
+  const filesText = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
+  switch (check.status) {
+    case "found":
+      return { text: `Antivirus engines flag ${flagged} of ${filesText(files.length)} looked up by fingerprint.${unknownText}`, warn: true };
+    case "ok":
+      return { text: `Looked up ${filesText(looked.length)} by fingerprint: no antivirus engine flags them.${unknownText}`, warn: false };
+    case "partial":
+      return {
+        text:
+          `Looked up ${looked.length} of ${filesText(files.length)}; the rest wait for VirusTotal's shared quota ` +
+          `(4 a minute, 500 a day). Scan again later.${unknownText}`,
+        warn: true,
+      };
+    case "unavailable":
+      return { text: "VirusTotal could not be reached, so programs and release files were not looked up.", warn: true };
+    case "not_configured":
+      return { text: "Not looked up automatically on this site. Use the VirusTotal links next to the release files.", warn: false };
+    default:
+      return { text: "Nothing to look up: no programs in the repository and no release files.", warn: false };
+  }
+}
+
+function reputationText(r: Reputation): { text: string; tone: "bad" | "ok" | "muted" } {
+  if (r.status === "found") {
+    const s = r.stats;
+    const total = s.malicious + s.suspicious + s.harmless + s.undetected;
+    return s.malicious > 0
+      ? { text: `${s.malicious}/${total} engines detect it`, tone: "bad" }
+      : { text: `0/${total} engines detect it`, tone: "ok" };
+  }
+  if (r.status === "unknown") return { text: "unknown to VirusTotal", tone: "muted" };
+  return { text: r.reason === "error" ? "lookup failed" : "not looked up yet (quota)", tone: "muted" };
+}
+
+/** Each fingerprint looked up, with a link built from the validated SHA-256 only. */
+function CheckedFiles({ files }: { files: ReportCheckedFile[] }) {
+  return (
+    <ul className="mt-2 space-y-1 text-xs">
+      {files.map((f) => {
+        const r = reputationText(f.reputation);
+        const tone = { bad: "text-red-300", ok: "text-emerald-300/90", muted: "text-slate-500" }[r.tone];
+        return (
+          <li key={`${f.source}:${f.sha256}`} className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-mono break-all text-slate-300">{f.name}</span>
+            <span className="text-slate-500">{f.source === "release" ? "release file" : "in the repository"}</span>
+            <span className={tone}>{r.text}</span>
+            <a
+              href={f.virusTotalUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-slate-400 underline decoration-slate-600 underline-offset-2 hover:text-slate-200"
+            >
+              VirusTotal
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 /** What the comparison of GitHub's archive with the commit's file list found. */
@@ -232,6 +305,7 @@ export function ReportView({ report }: { report: Report }) {
   const archiveMembers = report.stats.archiveMembers ?? 0;
   const archiveCheck = archiveCheckText(report);
   const dependencyCheck = dependencyCheckText(report);
+  const reputationCheck = reputationCheckText(report);
 
   return (
     <div className="space-y-8">
@@ -297,8 +371,10 @@ export function ReportView({ report }: { report: Report }) {
         </p>
         <dl className="mt-4 space-y-1.5 border-t border-slate-800 pt-4 text-xs">
           <ExtraCheck label="Malicious dependencies (OSV)" check={dependencyCheck} />
+          <ExtraCheck label="Antivirus engines (VirusTotal)" check={reputationCheck} />
           {archiveCheck && <ExtraCheck label="Files hidden from the download" check={archiveCheck} />}
         </dl>
+        {(report.reputationCheck?.files.length ?? 0) > 0 && <CheckedFiles files={report.reputationCheck.files} />}
         {/* Reports stored before this check existed have no submodules. */}
         {(report.submodules?.length ?? 0) > 0 && <Submodules list={report.submodules} />}
       </section>

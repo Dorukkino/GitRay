@@ -36,6 +36,7 @@ function report(dependencyCheck: DependencyCheck) {
     dependencyCheck,
     testFilesCapped: false,
     submodules: [],
+    reputationCheck: { status: "none", files: [] },
     rulesRun: [],
     startedAt: "2026-10-01T00:00:00.000Z",
     durationMs: 5,
@@ -88,6 +89,42 @@ describe("ReportView submodules", () => {
     expect(html).toContain('href="/scan/octo/ok"');
     expect(html).toContain("hxxps://evil[.]example[.]invalid/x.git");
     expect(html).not.toContain('href="hxxps');
+  });
+});
+
+describe("ReportView VirusTotal check", () => {
+  const sha = "ab".repeat(32);
+  it("shows each file looked up with a link built from its fingerprint", () => {
+    const r = report({ status: "none", packages: 0, malicious: 0 });
+    const html = renderToStaticMarkup(
+      <ReportView
+        report={{
+          ...r,
+          reputationCheck: {
+            status: "found",
+            files: [
+              {
+                source: "release",
+                name: "v1/setup.exe",
+                sha256: sha,
+                virusTotalUrl: `https://www.virustotal.com/gui/file/${sha}`,
+                reputation: { status: "found", stats: { malicious: 31, suspicious: 0, harmless: 0, undetected: 39 } },
+              },
+            ],
+          },
+        }}
+      />,
+    );
+    expect(html).toContain("Antivirus engines (VirusTotal)");
+    expect(html).toContain("Antivirus engines flag 1 of 1 file");
+    expect(html).toContain("31/70 engines detect it");
+    expect(html).toContain(`href="https://www.virustotal.com/gui/file/${sha}"`);
+  });
+
+  it("explains when nothing was looked up", () => {
+    const r = report({ status: "none", packages: 0, malicious: 0 });
+    const html = renderToStaticMarkup(<ReportView report={{ ...r, reputationCheck: { status: "not_configured", files: [] } }} />);
+    expect(html).toContain("Not looked up automatically on this site");
   });
 });
 

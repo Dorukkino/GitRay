@@ -3,7 +3,7 @@
  * unpacked; only their first bytes (magic numbers and headers) are inspected.
  */
 
-import type { BinaryFile } from "../types";
+import type { BinaryFile, RepoInfo, ScanContext } from "../types";
 import type { Hit, Rule } from "./base";
 
 const u16le = (b: Uint8Array, o: number): number => b[o] | (b[o + 1] << 8);
@@ -133,4 +133,35 @@ const ENCRYPTED_ARCHIVE: Rule = {
   },
 };
 
-export const RULES: readonly Rule[] = [EXECUTABLE, ENCRYPTED_ARCHIVE];
+/** Detections at which a file counts as known malware rather than a possible false positive. */
+export const KNOWN_MALWARE_DETECTIONS = 5;
+
+const KNOWN_TO_ANTIVIRUS: Rule = {
+  id: "GR-BIN-003",
+  title: "Antivirus engines detect a file (VirusTotal)",
+  category: "binary",
+  weight: 70,
+  why:
+    "VirusTotal runs files through about 70 antivirus engines. This exact file, matched by its " +
+    "SHA-256 fingerprint (nothing is downloaded or run), is detected by some of them. Several " +
+    "detections mean known malware; one or two can be a false positive, so they weigh less.",
+  *scanRepo(_info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
+    for (const f of ctx.flaggedFiles ?? []) {
+      if (f.reputation.status !== "found") continue;
+      const s = f.reputation.stats;
+      const total = s.malicious + s.suspicious + s.harmless + s.undetected;
+      const known = s.malicious >= KNOWN_MALWARE_DETECTIONS;
+      yield {
+        path: f.source === "repository" ? f.name : "",
+        line: 0,
+        text: f.source === "release" ? `release asset ${f.name}` : "",
+        weight: known ? undefined : 20,
+        note:
+          `${s.malicious} of ${total} antivirus engines detect ${f.source === "release" ? "this release file" : "it"}` +
+          (known ? "" : " (few detections: may be a false positive)"),
+      };
+    }
+  },
+};
+
+export const RULES: readonly Rule[] = [EXECUTABLE, ENCRYPTED_ARCHIVE, KNOWN_TO_ANTIVIRUS];

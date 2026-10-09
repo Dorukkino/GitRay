@@ -17,9 +17,9 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3 |
-| Testler | 22 dosya, 749 test |
+| Testler | 23 dosya, 774 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
-| VirusTotal API | Yok (API anahtarı gerekiyor, kullanıcıya sorulacak) |
+| VirusTotal kontrolü | Hazır (9. oturum); çalışması için `VIRUSTOTAL_API_KEY` Vercel'e eklenmeli (rehberde Adım 5) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
 
@@ -44,7 +44,15 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 3. "Connect Project" ekranında `gitray` projesini seç, tüm ortamları (Production, Preview, Development) işaretle → Connect. `DATABASE_URL` otomatik eklenir.
 4. Deployments → Redeploy. Tablo ilk taramada kendiliğinden oluşur; ayrıca bir şey yapmaya gerek yok.
 
-**Adım 5: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
+**Adım 5: VirusTotal anahtarını ekle** (isteğe bağlı ama önerilir; 9. oturum).
+1. https://www.virustotal.com/gui/join-us adresinden ücretsiz hesap aç (e-posta doğrulaması gelir).
+2. Giriş yap → sağ üstte profil simgesi → **API key** → anahtarı kopyala. Kimseyle paylaşma, koda ya da sohbete yapıştırma.
+3. Vercel → proje → Settings → Environment Variables → Key `VIRUSTOTAL_API_KEY`, Value kopyaladığın anahtar → Save.
+4. Deployments → son deploy → "⋯" → Redeploy.
+5. Kontrol: release dosyası olan bir repo tara (örn. `BurntSushi/ripgrep`). Raporda "Antivirus engines (VirusTotal)" satırında "Looked up N files" yazmalı.
+Ücretsiz anahtar dakikada 4, günde 500 soru hakkı verir; site bunu tüm ziyaretçiler arasında paylaştırır ve her cevabı 1 gün hatırlar.
+
+**Adım 6: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
 ## Yol haritası
 
@@ -388,16 +396,57 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - Raporda "N git submodules are not scanned" uyarısı ve liste var. GitHub'daki submodule'lerin yanında kendi sitemizde onu tarayan bir "scan owner/repo" linki çıkıyor. URL'nin kendisi tıklanamıyor ve `hxxps://` biçiminde gösteriliyor.
 - Puanı etkilemiyor: submodule kullanan meşru repo çok. `ENGINE_VERSION` 0.5.0.
 
+### 9 Ekim 2026 (9. oturum): VirusTotal kontrolü, "robot değilim" kutusu kararı
+
+**İstek:** "Robot değilim kutusunu neden eklememiz gerektiğini anlayamadım, ondan sonra VirusTotal ile dosya kontrolüne geçelim; önerilen ve kararlaştırılan her şey bitince tasarıma geçeriz."
+
+**"Robot değilim" kutusu (Cloudflare Turnstile):** Eklenmedi.
+- Neden önerilmişti: çok sayıda farklı adresten gelen bir program, saatlik 500 taramalık bütçeyi bitirebilir. O zaman yeni taramalar bir saatliğine durur. Kutu, siteyi bir insanın kullandığını doğrulayıp bunu engellerdi.
+- Neden şimdi gerekmiyor:
+  - Kişi başı ve site geneli sınırlar zaten var (8. oturum).
+  - Bütçe bitse bile son 1 saatin sonuçları açılıyor ve GitHub hakkımız korunuyor.
+  - Kutu her ziyaretçiye bir adım daha ekler ve Cloudflare hesabı ister.
+- Kötüye kullanım görülürse tekrar konuşulacak.
+
+**VirusTotal kontrolü** (kullanıcı onayladı):
+- **Ne yapıyor:** Repoya konmuş programların (Windows `.exe`/`.dll`, Linux ve macOS programları) ve release'lerdeki indirilebilir dosyaların parmak izi (SHA-256) VirusTotal'e soruluyor. Yaklaşık 70 antivirüs programı o dosya hakkında ne diyor, raporda görünüyor. Dosya yüklenmiyor, indirilmiyor ya da çalıştırılmıyor; release dosyalarının parmak izini GitHub zaten veriyor.
+- **Puan (`GR-BIN-003`):**
+  - 5 ya da daha fazla antivirüs "zararlı" diyorsa +70, tek başına Tehlikeli.
+  - 1–4 antivirüs diyorsa +20 ve "yanlış alarm olabilir" notu.
+  - VirusTotal dosyayı hiç görmediyse "bilinmiyor" yazıyor; bu "temiz" demek değil.
+- **Repodaki programlar:**
+  - Eskiden yalnızca ilk 1 MB okunuyordu.
+  - Artık programlar 32 MB'a kadar bütün okunuyor; parmak izi için bu şart. Diğer dosyalarda bir şey değişmedi.
+- **Sıra ve sınır:**
+  - Sorma sırası: önce test dışındaki programlar, sonra release'lerdeki program ve arşivler, en son testlerdeki programlar.
+  - Checksum, imza ve metin dosyaları sorulmuyor.
+  - Tarama başına en fazla 10 dosya.
+- **Kota:**
+  - Ücretsiz anahtar dakikada 4, günde 500 soru hakkı veriyor; tüm site bunu paylaşıyor ve sayaçlar veritabanında tutuluyor.
+  - Her cevap 1 gün hatırlanıyor, aynı repo tekrar taranınca hak harcanmıyor.
+  - Hak dolunca dosya "not looked up yet (quota)" olarak görünüyor ve tarama yine bitiyor.
+- **Anahtar:**
+  - `VIRUSTOTAL_API_KEY`; nasıl ekleneceği yukarıdaki rehberde, Adım 5'te.
+  - Anahtar yoksa kontrol kapalı; rapor eskisi gibi VirusTotal linkleri gösteriyor.
+  - Anahtar loglarda gizleniyor.
+- **Raporda:**
+  - Yeni bir satır var: "Antivirus engines (VirusTotal)".
+  - Altında her dosya listeleniyor: "31/70 engines detect it", "0/70", "unknown to VirusTotal" ya da "not looked up yet". Her birinin yanında dosyanın VirusTotal sayfasına link var; link yalnızca doğrulanmış parmak izinden kuruluyor.
+- **Yarım taramalar:** Repo çok büyük diye yarım kalan taramalarda da release dosyaları soruluyor.
+- **Yol üstünde bulunan hata:** Komut satırı aracının `--json` çıktısı başka bir programa aktarılınca yarıda kesiliyordu (`process.exit`); düzeltildi.
+- **Doğrulama:**
+  - Bu çalışma ortamından virustotal.com'a erişilemiyor. Testler sahte bir VirusTotal sunucusu kullanıyor: cevaplar, 404, 429, 401, dakika ve gün kotası, önbellek, sıralama, yarım tarama, hata durumu.
+  - Gerçek doğrulama, anahtar eklendikten sonra Vercel'de yapılacak.
+- `ENGINE_VERSION` 0.6.0 oldu; kural sayısı 35.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Canlıda kontrol:** `/progress` sayfası kalkmış olmalı. Vercel'de Neon bağlıysa `rate_limits` tablosu ilk taramada kendiliğinden oluşur.
-2. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar.
-3. **Canlıda doğrulama:** Vercel'de bir repo taranınca raporda "Malicious dependencies (OSV)" satırı görünmeli. Yeni motor sürümüyle (şu an 0.5.0) Scammer listesindeki eski kayıtlar yeniden taranınca çoğu listeden çıkmalı.
-4. **Liste kalitesi.** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür. Test dosyası ve itibar kararından sonra gerekirse listeye girme eşiği yükseltilebilir.
-5. **Cloudflare Turnstile** (kullanıcıya sorulacak; kalıcı hız sınırı ve saatlik bütçe 8. oturumda yapıldı).
-6. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
-7. **VirusTotal API** (kullanıcıya sorulacak; anahtar gerekiyor): release digest'lerini otomatik sorgulama (günde 500 istek; kota dolarsa "atlandı").
-8. **Tasarım** (kullanıcının isteği, en son): koyu tema yerine daha açık ve okunaklı bir arayüz.
+1. **Kullanıcı:** VirusTotal anahtarını Vercel'e eklemek (rehberde Adım 5) ve canlıda bir release'li repo taramak.
+2. **Tasarım** (kullanıcının isteği: önerilen ve kararlaştırılan işler bittikten sonra): koyu tema yerine daha açık ve okunaklı bir arayüz. Sıradaki büyük iş bu.
+3. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
+4. **Liste kalitesi:** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür.
+5. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
+6. **Cloudflare Turnstile:** yalnızca kötüye kullanım görülürse (9. oturumdaki karar).
 
 ## Bilinen sınırlamalar ve kalibrasyon notları
 
@@ -411,6 +460,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - `GR-LINK-001`: Kendi web sitesinden `.exe`/`.dmg` dağıtan meşru projeler 20 puan alır (tek başına Temiz).
 - Şifreli RAR yalnızca başlıkları da şifreliyse (`rar -hp`) tespit edilir; 7z şifrelemesi tespit edilmiyor.
 - İkili dosyalarda yalnızca ilk 1 MB okunur; ZIP içindeki dosya adları yalnızca bu kısımdaki yerel başlıklardan okunur.
+- VirusTotal yalnızca dosyanın parmak izini tanır: yeni ya da her kurbana özel üretilmiş bir program "bilinmiyor" çıkar. 32 MB'tan büyük programların parmak izi çıkarılmaz.
 - Hız sınırı veritabanı varsa tüm örnekler arasında ortaktır (8. oturum); veritabanı yoksa örnek başınadır. Çok IP'li bir saldırı saatlik bütçeyi bitirebilir (Turnstile ile çözülür). Önbellek veritabanında da var (1 saat).
 - Listeler yalnızca son 50 kaydı gösterir; sayfalama ve arama yok.
 - Proxy kısıtı yüzünden bu ortamda sahip hesap yaşı (`/users/...`) okunamıyor; raporda "unknown" görünüyor. Vercel'de çalışır.

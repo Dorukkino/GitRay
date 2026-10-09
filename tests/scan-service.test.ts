@@ -218,6 +218,21 @@ describe("runScan", () => {
     expect((await runScan("octo/demo", "ip", { ...deps(gh), rates: () => rates })).status).toBe(200);
   });
 
+  it("hands the VirusTotal service to the scan", async () => {
+    const gh = new FakeGitHub();
+    gh.releases = [{ tag_name: "v1", assets: [{ name: "x.exe", size: 1, digest: `sha256:${"1".repeat(64)}` }] }];
+    const asked: string[] = [];
+    const reputation = {
+      lookup: async (hashes: readonly string[]) => {
+        asked.push(...hashes);
+        return new Map(hashes.map((h) => [h, { status: "unknown" as const }]));
+      },
+    };
+    const r = await runScan("octo/demo", "ip", { ...deps(gh), reputation: () => reputation });
+    expect(asked).toEqual(["1".repeat(64)]);
+    expect((r.body as Report).reputationCheck.status).toBe("ok");
+  });
+
   it("maps GitHub and archive errors to HTTP statuses", async () => {
     const missing = new FakeGitHub();
     expect((await runScan("octo/nope", "a", deps(missing))).status).toBe(404);

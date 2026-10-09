@@ -14,6 +14,7 @@ import {
   scanRepo,
   toReport,
 } from "./engine";
+import { createReputationService } from "./lib/virustotal";
 
 const EXIT = { clean: 0, suspicious: 1, dangerous: 2, error: 3, incomplete: 4 } as const;
 const USAGE = "usage: npm run scan -- <owner/repo | github.com/owner/repo> [--json]";
@@ -60,6 +61,19 @@ function printReport(r: Report): void {
     skipped: null,
   }[deps.status];
   if (depLine) out.push(depLine);
+  const rep = r.reputationCheck;
+  if (rep.status === "not_configured") out.push("VirusTotal: not checked (set VIRUSTOTAL_API_KEY)");
+  else if (rep.status === "unavailable") out.push("VirusTotal: could not be reached");
+  for (const f of rep.files) {
+    const x = f.reputation;
+    const result =
+      x.status === "found"
+        ? `${x.stats.malicious}/${x.stats.malicious + x.stats.suspicious + x.stats.harmless + x.stats.undetected} engines detect it`
+        : x.status === "unknown"
+          ? "unknown to VirusTotal"
+          : `not looked up (${x.reason})`;
+    out.push(`VirusTotal: ${f.name} (${f.source}): ${result}`);
+  }
   if (r.submodules.length) {
     out.push(`Submodules (not scanned; git clone --recursive downloads them):`);
     for (const s of r.submodules) out.push(`  ${s.path} <- ${s.url}${s.github ? `  (scan: npm run scan -- ${s.github})` : ""}`);
@@ -95,7 +109,9 @@ export async function main(argv: string[]): Promise<number> {
   try {
     const ref = parseTarget(args[0]);
     const client = new GitHubClient({ token: process.env.GITHUB_TOKEN });
-    const report = toReport(await scanRepo(ref, client, { osv: new OsvClient() }));
+    // Without a database: quota counters and cached answers live in this process only.
+    const reputation = createReputationService(process.env.VIRUSTOTAL_API_KEY || undefined, null);
+    const report = toReport(await scanRepo(ref, client, { osv: new OsvClient(), reputation }));
     if (json) console.log(JSON.stringify(report, null, 2));
     else printReport(report);
     return EXIT[report.verdict];
@@ -108,5 +124,8 @@ export async function main(argv: string[]): Promise<number> {
 }
 
 if (process.argv[1]?.endsWith("cli.ts")) {
-  main(process.argv.slice(2)).then((code) => process.exit(code));
+  // process.exit() would cut off output still being written to a pipe ("--json | jq").
+  main(process.argv.slice(2)).then((code) => {
+    process.exitCode = code;
+  });
 }

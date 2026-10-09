@@ -1,6 +1,7 @@
 /** Plain data types shared by the engine, the CLI and the web app. */
 
 import type { Submodule } from "./submodules";
+import type { Reputation } from "./virustotal";
 
 export type Verdict = "clean" | "suspicious" | "dangerous" | "incomplete";
 
@@ -69,6 +70,28 @@ export interface ScanContext {
   exportIgnored?: string[];
   /** Declared dependencies that OSV lists as malicious packages. */
   maliciousDependencies?: MaliciousDependency[];
+  /** Files that antivirus engines on VirusTotal detect (GR-BIN-003). */
+  flaggedFiles?: CheckedFile[];
+}
+
+/** A file whose SHA-256 fingerprint was looked up on VirusTotal. */
+export interface CheckedFile {
+  /** A program committed to the repository, or a file attached to a GitHub release. */
+  source: "repository" | "release";
+  /** Repository path, or "tag/asset name" for a release asset. */
+  name: string;
+  sha256: string;
+  reputation: Reputation;
+}
+
+export interface ReputationCheck {
+  /**
+   * not_configured: no VirusTotal key on this site; none: nothing to look up;
+   * ok: looked up, no engine flags anything; found: at least one file is flagged;
+   * partial: some files were not looked up (quota); unavailable: VirusTotal failed.
+   */
+  status: "not_configured" | "none" | "ok" | "found" | "partial" | "unavailable";
+  files: CheckedFile[];
 }
 
 export interface MaliciousDependency {
@@ -168,6 +191,8 @@ export interface ScanResult {
   testFilesCapped: boolean;
   /** Git submodules from .gitmodules: other repositories "git clone --recursive" adds, not scanned. */
   submodules: Submodule[];
+  /** Committed programs and release assets looked up on VirusTotal by fingerprint. */
+  reputationCheck: ReputationCheck;
   rulesRun: string[];
   startedAt: string;
   durationMs: number;

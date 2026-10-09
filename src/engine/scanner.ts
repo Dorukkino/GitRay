@@ -1,6 +1,7 @@
 /**
  * Scan orchestration: repository metadata -> tarball (and the ZIPs inside it)
- * -> files missing from the tarball -> dependencies against OSV -> rules -> score.
+ * -> files missing from the tarball -> dependencies against OSV -> committed
+ * programs and release assets against VirusTotal -> rules -> score.
  */
 
 import { type ArchiveEntry, readArchive } from "./archive";
@@ -11,23 +12,27 @@ import { type Limits, withDefaults } from "./limits";
 import { type OsvClient, affectsAllVersions, isMalwareId } from "./osv";
 import { type Rule, allRules } from "./rules";
 import { runBinaryRule, runRepoRule, runTextRule } from "./rules/base";
+import { executableKind } from "./rules/binary";
 import { score } from "./scoring";
 import { type Submodule, parseGitmodules } from "./submodules";
-import { decode } from "./text";
+import { decode, isTestPath } from "./text";
 import {
   type ArchiveCheck,
   type Category,
+  type CheckedFile,
   type DependencyCheck,
   type Finding,
   type MaliciousDependency,
   type PartialScan,
   type RepoInfo,
   type RepoRef,
+  type ReputationCheck,
   type ScanContext,
   type ScanResult,
   type ScanStats,
   emptyStats,
 } from "./types";
+import { type Reputation, type ReputationService, isSha256 } from "./virustotal";
 import { ARCHIVE_SEPARATOR, isZipPath, withArchiveContents } from "./zip";
 
 export interface ScanOptions {
@@ -37,10 +42,15 @@ export interface ScanOptions {
   now?: () => Date;
   /** Checks declared dependencies against OSV's malicious-package records when given. */
   osv?: OsvClient;
+  /** Looks up committed programs and release assets on VirusTotal when given. */
+  reputation?: ReputationService;
 }
 
 const NOT_CHECKED: ArchiveCheck = { status: "skipped", hidden: 0, scanned: 0 };
 const DEPENDENCIES_NOT_CHECKED: DependencyCheck = { status: "skipped", packages: 0, malicious: 0 };
+const REPUTATION_NOT_CHECKED: ReputationCheck = { status: "none", files: [] };
+/** Committed programs fingerprinted per scan (the lookups themselves are limited separately). */
+const MAX_EXECUTABLES = 100;
 /** OSV records fetched per scan to tell typosquats (all versions) from hijacked releases. */
 const MAX_OSV_DETAIL_LOOKUPS = 20;
 /** Hidden files downloaded at the same time. */
@@ -83,6 +93,14 @@ function partialFrom(e: LimitExceeded): PartialScan {
 interface Gathered {
   deps?: DependencyIndex;
   submodules: Submodule[];
+  /** SHA-256 of programs read whole (PE, ELF, Mach-O), for VirusTotal. */
+  executables: { path: string; sha256: string }[];
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  // Our buffers are never shared memory; the cast only satisfies BufferSource.
+  const digest = await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>);
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 async function collect(
@@ -95,7 +113,13 @@ async function collect(
   try {
     for await (const entry of entries) {
       findings.push(...scanEntry(entry, rules, ctx));
-      if (entry.kind !== "text") continue;
+      if (entry.kind === "binary") {
+        const { head, size, path } = entry.file;
+        if (head.length === size && gathered.executables.length < MAX_EXECUTABLES && executableKind(head) !== null) {
+          gathered.executables.push({ path, sha256: await sha256Hex(head) });
+        }
+        continue;
+      }
       if (gathered.deps && isManifest(entry.file.path)) {
         gathered.deps.add(parseManifest(entry.file.path, entry.file.content));
       }
@@ -117,9 +141,12 @@ function finish(
   findings: Finding[],
   stats: ScanStats,
   partial: PartialScan | null,
-  archiveCheck: ArchiveCheck,
-  dependencyCheck: DependencyCheck,
-  submodules: Submodule[],
+  checks: {
+    archiveCheck: ArchiveCheck;
+    dependencyCheck: DependencyCheck;
+    submodules: Submodule[];
+    reputationCheck: ReputationCheck;
+  },
   rules: readonly Rule[],
   started: Date,
   now: () => Date,
@@ -134,9 +161,7 @@ function finish(
     testFilesCapped: scored.testFilesCapped,
     stats,
     partial,
-    archiveCheck,
-    dependencyCheck,
-    submodules,
+    ...checks,
     rulesRun: rules.map((r) => r.id),
     startedAt: started.toISOString(),
     durationMs: Math.max(0, now().getTime() - started.getTime()),
@@ -159,9 +184,15 @@ export async function scanEntries(
   const stats = options.stats ?? emptyStats();
   const ctx = contextFor(info, started);
   const findings: Finding[] = info ? rules.flatMap((rule) => runRepoRule(rule, info, ctx)) : [];
-  const gathered: Gathered = { submodules: [] };
+  const gathered: Gathered = { submodules: [], executables: [] };
   const partial = await collect(withArchiveContents(entries, limits, stats, options.deadline), rules, ctx, findings, gathered);
-  return finish(info, findings, stats, partial, NOT_CHECKED, DEPENDENCIES_NOT_CHECKED, gathered.submodules, rules, started, now);
+  const checks = {
+    archiveCheck: NOT_CHECKED,
+    dependencyCheck: DEPENDENCIES_NOT_CHECKED,
+    submodules: gathered.submodules,
+    reputationCheck: REPUTATION_NOT_CHECKED,
+  };
+  return finish(info, findings, stats, partial, checks, rules, started, now);
 }
 
 export async function scanTarball(
@@ -347,6 +378,64 @@ async function checkDependencies(job: ScanJob, osv: OsvClient | undefined): Prom
   return { status: found.length ? "found" : "ok", packages: deps.size, malicious: found.length };
 }
 
+/** Release files that are documentation, checksums or signatures, not programs or archives. */
+const NOT_A_PROGRAM = /\.(?:sha(?:1|256|512)(?:sum)?|md5|sig|asc|minisig|sigstore(?:\.json)?|pem|crt|pub|sbom|spdx|cdx\.json|intoto\.jsonl|json|txt|md|html)$/i;
+const PROGRAM_OR_ARCHIVE =
+  /\.(?:exe|msi|msix|scr|dll|com|bat|cmd|ps1|vbs|lnk|hta|zip|7z|rar|iso|img|dmg|pkg|apk|appimage|deb|rpm|jar|tgz|tar\.gz|tar\.xz)$/i;
+
+/**
+ * What to look up, most telling first: programs committed outside tests, then
+ * the newest releases' programs and archives, then other release files, then
+ * programs in tests. Each fingerprint once.
+ */
+function reputationCandidates(job: ScanJob): Omit<CheckedFile, "reputation">[] {
+  const repoFiles = job.gathered.executables.map((e) => ({ source: "repository" as const, name: e.path, sha256: e.sha256 }));
+  const releases = job.info.releaseAssets
+    .map((a) => ({ a, sha: /^sha256:([0-9a-f]{64})$/i.exec(a.digest ?? "")?.[1]?.toLowerCase() }))
+    .filter(({ a, sha }) => sha && !NOT_A_PROGRAM.test(a.name))
+    .map(({ a, sha }) => ({ source: "release" as const, name: `${a.releaseTag}/${a.name}`, sha256: sha!, risky: PROGRAM_OR_ARCHIVE.test(a.name) }));
+  const ordered = [
+    ...repoFiles.filter((f) => !isTestPath(f.name)),
+    ...releases.filter((r) => r.risky),
+    ...releases.filter((r) => !r.risky),
+    ...repoFiles.filter((f) => isTestPath(f.name)),
+  ];
+  const seen = new Set<string>();
+  const out: Omit<CheckedFile, "reputation">[] = [];
+  for (const { source, name, sha256 } of ordered) {
+    if (seen.has(sha256) || !isSha256(sha256)) continue;
+    seen.add(sha256);
+    out.push({ source, name, sha256 });
+  }
+  return out;
+}
+
+async function checkReputation(job: ScanJob, service: ReputationService | undefined): Promise<ReputationCheck> {
+  const candidates = reputationCandidates(job);
+  if (candidates.length === 0) return { status: "none", files: [] };
+  if (!service) return { status: "not_configured", files: [] };
+  const looked = candidates.slice(0, job.limits.maxReputationLookups);
+  let results: Map<string, Reputation>;
+  try {
+    results = await service.lookup(
+      looked.map((c) => c.sha256),
+      job.signal,
+    );
+  } catch {
+    // A missing extra check must not turn a finished scan into an error.
+    return { status: "unavailable", files: [] };
+  }
+  const files: CheckedFile[] = [
+    ...looked.map((c) => ({ ...c, reputation: results.get(c.sha256) ?? { status: "skipped" as const, reason: "error" as const } })),
+    ...candidates.slice(looked.length).map((c) => ({ ...c, reputation: { status: "skipped" as const, reason: "limit" as const } })),
+  ];
+  const flagged = files.filter((f) => f.reputation.status === "found" && f.reputation.stats.malicious > 0);
+  const rule = job.rules.find((r) => r.id === "GR-BIN-003");
+  if (rule && flagged.length) job.findings.push(...runRepoRule(rule, job.info, { ...job.ctx, flaggedFiles: flagged }));
+  const skipped = files.some((f) => f.reputation.status === "skipped");
+  return { status: flagged.length ? "found" : skipped ? "partial" : "ok", files };
+}
+
 /**
  * Scan a public GitHub repository. Every limit hit, even before the download
  * starts (size pre-check, Content-Length, time budget), gives a partial result.
@@ -367,7 +456,7 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
     const ctx = contextFor(info, started);
     const stats = emptyStats();
     const findings = rules.flatMap((rule) => runRepoRule(rule, info, ctx));
-    const gathered = { deps: new DependencyIndex(), submodules: [] as Submodule[] };
+    const gathered = { deps: new DependencyIndex(), submodules: [] as Submodule[], executables: [] as Gathered["executables"] };
     const job: ScanJob = { client, info, rules, ctx, limits, stats, findings, signal: controller.signal, deadline, gathered };
     let partial: PartialScan | null = null;
     let archiveCheck = NOT_CHECKED;
@@ -393,7 +482,10 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
       else if (controller.signal.aborted) partial = partialFrom(timeLimit());
       else throw e;
     }
-    return finish(info, findings, stats, partial, archiveCheck, dependencyCheck, gathered.submodules, rules, started, now);
+    // Release assets can be looked up even when a limit stopped the archive scan.
+    const reputationCheck = controller.signal.aborted ? REPUTATION_NOT_CHECKED : await checkReputation(job, options.reputation);
+    const checks = { archiveCheck, dependencyCheck, submodules: gathered.submodules, reputationCheck };
+    return finish(info, findings, stats, partial, checks, rules, started, now);
   } finally {
     clearTimeout(timer);
   }

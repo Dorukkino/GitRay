@@ -58,6 +58,7 @@ function result(findings: Finding[]): ScanResult {
     dependencyCheck: { status: "none", packages: 0, malicious: 0 },
     testFilesCapped: false,
     submodules: [],
+    reputationCheck: { status: "none", files: [] },
     rulesRun: ["GR-CODE-002"],
     startedAt: "2026-10-01T00:00:00.000Z",
     durationMs: 5,

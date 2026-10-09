@@ -29,6 +29,13 @@ export interface Limits {
   maxHiddenBytes: number;
   /** Package versions checked against OSV per scan. */
   maxDependencyQueries: number;
+  /**
+   * Programs (PE, ELF, Mach-O) up to this size are read whole, so their SHA-256
+   * fingerprint can be looked up on VirusTotal. Larger ones keep only maxFileBytes.
+   */
+  maxExecutableBytes: number;
+  /** Files (committed programs and release assets) looked up on VirusTotal per scan. */
+  maxReputationLookups: number;
 }
 
 export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
@@ -45,6 +52,8 @@ export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
   maxHiddenFiles: 300,
   maxHiddenBytes: 20 * MiB,
   maxDependencyQueries: 5_000,
+  maxExecutableBytes: 32 * MiB,
+  maxReputationLookups: 10,
 });
 
 /** Size of tar extension headers (long paths) we are willing to buffer. */
