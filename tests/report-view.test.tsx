@@ -35,6 +35,7 @@ function report(dependencyCheck: DependencyCheck) {
     archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     dependencyCheck,
     testFilesCapped: false,
+    submodules: [],
     rulesRun: [],
     startedAt: "2026-10-01T00:00:00.000Z",
     durationMs: 5,
@@ -66,6 +67,27 @@ describe("ReportView test files", () => {
     );
     expect(html).toContain("Held at Suspicious");
     expect(html).toContain("in a test file");
+  });
+});
+
+describe("ReportView submodules", () => {
+  it("lists them, links only validated GitHub names to our scan page and never the URL", () => {
+    const r = report({ status: "none", packages: 0, malicious: 0 });
+    const html = renderToStaticMarkup(
+      <ReportView
+        report={{
+          ...r,
+          submodules: [
+            { path: "lib/ok", url: "hxxps://github[.]com/octo/ok", github: "octo/ok" },
+            { path: "tools/x", url: "hxxps://evil[.]example[.]invalid/x.git", github: null },
+          ],
+        }}
+      />,
+    );
+    expect(html).toContain("2 git submodules are not scanned");
+    expect(html).toContain('href="/scan/octo/ok"');
+    expect(html).toContain("hxxps://evil[.]example[.]invalid/x.git");
+    expect(html).not.toContain('href="hxxps');
   });
 });
 

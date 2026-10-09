@@ -45,6 +45,14 @@ export interface ReportFinding {
   testContext: boolean;
 }
 
+export interface ReportSubmodule {
+  path: string;
+  /** As written in .gitmodules, sanitized (links defanged). */
+  url: string;
+  /** Validated "owner/repo" on github.com, or null. */
+  github: string | null;
+}
+
 export interface ReportRule {
   id: string;
   title: string;
@@ -90,6 +98,8 @@ export interface Report {
   dependencyCheck: DependencyCheck;
   /** Findings in test files alone would have made it dangerous; the verdict was held at suspicious. */
   testFilesCapped: boolean;
+  /** Repositories "git clone --recursive" adds (.gitmodules). Not scanned; `github` can be scanned separately. */
+  submodules: ReportSubmodule[];
   stats: ScanResult["stats"];
   rules: ReportRule[];
   findings: ReportFinding[];
@@ -171,6 +181,11 @@ export function toReport(result: ScanResult): Report {
     archiveCheck: { ...result.archiveCheck },
     dependencyCheck: { ...result.dependencyCheck },
     testFilesCapped: result.testFilesCapped,
+    submodules: result.submodules.map((s) => ({
+      path: sanitize(s.path, PATH_MAX),
+      url: sanitize(s.url, PATH_MAX),
+      github: s.github && FULL_NAME.test(s.github) ? s.github : null,
+    })),
     stats: { ...result.stats },
     rules: Object.entries(result.ruleScores)
       .map(([id, points]) => {

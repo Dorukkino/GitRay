@@ -1,11 +1,14 @@
 /**
  * Server-side glue between the HTTP API and the engine: input validation,
- * caching, best-effort rate limiting and error mapping.
+ * caching, rate limiting and error mapping.
  *
  * Two cache levels: a short per-instance memory cache and the database
  * (scan-store.ts, 1 hour, shared by every instance). "Scan again now" (fresh)
- * skips both, except for a scan that is less than a minute old. Serverless
- * instances come and go, so the rate limiter is per instance.
+ * skips both, except for a scan that is less than a minute old.
+ *
+ * New scans are limited twice: per instance in memory (cheap, always on) and,
+ * with a database, across all instances (rate-store.ts): per client, and a
+ * global hourly budget that keeps the GitHub token's quota from running out.
  */
 
 import {
@@ -23,6 +26,7 @@ import {
 } from "@/engine";
 
 import { logError } from "./log";
+import { type RateStore, getRateStore, nullRateStore } from "./rate-store";
 import { type ScanStore, getScanStore, repoKey } from "./scan-store";
 
 /** Memory cache lifetime. Short, so a rescan on another instance shows up quickly. */
@@ -37,6 +41,13 @@ export const RATE_WINDOW_MS = 60 * 1000;
 export const RATE_MAX = 6;
 /** Uncached lookups per client per minute (each costs a database query). */
 export const LOOKUP_MAX = 60;
+export const BUDGET_WINDOW_MS = 60 * 60 * 1000;
+/**
+ * New scans per hour for the whole site. A scan costs about 6 GitHub API requests
+ * and the token allows 5,000 an hour, so this leaves room for retries and redirects.
+ * Results from the last hour keep loading from the database when it runs out.
+ */
+export const SCAN_BUDGET_PER_HOUR = 500;
 const MAX_CONCURRENT = 4;
 const MAX_TRACKED_CLIENTS = 10_000;
 
@@ -57,6 +68,8 @@ export interface Deps {
   limits?: Partial<Limits>;
   /** OSV client for the dependency check; omitted, dependencies are not checked. */
   osv?: () => OsvClient;
+  /** Counters shared by every instance; omitted, only the per-instance limits apply. */
+  rates?: () => RateStore;
 }
 
 // One client per instance: it caches OSV records between scans.
@@ -67,6 +80,7 @@ const defaultDeps: Deps = {
   now: () => Date.now(),
   store: getScanStore,
   osv: () => osvClient,
+  rates: getRateStore,
 };
 
 const cache = new Map<string, { report: Report; expires: number }>();
@@ -157,6 +171,29 @@ async function fromStore(store: ScanStore, key: string, since: Date): Promise<Re
   }
 }
 
+/**
+ * The limits shared by every instance. A client over its limit does not use up the
+ * global budget. A database failure never blocks a scan: the memory limits still hold.
+ */
+async function sharedLimit(rates: RateStore, client: string, now: number): Promise<ScanOutcome | null> {
+  if (!rates.configured) return null;
+  try {
+    if ((await rates.hit("scan", client, RATE_WINDOW_MS, now)) > RATE_MAX) {
+      return fail(429, "rate_limited", `At most ${RATE_MAX} scans per minute. Please wait a moment.`);
+    }
+    if ((await rates.hit("scan-budget", "site", BUDGET_WINDOW_MS, now)) > SCAN_BUDGET_PER_HOUR) {
+      return fail(
+        503,
+        "budget_exhausted",
+        "GitRay has used its scan budget for this hour. Repositories scanned in the last hour still load.",
+      );
+    }
+  } catch (e) {
+    logError("rate limit store failed", e);
+  }
+  return null;
+}
+
 /** Results cut short by the time budget say more about GitHub's speed than the repository. */
 function worthKeeping(report: Report): boolean {
   return report.partial?.limit !== "timeBudgetMs";
@@ -204,6 +241,10 @@ export async function runScan(
   if (limited(limiters.scan, client, RATE_MAX, now)) {
     return fail(429, "rate_limited", `At most ${RATE_MAX} scans per minute. Please wait a moment.`);
   }
+  const shared = await sharedLimit(deps.rates?.() ?? nullRateStore, client, now);
+  if (shared) return shared;
+  // Other requests may have started scans while this one waited for the database.
+  if (running >= MAX_CONCURRENT) return fail(503, "busy", "The scanner is busy right now.");
 
   running += 1;
   try {

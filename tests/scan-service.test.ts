@@ -7,12 +7,14 @@ import {
   FRESH_COOLDOWN_MS,
   LOOKUP_MAX,
   RATE_MAX,
+  SCAN_BUDGET_PER_HOUR,
   STORE_TTL_MS,
   clearScanCache,
   clientKey,
   resetScanService,
   runScan,
 } from "../src/lib/scan-service";
+import type { RateStore } from "../src/lib/rate-store";
 import { type ScanStore, nullScanStore } from "../src/lib/scan-store";
 import { FakeGitHub } from "./helpers";
 
@@ -43,6 +45,21 @@ class MapStore implements ScanStore {
   }
   async counts() {
     return { clean: 0, suspicious: 0, dangerous: 0, incomplete: 0 };
+  }
+}
+
+/** Shared counters in a map, as the database would keep them across instances. */
+class MapRates implements RateStore {
+  readonly configured = true;
+  counts = new Map<string, number>();
+  broken = false;
+
+  async hit(bucket: string, key: string, windowMs: number, now: number) {
+    if (this.broken) throw new Error("db down");
+    const k = `${bucket}|${key}|${Math.floor(now / windowMs)}`;
+    const n = (this.counts.get(k) ?? 0) + 1;
+    this.counts.set(k, n);
+    return n;
   }
 }
 
@@ -152,6 +169,53 @@ describe("runScan", () => {
     }
     expect((await runScan("octo/other", "9.9.9.9", deps(gh))).status).toBe(429);
     expect((await runScan("octo/other", "8.8.8.8", deps(gh))).status).not.toBe(429);
+  });
+
+  it("limits scans per client across instances through the shared counters", async () => {
+    const gh = new FakeGitHub();
+    const rates = new MapRates();
+    const withRates = (): Deps => ({ ...deps(gh), rates: () => rates });
+    for (let i = 0; i < RATE_MAX; i++) {
+      resetScanService(); // every request lands on a fresh serverless instance
+      expect((await runScan("octo/demo", "9.9.9.9", withRates())).status).toBe(200);
+    }
+    resetScanService();
+    expect((await runScan("octo/demo", "9.9.9.9", withRates())).body).toMatchObject({ error: { code: "rate_limited" } });
+    // Someone else is not affected.
+    resetScanService();
+    expect((await runScan("octo/demo", "8.8.8.8", withRates())).status).toBe(200);
+  });
+
+  it("stops new scans when the hourly budget is used up, but still serves cached results", async () => {
+    const gh = new FakeGitHub();
+    const rates = new MapRates();
+    const store = new MapStore();
+    const d: Deps = { ...deps(gh, clock(), store), rates: () => rates };
+    expect((await runScan("octo/demo", "1.1.1.1", d)).status).toBe(200);
+    rates.counts.set(`scan-budget|site|${Math.floor(Date.now() / (60 * 60 * 1000))}`, SCAN_BUDGET_PER_HOUR);
+    resetScanService();
+    const blocked = await runScan("octo/other", "2.2.2.2", d);
+    expect(blocked).toMatchObject({ status: 503, body: { error: { code: "budget_exhausted" } } });
+    resetScanService();
+    expect(await runScan("octo/demo", "2.2.2.2", d)).toMatchObject({ status: 200, cached: true });
+  });
+
+  it("does not let a client over its limit use up the budget", async () => {
+    const gh = new FakeGitHub();
+    const rates = new MapRates();
+    for (let i = 0; i < RATE_MAX + 5; i++) {
+      resetScanService();
+      await runScan("octo/demo", "6.6.6.6", { ...deps(gh), rates: () => rates });
+    }
+    const budget = [...rates.counts].find(([k]) => k.startsWith("scan-budget|"))?.[1];
+    expect(budget).toBe(RATE_MAX);
+  });
+
+  it("keeps scanning when the shared counters fail", async () => {
+    const gh = new FakeGitHub();
+    const rates = new MapRates();
+    rates.broken = true;
+    expect((await runScan("octo/demo", "ip", { ...deps(gh), rates: () => rates })).status).toBe(200);
   });
 
   it("maps GitHub and archive errors to HTTP statuses", async () => {

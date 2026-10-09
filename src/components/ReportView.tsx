@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import type { Category, Report, ReportFinding, Severity } from "@/engine";
+import type { Category, Report, ReportFinding, ReportSubmodule, Severity } from "@/engine";
 
 import { CATEGORY_LABEL, CATEGORY_ORDER, SEVERITY_STYLE, ScoreGauge, VERDICT_STYLE, VerdictBadge } from "./verdict";
 
@@ -77,6 +78,38 @@ function ExtraCheck({ label, check }: { label: string; check: { text: string; wa
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
       <dt className="shrink-0 font-medium text-slate-400 sm:w-56">{label}</dt>
       <dd className={check.warn ? "text-amber-300/90" : "text-slate-500"}>{check.text}</dd>
+    </div>
+  );
+}
+
+/** Other repositories that "git clone --recursive" would add. Only validated owner/repo names become links (to our own scan page). */
+function Submodules({ list }: { list: ReportSubmodule[] }) {
+  return (
+    <div className="mt-3 border-t border-slate-800 pt-3 text-xs">
+      <p className="text-amber-300/90">
+        {list.length} git submodule{list.length === 1 ? " is" : "s are"} not scanned. GitHub&apos;s download leaves them
+        out, but <code className="font-mono">git clone --recursive</code> downloads them from other repositories. Scan
+        them before cloning that way.
+      </p>
+      <ul className="mt-2 space-y-1">
+        {list.map((s, i) => {
+          const [owner, repo] = s.github?.split("/") ?? [];
+          return (
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 font-mono break-all text-slate-400">
+              <span className="text-slate-300">{s.path}</span>
+              <span>from {s.url}</span>
+              {owner && repo && (
+                <Link
+                  href={`/scan/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`}
+                  className="font-sans text-cyan-300 underline decoration-cyan-700 underline-offset-2 hover:text-cyan-200"
+                >
+                  scan {s.github}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -266,6 +299,8 @@ export function ReportView({ report }: { report: Report }) {
           <ExtraCheck label="Malicious dependencies (OSV)" check={dependencyCheck} />
           {archiveCheck && <ExtraCheck label="Files hidden from the download" check={archiveCheck} />}
         </dl>
+        {/* Reports stored before this check existed have no submodules. */}
+        {(report.submodules?.length ?? 0) > 0 && <Submodules list={report.submodules} />}
       </section>
 
       {report.partial && (

@@ -8,7 +8,16 @@ export { ArchiveError, GitHubError, GitRayError, InvalidTarget, LimitExceeded } 
 export { GitHubClient, type GitHubClientOptions } from "./github";
 export { OsvClient } from "./osv";
 export { DEFAULT_LIMITS, type Limits } from "./limits";
-export { toReport, severityOf, type Report, type ReportAsset, type ReportFinding, type ReportRule, type Severity } from "./report";
+export {
+  toReport,
+  severityOf,
+  type Report,
+  type ReportAsset,
+  type ReportFinding,
+  type ReportRule,
+  type ReportSubmodule,
+  type Severity,
+} from "./report";
 export { allRules, getRule, type Rule } from "./rules";
 export { scanEntries, scanRepo, scanTarball, type ScanOptions } from "./scanner";
 export { DANGEROUS_AT, SUSPICIOUS_AT } from "./scoring";

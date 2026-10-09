@@ -1,5 +1,7 @@
 /** Plain data types shared by the engine, the CLI and the web app. */
 
+import type { Submodule } from "./submodules";
+
 export type Verdict = "clean" | "suspicious" | "dangerous" | "incomplete";
 
 export type Category =
@@ -164,6 +166,8 @@ export interface ScanResult {
   dependencyCheck: DependencyCheck;
   /** Test files alone would have made the repository dangerous; the verdict was held at suspicious. */
   testFilesCapped: boolean;
+  /** Git submodules from .gitmodules: other repositories "git clone --recursive" adds, not scanned. */
+  submodules: Submodule[];
   rulesRun: string[];
   startedAt: string;
   durationMs: number;

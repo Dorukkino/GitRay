@@ -24,6 +24,7 @@ const ERROR_HELP: Record<string, string> = {
   private: "Only public repositories can be scanned.",
   rate_limited: "Too many scans in a short time. Wait a minute and try again.",
   busy: "The scanner is busy. Try again in a few seconds.",
+  budget_exhausted: "This limit protects the GitHub API quota that every visitor shares. Try again within the hour.",
   invalid_target: "Use the form github.com/owner/repository.",
 };
 
