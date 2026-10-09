@@ -1,12 +1,14 @@
 # GitRay
 
+<img src="public/brand/gitray-logo-full.svg" alt="GitRay" width="420">
+
 **Is this GitHub repo safe to clone?** GitRay scans public GitHub repositories for the tricks malware repos use, without cloning, building or running anything.
 
 Malware increasingly ships inside GitHub repositories: fake tools and game cheats whose README links to a password-protected archive, "take-home test" projects whose VS Code task runs when the folder is opened, packages whose install script downloads a payload. GitRay reads the repository the safe way and explains what it found, line by line.
 
 ## What it checks
 
-34 rules in 9 categories (full list on the `/rules` page):
+35 rules in 9 categories (full list on the `/rules` page):
 
 | Category | Examples |
 | --- | --- |
@@ -15,10 +17,12 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 | Malicious code patterns | decode-and-exec, `curl \| sh`, browser password and cookie stores, SSH keys, crypto wallets, Discord/Telegram exfiltration, Windows LOLBins |
 | Hidden content | high-entropy blobs, Trojan Source bidi characters, code pushed off-screen with whitespace, invisible Unicode payloads |
 | Links and social engineering | executables outside the repo's own releases, file-sharing sites, link shorteners, archive passwords, "disable your antivirus" |
-| Binary files | committed PE/ELF/Mach-O executables, `.lnk` shortcuts, encrypted archives; files inside ZIPs are unpacked in memory and scanned too |
+| Binary files | committed PE/ELF/Mach-O executables, `.lnk` shortcuts, encrypted archives, files antivirus engines detect ([VirusTotal](https://www.virustotal.com), by SHA-256 only); files inside ZIPs are unpacked in memory and scanned too |
 | Repository signals | brand-new accounts and repositories, files hidden from GitHub's download archive (weak signals) |
 
 Each rule adds its strongest finding once to a 0-100 score: **clean** below 30, **suspicious** from 30, **dangerous** from 70. When a safety limit stops the scan, the result is **incomplete**, never clean.
+
+The site speaks English and Turkish (`/en/...`, `/tr/...`; the visitor's browser language is picked by default) and has a light and a dark theme.
 
 The latest result of every scanned repository is stored. Clean repositories are listed in the **Safe Zone**, dangerous ones in the **Scammer** list (automated results, with a link to report false positives).
 
@@ -46,6 +50,7 @@ Optional settings in `.env.local` (see `.env.example`):
 
 - `GITHUB_TOKEN`: fine-grained token with read-only access to public repositories. Raises the GitHub API limit from 60 to 5,000 requests per hour (a new scan uses 5; a result stored in the last hour uses none).
 - `DATABASE_URL`: Postgres connection string (Neon). Without it, scans work but nothing is stored and the lists stay empty.
+- `VIRUSTOTAL_API_KEY`: free VirusTotal API key. Committed programs and release files are then looked up by SHA-256 (nothing is uploaded or downloaded).
 
 ### Deploy to Vercel
 
@@ -60,7 +65,8 @@ Optional settings in `.env.local` (see `.env.example`):
 ## Project layout
 
 - `src/engine/`: the scanning engine (pure TypeScript, Node built-ins only)
-- `src/app/`, `src/components/`: Next.js site and API
+- `src/app/`, `src/components/`: Next.js site (pages under `src/app/[lang]/`) and API
+- `src/i18n/`, `src/proxy.ts`: languages (dictionaries, locale picking and redirects)
 - `src/lib/`: API service (cache, rate limit) and Postgres store
 - `src/cli.ts`: command-line scanner
 - `tests/`: Vitest tests and harmless rule fixtures

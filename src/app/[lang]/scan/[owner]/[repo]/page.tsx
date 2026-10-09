@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ScanClient } from "@/components/ScanClient";
 import { InvalidTarget } from "@/engine/errors";
 import { parseTarget } from "@/engine/target";
+import { isLocale } from "@/i18n/config";
 
 function refFrom(owner: string, repo: string) {
   try {
@@ -14,16 +15,16 @@ function refFrom(owner: string, repo: string) {
   }
 }
 
-export async function generateMetadata({ params }: PageProps<"/scan/[owner]/[repo]">): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<"/[lang]/scan/[owner]/[repo]">): Promise<Metadata> {
   const { owner, repo } = await params;
   const ref = refFrom(owner, repo);
   return { title: ref ? `${ref.owner}/${ref.repo}` : "Scan", robots: { index: false } };
 }
 
-export default async function ScanPage({ params }: PageProps<"/scan/[owner]/[repo]">) {
-  const { owner, repo } = await params;
+export default async function ScanPage({ params }: PageProps<"/[lang]/scan/[owner]/[repo]">) {
+  const { lang, owner, repo } = await params;
   const ref = refFrom(owner, repo);
-  if (!ref) notFound();
+  if (!isLocale(lang) || !ref) notFound();
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <ScanClient key={`${ref.owner}/${ref.repo}`} owner={ref.owner} repo={ref.repo} />

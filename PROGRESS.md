@@ -9,15 +9,16 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Parça | Durum |
 | --- | --- |
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
-| 34 kural, 9 kategori | Hazır |
+| 35 kural, 9 kategori | Hazır |
 | ZIP içeriğini tarama, `export-ignore` ile saklanan dosyaları yakalama | Hazır (5. oturum) |
-| Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar, ilerleme | Hazır |
+| Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar | Hazır; 10. oturumda yeni tasarım (açık/koyu tema, Motion animasyonları, dönen logo, röntgen örümceği) |
+| Diller | İngilizce ve Türkçe (10. oturum); yenisi `src/i18n/` ile eklenir |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3 |
-| Testler | 23 dosya, 775 test |
+| Testler | 24 dosya, 808 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -446,11 +447,25 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
     - 1–4 motorun "zararlı" demesi +20'den +10'a indi. Kurulum dosyalarında ve küçük başlatıcılarda bu kadar az tespit genelde yanlış alarm; uv bu yüzden Tehlikeli sınırına itiliyordu.
   - Kota notu: bir tarama en fazla 4 dosyayı canlı sorar. Kalanlar aynı repo tekrar tarandıkça sorulur, sorulanlar 1 gün hatırlanır.
 
+### 9 Ekim 2026 (10. oturum): Yeni tasarım, Türkçe, logo
+
+Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imleci takip eden örümcek, "frame motion" yani Motion animasyonları), daha açık ve iç karartmayan renkler, buna rağmen açık/koyu mod, sitenin Türkçe hali (ileride başka diller), kullanıcının çizdiği logonun sol üstte aralıklarla dönmesi.
+
+- **Renkler ve tema:** Bütün renkler artık `globals.css`'teki değişkenlerden geliyor. Açık tema yumuşak mavi-gri (bembeyaz değil), koyu tema logonun lacivertinden gelen loş bir ton (eskisi gibi simsiyah değil). Sağ üstte üç seçenek var: Sistem / Açık / Koyu. Seçim tarayıcıda saklanıyor ve sayfa açılırken yanıp sönmeden uygulanıyor (`public/theme.js`).
+- **Diller:** Bütün sayfalar `/en/...` ve `/tr/...` altına taşındı. Dil adres çubuğunda olduğu için sayfalar yine önceden üretiliyor (hızlı). İlk girişte dil tarayıcının dilinden seçiliyor; sağ üstteki EN/TR düğmesi seçimi çerezde hatırlıyor. Eski linkler (`/scan/owner/repo`, `/rules`) `src/proxy.ts` ile doğru dile yönleniyor. 35 kuralın başlıkları ve açıklamaları dahil her şey Türkçeye çevrildi; yalnızca motorun ürettiği kısa bulgu notları İngilizce kaldı.
+- **Animasyonlar (Motion):** sayfa geçişleri, kaydırınca beliren kartlar, kartların fareyle hafifçe yükselmesi, menüde ve filtrelerde kayan seçim hapı, sayarak dolan puan halkası, dolan puan çubukları, tarama adımlarında beliren tikler, ana sayfada sahte bir reponun "röntgeni" (bir ışın dosyaların üzerinden geçerken her dosyaya GitRay'in ne diyeceği çıkıyor). "Hareketi azalt" ayarı açık olanlarda hareketler kapanıyor.
+- **Örümcek:** Fareyi takip eden küçük bir röntgen örümceği (kemikleri parlayan, 8 bacaklı, bacaklarını gerçek bir örümcek gibi sırayla atan). Tıklamayı engellemiyor, vardığında duruyor, telefonda görünmüyor, alt bilgideki "Örümceği gizle" ile kapatılabiliyor. scanrepo.dev'deki örümceğin kopyası değil, GitRay'in röntgen temasına uygun kendi çizimimiz.
+- **Logo:** Kullanıcının logosu `public/brand/` altında. Üst menüde madeni para gibi dönüyor, her dönüşten sonra 4,5 saniye bekliyor; logonun kendi tarama ışını animasyonu da çalışıyor. Sekme ikonu logodaki "G" harfinden yapıldı (`src/app/icon.svg`); eski Next.js ikonu silindi.
+- **Yeni bağımlılık:** `motion` 13.4.4 (MIT, ücretsiz; yayımlanalı iki hafta olmuş, sabit sürüm).
+- **Doğrulama:** Bu ortamda production build alınıp Playwright ile ekran görüntüleri incelendi: ana sayfa (açık/İngilizce, koyu/Türkçe, mobil), Kurallar, Dolandırıcılar, 404, gerçek bir tarama raporu (Dorukkino/GitRay) iki temada. Tema seçimi yenilemeden sonra ilk boyamada uygulanıyor, dil değişince aynı sayfada kalınıyor ve çerez sonraki ziyarette yönlendirmeyi belirliyor; konsolda hata yok.
+- Yeni testler: `tests/i18n.test.ts` (dil seçimi, yönlendirme, her çevirinin İngilizceyle aynı yer tutucuları kullanması, her kuralın çevrilmiş olması), Türkçe rapor ve liste testleri.
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
-2. **Tasarım** (kullanıcının isteği: önerilen ve kararlaştırılan işler bittikten sonra): koyu tema yerine daha açık ve okunaklı bir arayüz. Sıradaki büyük iş bu.
+2. ~~**Tasarım**~~ (10. oturumda yapıldı). Kullanıcının canlıdaki görüşüne göre ince ayar: renk tonları, örümceğin boyu ve hızı, logonun dönüş biçimi (şu an madeni para gibi; istenirse düz dönüşe çevrilir).
+   - Başka diller: `src/i18n/` altına sözlük eklemek yeterli.
+   - Bulgu notlarının (`note`) çevirisi için motorun not metinlerini kimlikli hale getirmek gerekir (şu an İngilizce).
 3. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
 4. **Liste kalitesi:** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür.
 5. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
