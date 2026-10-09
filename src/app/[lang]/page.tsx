@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { HeroScan } from "@/components/HeroScan";
-import { Lift, Reveal } from "@/components/motion";
+import { Lift, Reveal, ScrollReveal } from "@/components/motion";
 import { ScanForm } from "@/components/ScanForm";
 import { CATEGORY_ORDER, VERDICT_STYLE } from "@/components/verdict";
 import { allRules } from "@/engine";
@@ -74,7 +74,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </Reveal>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {h.steps.map((s, i) => (
-            <Reveal key={s.title} delay={i * 0.08}>
+            <ScrollReveal key={s.title} column={i}>
               <Lift className="h-full rounded-2xl border border-line bg-surface/80 p-6 shadow-sm backdrop-blur">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/12 text-accent ring-1 ring-accent/20">
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -87,7 +87,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{s.text}</p>
               </Lift>
-            </Reveal>
+            </ScrollReveal>
           ))}
         </div>
       </section>
@@ -101,7 +101,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </Reveal>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CATEGORY_ORDER.map((c, i) => (
-            <Reveal key={c} delay={(i % 3) * 0.06}>
+            <ScrollReveal key={c} column={i % 3}>
               <Lift className="h-full rounded-2xl border border-line bg-surface/80 p-5 shadow-sm backdrop-blur transition-colors hover:border-accent/40">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-semibold text-fg">{dict.categories[c].label}</h3>
@@ -109,7 +109,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{dict.categories[c].text}</p>
               </Lift>
-            </Reveal>
+            </ScrollReveal>
           ))}
         </div>
       </section>
@@ -120,7 +120,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </Reveal>
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {VERDICTS.map((v, i) => (
-            <Reveal key={v} delay={i * 0.07}>
+            <ScrollReveal key={v} column={i}>
               <Lift className={`h-full rounded-2xl border p-5 ${VERDICT_STYLE[v].border} ${VERDICT_STYLE[v].bg}`}>
                 <div className={`flex items-center gap-2 font-semibold ${VERDICT_STYLE[v].text}`}>
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: VERDICT_STYLE[v].color }} />
@@ -129,7 +129,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
                 <div className="mt-1 font-mono text-xs text-subtle">{h.ranges[v]}</div>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{dict.verdicts[v].summary}</p>
               </Lift>
-            </Reveal>
+            </ScrollReveal>
           ))}
         </div>
         <Reveal>
