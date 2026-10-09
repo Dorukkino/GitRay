@@ -11,8 +11,8 @@ const CATEGORY_TEXT: Record<Category, string> = {
   obfuscation: "Random-looking blobs, Trojan Source bidi characters, code pushed off-screen with whitespace, invisible Unicode payloads.",
   links: "Executables and archives outside the repo's own releases, file-sharing sites, link shorteners, archive passwords.",
   social: "README instructions to disable antivirus, add exclusions or ignore a \"false positive\".",
-  binary: "Committed PE/ELF/Mach-O executables, .lnk shortcuts, ZIPs with executables, password-protected archives.",
-  repo: "Brand-new owner accounts and freshly created repositories (weak signals that add weight).",
+  binary: "Committed PE/ELF/Mach-O executables, .lnk shortcuts, password-protected archives. Files inside ZIPs are unpacked in memory and scanned too.",
+  repo: "Brand-new owner accounts, freshly created repositories, and files hidden from GitHub's download archive.",
   ci: "GitHub Actions workflows that pipe downloads into a shell (runs on GitHub, not your machine).",
 };
 
@@ -23,7 +23,7 @@ const STEPS = [
   },
   {
     title: "Read in memory, with limits",
-    text: "The source archive is streamed and unpacked in memory with hard limits on size, file count and time. Nothing is written to disk, links are never followed and nothing is executed.",
+    text: "The source archive is streamed and unpacked in memory with hard limits on size, file count and time, ZIP files inside it included. Files that .gitattributes keeps out of GitHub's archive are fetched separately. Nothing is written to disk and nothing is executed.",
   },
   {
     title: "Explainable rules",
