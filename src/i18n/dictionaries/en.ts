@@ -23,8 +23,6 @@ export const en = {
   footer: {
     note: "GitRay never clones, builds or runs the code it scans. Results are heuristics, not a guarantee.",
     source: "Source on GitHub",
-    hideSpider: "Hide the spider",
-    showSpider: "Show the spider",
   },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
   language: { label: "Language" },

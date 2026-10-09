@@ -11,7 +11,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
 | 35 kural, 9 kategori | Hazır |
 | ZIP içeriğini tarama, `export-ignore` ile saklanan dosyaları yakalama | Hazır (5. oturum) |
-| Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar | Hazır; 10. oturumda yeni tasarım (açık/koyu tema, Motion animasyonları, dönen logo, röntgen örümceği) |
+| Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar | Hazır; 10. oturumda yeni tasarım (açık/koyu tema, Motion animasyonları, kullanıcının logosu) |
 | Diller | İngilizce ve Türkçe (10. oturum); yenisi `src/i18n/` ile eklenir |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
@@ -454,16 +454,20 @@ Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imle
 - **Renkler ve tema:** Bütün renkler artık `globals.css`'teki değişkenlerden geliyor. Açık tema yumuşak mavi-gri (bembeyaz değil), koyu tema logonun lacivertinden gelen loş bir ton (eskisi gibi simsiyah değil). Sağ üstte üç seçenek var: Sistem / Açık / Koyu. Seçim tarayıcıda saklanıyor ve sayfa açılırken yanıp sönmeden uygulanıyor (`public/theme.js`).
 - **Diller:** Bütün sayfalar `/en/...` ve `/tr/...` altına taşındı. Dil adres çubuğunda olduğu için sayfalar yine önceden üretiliyor (hızlı). İlk girişte dil tarayıcının dilinden seçiliyor; sağ üstteki EN/TR düğmesi seçimi çerezde hatırlıyor. Eski linkler (`/scan/owner/repo`, `/rules`) `src/proxy.ts` ile doğru dile yönleniyor. 35 kuralın başlıkları ve açıklamaları dahil her şey Türkçeye çevrildi; yalnızca motorun ürettiği kısa bulgu notları İngilizce kaldı.
 - **Animasyonlar (Motion):** sayfa geçişleri, kaydırınca beliren kartlar, kartların fareyle hafifçe yükselmesi, menüde ve filtrelerde kayan seçim hapı, sayarak dolan puan halkası, dolan puan çubukları, tarama adımlarında beliren tikler, ana sayfada sahte bir reponun "röntgeni" (bir ışın dosyaların üzerinden geçerken her dosyaya GitRay'in ne diyeceği çıkıyor). "Hareketi azalt" ayarı açık olanlarda hareketler kapanıyor.
-- **Örümcek:** Fareyi takip eden küçük bir röntgen örümceği (kemikleri parlayan, 8 bacaklı, bacaklarını gerçek bir örümcek gibi sırayla atan). Tıklamayı engellemiyor, vardığında duruyor, telefonda görünmüyor, alt bilgideki "Örümceği gizle" ile kapatılabiliyor. scanrepo.dev'deki örümceğin kopyası değil, GitRay'in röntgen temasına uygun kendi çizimimiz.
-- **Logo:** Kullanıcının logosu `public/brand/` altında. Üst menüde madeni para gibi dönüyor, her dönüşten sonra 4,5 saniye bekliyor; logonun kendi tarama ışını animasyonu da çalışıyor. Sekme ikonu logodaki "G" harfinden yapıldı (`src/app/icon.svg`); eski Next.js ikonu silindi.
+- **Örümcek (sonra kaldırıldı, aşağıya bak):** Fareyi takip eden küçük bir röntgen örümceği (kemikleri parlayan, 8 bacaklı, bacaklarını gerçek bir örümcek gibi sırayla atan). Tıklamayı engellemiyor, vardığında duruyor, telefonda görünmüyor, alt bilgideki "Örümceği gizle" ile kapatılabiliyor. scanrepo.dev'deki örümceğin kopyası değil, GitRay'in röntgen temasına uygun kendi çizimimiz.
+- **Logo (sonra değişti, aşağıya bak):** Kullanıcının logosu `public/brand/` altında. Üst menüde madeni para gibi dönüyor, her dönüşten sonra 4,5 saniye bekliyor; logonun kendi tarama ışını animasyonu da çalışıyor. Sekme ikonu logodaki "G" harfinden yapıldı (`src/app/icon.svg`); eski Next.js ikonu silindi.
 - **Yeni bağımlılık:** `motion` 13.4.4 (MIT, ücretsiz; yayımlanalı iki hafta olmuş, sabit sürüm).
 - **Doğrulama:** Bu ortamda production build alınıp Playwright ile ekran görüntüleri incelendi: ana sayfa (açık/İngilizce, koyu/Türkçe, mobil), Kurallar, Dolandırıcılar, 404, gerçek bir tarama raporu (Dorukkino/GitRay) iki temada. Tema seçimi yenilemeden sonra ilk boyamada uygulanıyor, dil değişince aynı sayfada kalınıyor ve çerez sonraki ziyarette yönlendirmeyi belirliyor; konsolda hata yok.
 - Yeni testler: `tests/i18n.test.ts` (dil seçimi, yönlendirme, her çevirinin İngilizceyle aynı yer tutucuları kullanması, her kuralın çevrilmiş olması), Türkçe rapor ve liste testleri.
+- **Kullanıcının ilk tepkisi ve düzeltmeler** (aynı oturum, PR 13):
+  - Örümcek "çok komik duruyor" dendi, tamamen kaldırıldı.
+  - Logo artık dönmüyor ve arkasındaki siyah dikdörtgen yok. Satır içi SVG (`BrandLogo`): harfler temanın yazı rengiyle çiziliyor (açık temada lacivert, koyu temada beyaz), her boyutta keskin.
+  - Logonun kendi röntgen ışını iniyor ve her inişten sonra yaklaşık 3,5 saniye bekliyor (döngü 4,2 sn yerine 6 sn; iniş hızı aynı).
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
-2. ~~**Tasarım**~~ (10. oturumda yapıldı). Kullanıcının canlıdaki görüşüne göre ince ayar: renk tonları, örümceğin boyu ve hızı, logonun dönüş biçimi (şu an madeni para gibi; istenirse düz dönüşe çevrilir).
+2. ~~**Tasarım**~~ (10. oturumda yapıldı). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
    - Başka diller: `src/i18n/` altına sözlük eklemek yeterli.
    - Bulgu notlarının (`note`) çevirisi için motorun not metinlerini kimlikli hale getirmek gerekir (şu an İngilizce).
 3. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
