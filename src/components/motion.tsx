@@ -76,9 +76,18 @@ export function ScrollReveal({ children, className, column = 0 }: { children: Re
     const measure = () => {
       const vh = window.innerHeight;
       const top = el.getBoundingClientRect().top + window.scrollY;
+      const distance = vh * SCRUB_DISTANCE;
+      const maxScroll = document.documentElement.scrollHeight - vh;
       // Starts when the card's top reaches the bottom of the screen, or with the first scroll if it is already on screen.
-      const start = Math.max(0, top - vh * 0.95) + column * vh * SCRUB_COLUMN_DELAY;
-      range.current = { start, end: start + vh * SCRUB_DISTANCE };
+      let start = Math.max(0, top - vh * 0.95) + column * vh * SCRUB_COLUMN_DELAY;
+      let end = start + distance;
+      // Cards near the end of the page must be in place once the reader cannot scroll any further.
+      if (end > maxScroll) {
+        end = maxScroll;
+        start = Math.max(0, Math.min(start, end - distance / 2));
+      }
+      // A page too short to scroll shows everything.
+      range.current = end > start ? { start, end } : { start: -1, end: 0 };
       update(window.scrollY);
     };
     measure();
