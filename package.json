@@ -1,0 +1,44 @@
+{
+  "name": "gitray",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "scan": "tsx src/cli.ts",
+    "check": "npm run lint && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.3"
+  },
+  "description": "Scan GitHub repositories for malware tricks without cloning or running them.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,8 +1,9 @@
 # path: setup.py
-# lines: 3
+# lines: 4
 # weight: 10
 # ---
 import subprocess
 from setuptools import setup
-out = subprocess.check_output(["nvcc", "-V"])
+
+version = subprocess.check_output(["nvcc", "--version"]).decode()
 setup(name="demo")

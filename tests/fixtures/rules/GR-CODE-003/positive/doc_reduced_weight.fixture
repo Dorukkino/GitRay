@@ -1,5 +1,7 @@
-# path: docs/security.md
-# lines: 1
+# path: README.md
+# lines: 3
 # weight: 5
 # ---
+# Notes
+
 Code that opens "Login Data" is flagged.

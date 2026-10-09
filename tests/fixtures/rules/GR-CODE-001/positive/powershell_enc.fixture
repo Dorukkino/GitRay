@@ -1,5 +1,5 @@
-# path: run.bat
-# lines: 2
+# path: run.ps1
+# lines: 1
+# weight: 45
 # ---
-@echo off
-powershell -NoProfile -enc VwByAGkAdABlAC0ASABvAHMAdAAgACIAZwBpAHQAcgBhAHkALQB0AGUAcwB0ACIA
+powershell -NoProfile -enc VwByAGkAdABlAC0ASABvAHMAdAAgACIAZwBpAHQAcgBhAHkAIgA=

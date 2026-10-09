@@ -1,0 +1,5 @@
+# path: persist.bat
+# lines: 1
+# weight: 35
+# ---
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Demo /d "%APPDATA%\demo.exe"

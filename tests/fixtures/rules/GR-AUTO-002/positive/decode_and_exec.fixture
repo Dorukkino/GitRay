@@ -1,8 +1,9 @@
 # path: setup.py
-# lines: 3
+# lines: 4
 # weight: 35
 # ---
-import base64, zlib
+import base64
 from setuptools import setup
-exec(zlib.decompress(base64.b64decode("eA==")))
+
+exec(base64.b64decode("cHJpbnQoImdpdHJheSB0ZXN0Iik="))
 setup(name="demo")

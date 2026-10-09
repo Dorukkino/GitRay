@@ -1,7 +1,0 @@
-# path: setup.py
-# lines: 3
-# weight: 10
-# ---
-import subprocess
-version = open("VERSION").read().strip()
-subprocess.check_call(["cmake", "-DPROJECT_VERSION=" + version, ".."])

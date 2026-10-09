@@ -1,4 +1,4 @@
-# path: fetch.sh
+# path: scripts/fetch.sh
 # ---
-curl -o out.tar.gz https://example.invalid/out.tar.gz
-curl -s https://example.invalid/health || sh -c 'echo down'
+curl -fsSLo tool.tar.gz https://example.invalid/tool.tar.gz
+tar xzf tool.tar.gz

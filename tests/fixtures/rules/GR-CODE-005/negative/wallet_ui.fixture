@@ -1,4 +1,5 @@
-# path: wallet.js
+# path: src/Wallet.tsx
 # ---
-const wallet = new Wallet();
-// show wallet balance
+export function Wallet() {
+  return <button>Connect wallet</button>;
+}

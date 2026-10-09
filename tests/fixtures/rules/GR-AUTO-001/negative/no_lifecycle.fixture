@@ -2,8 +2,5 @@
 # ---
 {
   "name": "demo",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest"
-  }
+  "scripts": { "build": "tsc", "test": "vitest", "start": "node index.js" }
 }

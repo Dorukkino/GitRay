@@ -1,0 +1,10 @@
+# path: App/App.csproj
+# lines: 4
+# weight: 15
+# ---
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PostBuildEvent>xcopy /y "$(TargetPath)" "$(SolutionDir)bin\"</PostBuildEvent>
+  </PropertyGroup>
+</Project>

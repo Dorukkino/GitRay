@@ -1,0 +1,10 @@
+# path: packages/cli/package.json
+# lines: 4
+# weight: 35
+# ---
+{
+  "scripts": {
+    "test": "vitest",
+    "prepare": "node -e \"require('./x')\""
+  }
+}

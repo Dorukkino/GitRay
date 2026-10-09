@@ -1,4 +1,9 @@
 # path: setup.py
 # ---
-from setuptools import setup
-setup(name="demo", install_requires=["requests"])
+from setuptools import setup, find_packages
+
+setup(
+    name="demo",
+    url="https://github.com/octo/demo",
+    packages=find_packages(),
+)

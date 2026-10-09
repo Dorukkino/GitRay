@@ -1,5 +1,6 @@
-# path: e.py
+# path: paths.py
 # lines: 1, 2
+# weight: 35
 # ---
 p = appdata + "\\Electrum\\wallets"
 q = home + "/.electrum/wallets"

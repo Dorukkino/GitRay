@@ -1,7 +1,7 @@
-# path: docs/guide.md
+# path: README.md
 # lines: 3
 # weight: 5
 # ---
-# Guide
+# Demo
 
-Run `exec(base64.b64decode("cHJpbnQoImdpdHJheS10ZXN0Iik="))` to see the demo.
+Run `exec(base64.b64decode("cHJpbnQoImdpdHJheSB0ZXN0Iik="))` to see the demo.

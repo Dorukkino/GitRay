@@ -1,0 +1,3 @@
+# path: i18n.js
+# ---
+const label = "name{U+200F}";

@@ -3,5 +3,5 @@
 # weight: 45
 # ---
 import base64
-payload = "cHJpbnQoImdpdHJheS10ZXN0Iik="
+payload = "cHJpbnQoImdpdHJheSB0ZXN0Iik="
 exec(base64.b64decode(payload))

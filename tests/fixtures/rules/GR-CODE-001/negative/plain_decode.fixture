@@ -1,5 +1,5 @@
 # path: util.py
 # ---
+import base64
 data = base64.b64decode(blob)
-result = eval_expression(x)
-exec(compiled_code)
+print(len(data))

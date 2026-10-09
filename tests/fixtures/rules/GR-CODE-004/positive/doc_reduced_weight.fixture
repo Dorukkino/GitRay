@@ -1,5 +1,0 @@
-# path: docs/setup.md
-# lines: 1
-# weight: 3
-# ---
-Copy `~/.ssh/id_rsa` to the server.

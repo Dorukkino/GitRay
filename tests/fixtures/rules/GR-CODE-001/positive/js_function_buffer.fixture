@@ -1,4 +1,5 @@
-# path: lib/run.js
+# path: index.js
 # lines: 1
+# weight: 45
 # ---
-new Function(Buffer.from("Y29uc29sZS5sb2coImdpdHJheS10ZXN0Iik=", "base64").toString())();
+new Function(Buffer.from("Y29uc29sZS5sb2coImdpdHJheSB0ZXN0Iik=", "base64").toString())();

@@ -1,0 +1,6 @@
+# path: .github/workflows/ci.yml
+# ---
+jobs:
+  test:
+    steps:
+      - run: curl -fsSLO https://example.invalid/tool.tar.gz

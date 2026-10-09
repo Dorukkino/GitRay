@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #070a10;
+  --foreground: #e2e8f0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Faint grid behind the hero. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(148 163 184 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(400%);
+  }
+}
+
+.animate-scanline {
+  animation: scanline 2.4s ease-in-out infinite;
+}
+
+/* Markdown pages (progress log). Our own content, rendered without raw HTML. */
+.prose-gitray h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: #f8fafc;
+}
+.prose-gitray h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  margin: 2.25rem 0 0.75rem;
+  color: #f1f5f9;
+  border-bottom: 1px solid rgb(148 163 184 / 0.15);
+  padding-bottom: 0.4rem;
+}
+.prose-gitray h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+  color: #e2e8f0;
+}
+.prose-gitray p,
+.prose-gitray li {
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+.prose-gitray p {
+  margin: 0.75rem 0;
+}
+.prose-gitray ul,
+.prose-gitray ol {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+}
+.prose-gitray ul {
+  list-style: disc;
+}
+.prose-gitray ol {
+  list-style: decimal;
+}
+.prose-gitray li {
+  margin: 0.25rem 0;
+}
+.prose-gitray code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: rgb(148 163 184 / 0.12);
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.35rem;
+}
+.prose-gitray pre {
+  background: #0b1220;
+  border: 1px solid rgb(148 163 184 / 0.15);
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+}
+.prose-gitray pre code {
+  background: transparent;
+  padding: 0;
+}
+.prose-gitray a {
+  color: #67e8f9;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-gitray table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.prose-gitray th,
+.prose-gitray td {
+  border: 1px solid rgb(148 163 184 / 0.15);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-gitray th {
+  background: rgb(148 163 184 / 0.08);
+  color: #f1f5f9;
+}
+.prose-gitray input[type="checkbox"] {
+  margin-right: 0.4rem;
+  accent-color: #22d3ee;
+}
+.prose-gitray li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.25rem;
+}

@@ -1,4 +1,6 @@
-# path: login.py
+# path: templates/login.html
 # ---
-# Please enter your login data below
-login_data = request.form
+<form action="/login" method="post">
+  <label>Login data is never stored</label>
+  <input name="password" type="password">
+</form>

@@ -1,0 +1,192 @@
+/**
+ * Stores the latest scan of each repository. Feeds the Safe Zone (clean) and
+ * Scammer (dangerous) lists and serves repeat scans without calling GitHub.
+ *
+ * Only the sanitized report (engine/report.ts) is stored, never repository
+ * files. Without DATABASE_URL the site works as before and the lists are empty.
+ */
+
+import type { Report, Verdict } from "@/engine";
+
+import { type Db, databaseUrl, neonDb } from "./db";
+
+export interface ScanSummary {
+  fullName: string;
+  headSha: string;
+  verdict: Verdict;
+  score: number;
+  description: string | null;
+  stars: number;
+  findings: number;
+  topRules: { id: string; title: string; points: number }[];
+  scannedAt: string;
+}
+
+export type ListedVerdict = "clean" | "dangerous";
+
+export interface ScanStore {
+  readonly configured: boolean;
+  save(report: Report): Promise<void>;
+  /** The stored report of a repository if it was scanned after `since`. */
+  fresh(repoKey: string, since: Date): Promise<Report | null>;
+  list(verdict: ListedVerdict, limit: number): Promise<ScanSummary[]>;
+  counts(): Promise<Record<Verdict, number>>;
+}
+
+export function repoKey(fullName: string): string {
+  return fullName.toLowerCase();
+}
+
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS scans (
+    repo_key    text PRIMARY KEY,
+    full_name   text NOT NULL,
+    head_sha    text NOT NULL,
+    verdict     text NOT NULL CHECK (verdict IN ('clean', 'suspicious', 'dangerous', 'incomplete')),
+    score       integer NOT NULL,
+    complete    boolean NOT NULL,
+    description text,
+    stars       integer NOT NULL DEFAULT 0,
+    findings    integer NOT NULL DEFAULT 0,
+    top_rules   jsonb NOT NULL DEFAULT '[]'::jsonb,
+    report      jsonb NOT NULL,
+    scanned_at  timestamptz NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS scans_verdict_scanned_at ON scans (verdict, scanned_at DESC)",
+];
+
+const EMPTY_COUNTS: Record<Verdict, number> = { clean: 0, suspicious: 0, dangerous: 0, incomplete: 0 };
+
+interface SummaryRow {
+  full_name: string;
+  head_sha: string;
+  verdict: Verdict;
+  score: number;
+  description: string | null;
+  stars: number;
+  findings: number;
+  top_rules: unknown;
+  scanned_at: string | Date;
+}
+
+function parseJson<T>(value: unknown, fallback: T): T {
+  if (typeof value !== "string") return (value as T) ?? fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export class PostgresScanStore implements ScanStore {
+  readonly configured = true;
+  private schema: Promise<void> | null = null;
+
+  constructor(private readonly db: Db) {}
+
+  /** Creates the table on first use, so a fresh database needs no setup step. */
+  private ensureSchema(): Promise<void> {
+    this.schema ??= (async () => {
+      for (const statement of SCHEMA) await this.db.query(statement);
+    })().catch((e) => {
+      this.schema = null;
+      throw e;
+    });
+    return this.schema;
+  }
+
+  async save(report: Report): Promise<void> {
+    const t = report.target;
+    if (!t) return;
+    await this.ensureSchema();
+    const topRules = report.rules.slice(0, 3).map((r) => ({ id: r.id, title: r.title, points: r.points }));
+    await this.db.query(
+      `INSERT INTO scans (repo_key, full_name, head_sha, verdict, score, complete, description, stars, findings, top_rules, report, scanned_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12::timestamptz)
+       ON CONFLICT (repo_key) DO UPDATE SET
+         full_name = EXCLUDED.full_name, head_sha = EXCLUDED.head_sha, verdict = EXCLUDED.verdict,
+         score = EXCLUDED.score, complete = EXCLUDED.complete, description = EXCLUDED.description,
+         stars = EXCLUDED.stars, findings = EXCLUDED.findings, top_rules = EXCLUDED.top_rules,
+         report = EXCLUDED.report, scanned_at = EXCLUDED.scanned_at`,
+      [
+        repoKey(t.fullName),
+        t.fullName,
+        t.headSha,
+        report.verdict,
+        report.score,
+        report.complete,
+        t.description,
+        t.stars,
+        report.findings.length + report.omittedFindings,
+        JSON.stringify(topRules),
+        JSON.stringify(report),
+        report.startedAt,
+      ],
+    );
+  }
+
+  async fresh(key: string, since: Date): Promise<Report | null> {
+    await this.ensureSchema();
+    const rows = await this.db.query<{ report: unknown }>(
+      "SELECT report FROM scans WHERE repo_key = $1 AND scanned_at > $2::timestamptz",
+      [key, since.toISOString()],
+    );
+    const report = rows[0] ? parseJson<Report | null>(rows[0].report, null) : null;
+    return report?.schemaVersion === 1 ? report : null;
+  }
+
+  async list(verdict: ListedVerdict, limit: number): Promise<ScanSummary[]> {
+    await this.ensureSchema();
+    const rows = await this.db.query<SummaryRow>(
+      `SELECT full_name, head_sha, verdict, score, description, stars, findings, top_rules, scanned_at
+       FROM scans WHERE verdict = $1 ORDER BY scanned_at DESC LIMIT $2`,
+      [verdict, limit],
+    );
+    return rows.map((r) => ({
+      fullName: r.full_name,
+      headSha: r.head_sha,
+      verdict: r.verdict,
+      score: Number(r.score),
+      description: r.description,
+      stars: Number(r.stars),
+      findings: Number(r.findings),
+      topRules: parseJson<ScanSummary["topRules"]>(r.top_rules, []),
+      scannedAt: new Date(r.scanned_at).toISOString(),
+    }));
+  }
+
+  async counts(): Promise<Record<Verdict, number>> {
+    await this.ensureSchema();
+    const rows = await this.db.query<{ verdict: Verdict; n: number }>(
+      "SELECT verdict, count(*)::int AS n FROM scans GROUP BY verdict",
+    );
+    const out = { ...EMPTY_COUNTS };
+    for (const r of rows) if (r.verdict in out) out[r.verdict] = Number(r.n);
+    return out;
+  }
+}
+
+/** Used when no database is configured: nothing is stored, lists are empty. */
+export const nullScanStore: ScanStore = {
+  configured: false,
+  async save() {},
+  async fresh() {
+    return null;
+  },
+  async list() {
+    return [];
+  },
+  async counts() {
+    return { ...EMPTY_COUNTS };
+  },
+};
+
+let shared: ScanStore | null = null;
+
+export function getScanStore(): ScanStore {
+  if (!shared) {
+    const url = databaseUrl();
+    shared = url ? new PostgresScanStore(neonDb(url)) : nullScanStore;
+  }
+  return shared;
+}

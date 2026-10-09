@@ -1,0 +1,7 @@
+# path: report.py
+# lines: 2
+# weight: 25
+# ---
+import requests
+HOOK = "https://discord.com/api/webhooks/000000000000000000/EXAMPLE-not-a-real-token-for-tests"
+requests.post(HOOK, json={"content": "hi"})

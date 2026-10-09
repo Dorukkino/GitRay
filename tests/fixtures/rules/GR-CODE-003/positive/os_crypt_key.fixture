@@ -1,4 +1,6 @@
-# path: key.py
-# lines: 1
+# path: keys.py
+# lines: 2
+# weight: 40
 # ---
+local_state = os.path.join(base, "Local State")
 key = json.load(open(local_state))["os_crypt"]["encrypted_key"]

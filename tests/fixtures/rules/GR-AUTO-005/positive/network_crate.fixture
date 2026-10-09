@@ -1,0 +1,8 @@
+# path: build.rs
+# lines: 2
+# weight: 35
+# ---
+fn main() {
+    let body = reqwest::blocking::get("https://example.invalid/lib.tar.gz").unwrap().bytes().unwrap();
+    std::fs::write("lib.tar.gz", body).unwrap();
+}

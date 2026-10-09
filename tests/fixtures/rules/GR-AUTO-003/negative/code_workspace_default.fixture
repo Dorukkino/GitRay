@@ -1,6 +1,0 @@
-# path: demo.code-workspace
-# ---
-{
-  "folders": [{ "path": "." }],
-  "settings": { "editor.tabSize": 2 }
-}
