@@ -20,7 +20,6 @@ const NAV = [
   { href: "/", label: "Scan" },
   { href: "/safe-zone", label: "Safe Zone" },
   { href: "/scammer", label: "Scammer" },
-  { href: "/demo", label: "Demo report" },
   { href: "/rules", label: "Rules" },
   { href: "/progress", label: "Progress" },
 ];

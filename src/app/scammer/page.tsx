@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { EmptyList, RepoList } from "@/components/RepoList";
 import { LIST_LIMIT, loadList } from "@/lib/lists";
@@ -42,8 +41,7 @@ export default async function ScammerPage() {
           <EmptyList configured>The list could not be loaded right now. Try again in a minute.</EmptyList>
         ) : items.length === 0 ? (
           <EmptyList configured={configured}>
-            No dangerous repositories found yet. <Link href="/demo" className="text-cyan-300 underline">See the demo</Link>{" "}
-            for what one looks like.
+            No dangerous repositories found yet. Repositories that score 70 or more appear here.
           </EmptyList>
         ) : (
           <RepoList items={items} showReasons />

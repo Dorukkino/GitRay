@@ -58,7 +58,7 @@ Optional settings in `.env.local` (see `.env.example`):
 
 - `src/engine/`: the scanning engine (pure TypeScript, Node built-ins only)
 - `src/app/`, `src/components/`: Next.js site and API
-- `src/lib/`: API service (cache, rate limit), Postgres store, demo data
+- `src/lib/`: API service (cache, rate limit) and Postgres store
 - `src/cli.ts`: command-line scanner
 - `tests/`: Vitest tests and harmless rule fixtures
 

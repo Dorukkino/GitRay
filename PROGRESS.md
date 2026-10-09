@@ -10,7 +10,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | --- | --- |
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
 | 27 kural, 8 kategori | Hazır |
-| Web sitesi: arama, sonuç, demo, kurallar, ilerleme | Hazır |
+| Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar, ilerleme | Hazır |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
