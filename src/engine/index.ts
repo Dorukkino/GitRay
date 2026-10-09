@@ -7,12 +7,14 @@ export { readArchive, type ArchiveEntry } from "./archive";
 export { ArchiveError, GitHubError, GitRayError, InvalidTarget, LimitExceeded } from "./errors";
 export { GitHubClient, type GitHubClientOptions } from "./github";
 export { OsvClient } from "./osv";
+export { VirusTotalClient, VirusTotalError, type Reputation, type ReputationService } from "./virustotal";
 export { DEFAULT_LIMITS, type Limits } from "./limits";
 export {
   toReport,
   severityOf,
   type Report,
   type ReportAsset,
+  type ReportCheckedFile,
   type ReportFinding,
   type ReportRule,
   type ReportSubmodule,

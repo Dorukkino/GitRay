@@ -20,6 +20,7 @@ import {
   type Limits,
   OsvClient,
   type Report,
+  type ReputationService,
   parseTarget,
   scanRepo,
   toReport,
@@ -28,6 +29,7 @@ import {
 import { logError } from "./log";
 import { type RateStore, getRateStore, nullRateStore } from "./rate-store";
 import { type ScanStore, getScanStore, repoKey } from "./scan-store";
+import { getReputationService } from "./virustotal";
 
 /** Memory cache lifetime. Short, so a rescan on another instance shows up quickly. */
 export const CACHE_TTL_MS = 60 * 1000;
@@ -70,6 +72,8 @@ export interface Deps {
   osv?: () => OsvClient;
   /** Counters shared by every instance; omitted, only the per-instance limits apply. */
   rates?: () => RateStore;
+  /** VirusTotal lookups; undefined when the site has no API key. */
+  reputation?: () => ReputationService | undefined;
 }
 
 // One client per instance: it caches OSV records between scans.
@@ -81,6 +85,7 @@ const defaultDeps: Deps = {
   store: getScanStore,
   osv: () => osvClient,
   rates: getRateStore,
+  reputation: getReputationService,
 };
 
 const cache = new Map<string, { report: Report; expires: number }>();
@@ -248,7 +253,9 @@ export async function runScan(
 
   running += 1;
   try {
-    const report = toReport(await scanRepo(ref, deps.client(), { limits: deps.limits, osv: deps.osv?.() }));
+    const report = toReport(
+      await scanRepo(ref, deps.client(), { limits: deps.limits, osv: deps.osv?.(), reputation: deps.reputation?.() }),
+    );
     if (worthKeeping(report)) {
       remember(key, report, deps.now());
       if (report.target) remember(repoKey(report.target.fullName), report, deps.now());

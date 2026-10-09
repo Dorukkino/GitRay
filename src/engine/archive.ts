@@ -17,6 +17,7 @@ import { createGunzip } from "node:zlib";
 import { ArchiveError, GitRayError, LimitExceeded } from "./errors";
 import { MAX_TAR_META_BYTES, type Limits } from "./limits";
 import { isLockfile } from "./deps";
+import { executableKind } from "./rules/binary";
 import { decode } from "./text";
 import type { BinaryFile, ScanStats, TextFile } from "./types";
 import { isZipPath } from "./zip";
@@ -285,12 +286,22 @@ async function* readTar(
     // its end, and a lockfile cut short is no longer valid JSON or YAML.
     const whole = isZipPath(path) || isLockfile(path);
     const keep = Math.min(size, whole ? Math.max(limits.maxFileBytes, limits.maxArchiveBytes) : limits.maxFileBytes);
-    const data = await reader.read(keep);
-    if (data === null || !(await reader.skip(size - keep + padding(size)))) {
+    let data = await reader.read(keep);
+    if (data === null) throw new ArchiveError("truncated tar data");
+    // Programs are read whole (up to maxExecutableBytes) so their fingerprint can be looked up.
+    if (size > keep && size <= limits.maxExecutableBytes && executableKind(data) !== null) {
+      const rest = await reader.read(size - keep);
+      if (rest === null) throw new ArchiveError("truncated tar data");
+      const full = new Uint8Array(size);
+      full.set(data);
+      full.set(rest, keep);
+      data = full;
+    }
+    if (!(await reader.skip(size - data.length + padding(size)))) {
       throw new ArchiveError("truncated tar data");
     }
     if (!path) continue;
-    const truncated = size > keep;
+    const truncated = size > data.length;
     if (truncated) stats.truncatedFiles += 1;
 
     const decoded = decode(data);

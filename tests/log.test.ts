@@ -13,6 +13,12 @@ describe("log redaction", () => {
     expect(redact("plain message")).toBe("plain message");
   });
 
+  it("hides the configured VirusTotal key", () => {
+    vi.stubEnv("VIRUSTOTAL_API_KEY", "f".repeat(64));
+    expect(redact(`request with ${"f".repeat(64)} failed`)).toBe("request with [redacted key] failed");
+    vi.unstubAllEnvs();
+  });
+
   it("logs the error class and code, never the secret", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     logError("db", Object.assign(new Error("connect postgres://a:pw@h/db failed"), { code: "XX000" }));

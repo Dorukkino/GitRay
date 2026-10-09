@@ -7,7 +7,11 @@ const CONNECTION_STRING = /\b(?:postgres(?:ql)?|https?):\/\/[^\s'"]*@[^\s'"]*/gi
 const TOKEN = /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g;
 
 export function redact(message: string): string {
-  return message.replace(CONNECTION_STRING, "[redacted connection string]").replace(TOKEN, "[redacted token]");
+  let out = message.replace(CONNECTION_STRING, "[redacted connection string]").replace(TOKEN, "[redacted token]");
+  // VirusTotal keys are plain hex; redact the configured one wherever it appears.
+  const vtKey = process.env.VIRUSTOTAL_API_KEY;
+  if (vtKey && vtKey.length >= 16) out = out.split(vtKey).join("[redacted key]");
+  return out;
 }
 
 export function logError(context: string, e: unknown): void {

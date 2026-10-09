@@ -85,6 +85,23 @@ export class PostgresRateStore implements RateStore {
   }
 }
 
+/** Counters in this instance's memory: for the CLI, and as a fallback when the database fails. */
+export class MemoryRateStore implements RateStore {
+  readonly configured = true;
+  private readonly counts = new Map<string, { hits: number; until: number }>();
+
+  async hit(bucket: string, key: string, windowMs: number, now: number): Promise<number> {
+    const start = Math.floor(now / windowMs) * windowMs;
+    const id = `${bucket}|${key}|${start}`;
+    const hits = (this.counts.get(id)?.hits ?? 0) + 1;
+    this.counts.set(id, { hits, until: start + windowMs });
+    if (this.counts.size > 10_000) {
+      for (const [k, v] of this.counts) if (v.until <= now) this.counts.delete(k);
+    }
+    return hits;
+  }
+}
+
 export const nullRateStore: RateStore = {
   configured: false,
   async hit() {
