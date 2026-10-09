@@ -1,0 +1,6 @@
+# path: detector/rules.py
+# lines: 2
+# weight: 5
+# ---
+import re
+ENCODED = re.compile(r"\b(?:iex|invoke-expression)\b.{0,120}?frombase64string", re.I)

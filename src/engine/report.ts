@@ -38,6 +38,8 @@ export interface ReportFinding {
   why: string;
   note: string | null;
   docContext: boolean;
+  /** In a search pattern or comment in source code, down-weighted (missing in reports before engine 0.8). */
+  patternContext?: boolean;
   /** Link to the exact line on github.com, built from validated parts. */
   githubUrl: string | null;
   /** The finding is in a file inside a ZIP ("release.zip!/setup/run.js"). */
@@ -236,6 +238,7 @@ export function toReport(result: ScanResult): Report {
       why: f.why,
       note: f.note ? sanitize(f.note, 300) : null,
       docContext: f.docContext,
+      patternContext: f.patternContext ?? false,
       githubUrl: fullName && repo ? githubLine(fullName, repo.headSha, f) : null,
       inArchive: f.path.includes(ARCHIVE_SEPARATOR),
       testContext: isTestPath(f.path),

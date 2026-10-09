@@ -1,0 +1,6 @@
+# path: src/rules/powershell.ts
+# lines: 2
+# weight: 5
+# ---
+// A detection rule: the pattern describes the attack, it never runs.
+export const ENCODED = /\b(?:iex|invoke-expression)\b.{0,120}?frombase64string/i;

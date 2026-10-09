@@ -34,6 +34,10 @@ const DECODE_EXEC_PATTERNS = regexRule({
     /\b(?:powershell|pwsh)(?:\.exe)?\b.{0,80}?\s-e(?:nc(?:odedcommand)?)?\s+[A-Za-z0-9+/=]{16,}/i,
     /\b(?:iex|invoke-expression)\b.{0,120}?frombase64string/i,
     new RegExp(String.raw`frombase64string.{0,200}?` + PIPE + String.raw`\s*(?:iex|invoke-expression)\b`, "i"),
+    // Running the text of a regular expression: a payload hidden in a pattern, where
+    // scanners (this one included) count it as a search pattern rather than code.
+    /(?:(?<![\w.$])eval|\bFunction|\bexecSync|\bexecFileSync|\bspawnSync)\s*\([^)\n]{0,100}?\.source\b/,
+    /(?<![\w.$])(?:exec|eval)\s*\([^)\n]{0,100}?\.pattern\b/,
   ],
 });
 

@@ -331,6 +331,7 @@ export const en = {
     scanResult: "Scan result",
     metadata: "Repository metadata",
     inDocs: "in documentation, weight reduced",
+    inPattern: "in a search pattern or comment, weight reduced",
     inZip: "inside a ZIP file",
     inTest: "in a test file",
     viewOnGitHub: "view on GitHub",
@@ -427,9 +428,10 @@ export const en = {
       "its strongest finding. The total is capped at 100: below {suspicious} is clean, from {suspicious} suspicious, " +
       "from {dangerous} dangerous. Some rules raise their weight for stronger evidence (for example an install " +
       "script that also downloads something). Code rules weigh less inside documentation, where commands are " +
-      "usually examples.",
-    ignoredInDocs: "ignored in docs",
-    inDocs: "+{n} in docs",
+      "usually examples, and inside search patterns and comments in source code, which never run: security tools " +
+      "describe attacks this way.",
+    ignoredInDocs: "ignored in docs, search patterns and comments",
+    inDocs: "+{n} in docs, search patterns and comments",
     files: "files: {list}",
   },
 

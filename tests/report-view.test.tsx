@@ -195,3 +195,28 @@ describe("ReportView in Turkish", () => {
     expect(html).not.toContain("Score breakdown");
   });
 });
+
+describe("ReportView pattern context", () => {
+  it("labels findings inside search patterns or comments", () => {
+    const r = report({ status: "none", packages: 0, malicious: 0 });
+    const finding = {
+      ruleId: "GR-CODE-001",
+      title: "Decodes hidden code and executes it",
+      category: "code" as const,
+      severity: "low" as const,
+      weight: 5,
+      path: "src/rules.ts",
+      line: 3,
+      snippet: "/iex.{0,120}frombase64string/i",
+      why: "w",
+      note: null,
+      docContext: false,
+      patternContext: true,
+      githubUrl: null,
+      inArchive: false,
+      testContext: false,
+    };
+    const html = renderToStaticMarkup(<ReportView report={{ ...r, findings: [finding] }} />);
+    expect(html).toContain("in a search pattern or comment, weight reduced");
+  });
+});

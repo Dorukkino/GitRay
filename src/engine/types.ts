@@ -136,6 +136,12 @@ export interface Finding {
   weight: number;
   /** The rule fired inside a documentation file and was down-weighted. */
   docContext: boolean;
+  /**
+   * The rule fired inside a search pattern (a regex literal or a regex
+   * constructor's string) or a comment in source code, which never runs, and was
+   * down-weighted like documentation. Detection tools describe attacks this way.
+   */
+  patternContext?: boolean;
   note: string | null;
 }
 

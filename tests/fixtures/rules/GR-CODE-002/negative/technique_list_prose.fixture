@@ -1,0 +1,4 @@
+# path: src/strings.ts
+# ---
+export const TEXT = "Decode-and-execute, curl | sh, browser password and cookie theft.";
+export const PS = "irm | iex and friends";

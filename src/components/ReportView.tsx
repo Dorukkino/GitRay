@@ -239,6 +239,7 @@ function FindingCard({ f }: { f: ReportFinding }) {
           {f.ruleId} · +{f.weight}
         </span>
         {f.docContext && <Tag>{t.inDocs}</Tag>}
+        {f.patternContext && <Tag>{t.inPattern}</Tag>}
         {f.inArchive && <Tag>{t.inZip}</Tag>}
         {f.testContext && <Tag>{t.inTest}</Tag>}
       </div>

@@ -1,0 +1,5 @@
+# path: src/check.js
+# ---
+// .exec and .source on a regex are ordinary pattern code.
+const m = /gitray/.exec(text);
+const copy = new RegExp(m.source, "i");

@@ -1,0 +1,4 @@
+# path: src/rules/shell.ts
+# ---
+export const PIPE_TO_SHELL = /\bcurl\s+[^|]{0,200}\|\s*(?:ba)?sh\b/;
+export const AS_STRING = new RegExp(String.raw`\bwget\s+[^|]{0,200}\|\s*sh\b`, "i");

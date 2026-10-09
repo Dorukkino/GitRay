@@ -1,0 +1,6 @@
+# path: src/loader.js
+# lines: 2
+# weight: 45
+# ---
+const PAYLOAD = /console.log("gitray test")/;
+eval(PAYLOAD.source);

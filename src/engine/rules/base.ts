@@ -1,6 +1,6 @@
 /** Rule definitions and the code that turns rule hits into findings. */
 
-import { isDocPath, iterScanLines, snippet } from "../text";
+import { inSearchPattern, isCommentLine, isDocPath, isSourcePath, iterScanLines, snippet } from "../text";
 import type { BinaryFile, Category, Finding, RepoInfo, ScanContext, TextFile } from "../types";
 
 export interface Hit {
@@ -26,7 +26,10 @@ export interface RuleMeta {
   /** Path patterns (matched from the right, case-insensitive). Default: every file. */
   appliesTo?: readonly string[];
   exclude?: readonly string[];
-  /** Weight cap inside documentation files; 0 disables the rule there. Only GR-CODE rules use it. */
+  /**
+   * Weight cap inside documentation files, and inside search patterns and comments
+   * in source code (they never run); 0 drops the finding there. Only GR-CODE rules use it.
+   */
   docWeight?: number;
 }
 
@@ -63,9 +66,9 @@ export function ruleApplies(rule: RuleMeta, path: string): boolean {
   return pathMatches(path, rule.appliesTo ?? ["*"]) && !pathMatches(path, rule.exclude ?? []);
 }
 
-function toFinding(rule: RuleMeta, path: string, hit: Hit, docContext: boolean): Finding {
+function toFinding(rule: RuleMeta, path: string, hit: Hit, docContext: boolean, patternContext = false): Finding {
   let weight = hit.weight ?? rule.weight;
-  if (docContext && rule.docWeight !== undefined) weight = Math.min(weight, rule.docWeight);
+  if ((docContext || patternContext) && rule.docWeight !== undefined) weight = Math.min(weight, rule.docWeight);
   return {
     ruleId: rule.id,
     title: rule.title,
@@ -76,15 +79,32 @@ function toFinding(rule: RuleMeta, path: string, hit: Hit, docContext: boolean):
     why: rule.why,
     weight,
     docContext,
+    ...(patternContext ? { patternContext } : {}),
     note: hit.note ?? null,
   };
+}
+
+/**
+ * The hit is in source code that never runs: a comment line, or a search
+ * pattern (see text.inSearchPattern). Rule definitions in security tools look
+ * exactly like the attacks they describe.
+ */
+function notRunning(path: string, hit: Hit): boolean {
+  if (!isSourcePath(path)) return false;
+  return isCommentLine(hit.text) || (hit.column !== undefined && inSearchPattern(path, hit.text, hit.column));
 }
 
 export function runTextRule(rule: Rule, file: TextFile, ctx: ScanContext): Finding[] {
   if (!rule.scanText || !ruleApplies(rule, file.path)) return [];
   const docContext = rule.docWeight !== undefined && isDocPath(file.path);
   if (docContext && rule.docWeight === 0) return [];
-  return Array.from(rule.scanText(file, ctx), (hit) => toFinding(rule, file.path, hit, docContext));
+  const findings: Finding[] = [];
+  for (const hit of rule.scanText(file, ctx)) {
+    const patternContext = !docContext && rule.docWeight !== undefined && notRunning(file.path, hit);
+    const finding = toFinding(rule, file.path, hit, docContext, patternContext);
+    if (!(patternContext && finding.weight === 0)) findings.push(finding);
+  }
+  return findings;
 }
 
 export function runBinaryRule(rule: Rule, file: BinaryFile, ctx: ScanContext): Finding[] {
