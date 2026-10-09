@@ -15,7 +15,7 @@ const ROOT = resolve(__dirname, "..");
 const SOURCE = walk(join(ROOT, "src"), [".ts", ".tsx"]);
 const OWN_FILES = [
   ...SOURCE,
-  ...walk(join(ROOT, "tests"), [".ts", ".fixture"]),
+  ...walk(join(ROOT, "tests"), [".ts", ".tsx", ".fixture"]),
   join(ROOT, "CLAUDE.md"),
   join(ROOT, "PROGRESS.md"),
   join(ROOT, "README.md"),

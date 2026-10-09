@@ -11,13 +11,17 @@ function clientIp(request: NextRequest): string {
   return forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
 }
 
-/** GET /api/scan?repo=owner/name: scan a public GitHub repository and return the JSON report. */
+/**
+ * GET /api/scan?repo=owner/name[&fresh=1]: scan a public GitHub repository and
+ * return the JSON report. A recent stored result is returned unless fresh=1.
+ */
 export async function GET(request: NextRequest) {
-  const repo = request.nextUrl.searchParams.get("repo") ?? "";
-  const outcome = await runScan(repo, clientIp(request));
+  const params = request.nextUrl.searchParams;
+  const fresh = params.get("fresh") === "1";
+  const outcome = await runScan(params.get("repo") ?? "", clientIp(request), undefined, { fresh });
   const headers: Record<string, string> = {
     "Cache-Control":
-      outcome.status === 200 ? "public, max-age=0, s-maxage=600, stale-while-revalidate=300" : "no-store",
+      outcome.status === 200 && !fresh ? "public, max-age=0, s-maxage=60, stale-while-revalidate=60" : "no-store",
     "X-GitRay-Cache": outcome.cached ? "hit" : "miss",
   };
   return Response.json(outcome.body, { status: outcome.status, headers });

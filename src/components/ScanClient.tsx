@@ -10,7 +10,7 @@ import { ReportView } from "./ReportView";
 type State =
   | { kind: "loading" }
   | { kind: "error"; code: string; message: string }
-  | { kind: "done"; report: Report };
+  | { kind: "done"; report: Report; receivedAt: number };
 
 const STEPS = [
   "Reading repository metadata from the GitHub API",
@@ -27,18 +27,26 @@ const ERROR_HELP: Record<string, string> = {
   invalid_target: "Use the form github.com/owner/repository.",
 };
 
+function ScanAge({ iso, now }: { iso: string; now: number }) {
+  const minutes = Math.max(0, Math.round((now - Date.parse(iso)) / 60_000));
+  const text = minutes < 1 ? "just now" : minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+  return <span className="text-slate-200">{text}</span>;
+}
+
 export function ScanClient({ owner, repo }: { owner: string; repo: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [step, setStep] = useState(0);
   const [attempt, setAttempt] = useState(0);
+  const [fresh, setFresh] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     const timer = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 1600);
-    fetch(`/api/scan?repo=${encodeURIComponent(`${owner}/${repo}`)}`, { signal: controller.signal })
+    const query = `repo=${encodeURIComponent(`${owner}/${repo}`)}${fresh ? "&fresh=1" : ""}`;
+    fetch(`/api/scan?${query}`, { signal: controller.signal })
       .then(async (resp) => {
         const body = await resp.json().catch(() => null);
-        if (resp.ok && body?.schemaVersion === 1) setState({ kind: "done", report: body as Report });
+        if (resp.ok && body?.schemaVersion === 1) setState({ kind: "done", report: body as Report, receivedAt: Date.now() });
         else
           setState({
             kind: "error",
@@ -55,9 +63,41 @@ export function ScanClient({ owner, repo }: { owner: string; repo: string }) {
       controller.abort();
       clearInterval(timer);
     };
-  }, [owner, repo, attempt]);
+  }, [owner, repo, attempt, fresh]);
 
-  if (state.kind === "done") return <ReportView report={state.report} />;
+  function rescan() {
+    setState({ kind: "loading" });
+    setStep(0);
+    setFresh(true);
+    setAttempt((a) => a + 1);
+  }
+
+  if (state.kind === "done") {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2 text-sm text-slate-400">
+          <span>
+            Scanned <ScanAge iso={state.report.startedAt} now={state.receivedAt} />
+            {state.report.target && (
+              <>
+                {" "}
+                for commit <code className="font-mono text-slate-300">{state.report.target.headSha.slice(0, 7)}</code>
+              </>
+            )}
+            .
+          </span>
+          <button
+            type="button"
+            onClick={rescan}
+            className="rounded-md bg-slate-800 px-3 py-1 text-xs text-slate-100 hover:bg-slate-700"
+          >
+            Scan again now
+          </button>
+        </div>
+        <ReportView report={state.report} />
+      </div>
+    );
+  }
 
   if (state.kind === "error") {
     return (

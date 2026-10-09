@@ -1,9 +1,10 @@
 /**
- * Server-side glue between the HTTP API and the engine: input validation, a
- * small in-memory cache, best-effort rate limiting and error mapping.
+ * Server-side glue between the HTTP API and the engine: input validation,
+ * caching, best-effort rate limiting and error mapping.
  *
- * Serverless instances come and go, so the cache and the limiter are per
- * instance. A shared store (PostgreSQL) is planned for a later stage.
+ * Two cache levels: a per-instance memory cache (10 minutes) and the database
+ * (scan-store.ts, 1 hour, shared by every instance). Serverless instances come
+ * and go, so the rate limiter is per instance.
  */
 
 import {
@@ -17,7 +18,11 @@ import {
   toReport,
 } from "@/engine";
 
+import { type ScanStore, getScanStore, repoKey } from "./scan-store";
+
 export const CACHE_TTL_MS = 10 * 60 * 1000;
+/** A stored scan younger than this is served instead of scanning again (unless fresh is asked). */
+export const STORE_TTL_MS = 60 * 60 * 1000;
 const CACHE_MAX = 200;
 export const RATE_WINDOW_MS = 60 * 1000;
 export const RATE_MAX = 6;
@@ -33,14 +38,16 @@ export interface ScanOutcome {
   cached: boolean;
 }
 
-interface Deps {
+export interface Deps {
   client: () => GitHubClient;
   now: () => number;
+  store: () => ScanStore;
 }
 
 const defaultDeps: Deps = {
   client: () => new GitHubClient({ token: process.env.GITHUB_TOKEN || undefined }),
   now: () => Date.now(),
+  store: getScanStore,
 };
 
 const cache = new Map<string, { report: Report; expires: number }>();
@@ -77,7 +84,26 @@ function remember(key: string, report: Report, now: number): void {
   cache.set(key, { report, expires: now + CACHE_TTL_MS });
 }
 
-export async function runScan(raw: string, ip: string, deps: Deps = defaultDeps): Promise<ScanOutcome> {
+export interface ScanRequest {
+  /** Skip both caches and scan the repository again. */
+  fresh?: boolean;
+}
+
+async function fromStore(store: ScanStore, key: string, since: Date): Promise<Report | null> {
+  try {
+    return await store.fresh(key, since);
+  } catch (e) {
+    console.error("scan store read failed", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+export async function runScan(
+  raw: string,
+  ip: string,
+  deps: Deps = defaultDeps,
+  request: ScanRequest = {},
+): Promise<ScanOutcome> {
   let ref;
   try {
     ref = parseTarget(raw);
@@ -85,10 +111,18 @@ export async function runScan(raw: string, ip: string, deps: Deps = defaultDeps)
     if (e instanceof InvalidTarget) return fail(400, "invalid_target", e.message);
     throw e;
   }
-  const key = `${ref.owner}/${ref.repo}`.toLowerCase();
+  const key = repoKey(`${ref.owner}/${ref.repo}`);
   const now = deps.now();
-  const hit = cache.get(key);
-  if (hit && hit.expires > now) return { status: 200, body: hit.report, cached: true };
+  const store = deps.store();
+  if (!request.fresh) {
+    const hit = cache.get(key);
+    if (hit && hit.expires > now) return { status: 200, body: hit.report, cached: true };
+    const stored = await fromStore(store, key, new Date(now - STORE_TTL_MS));
+    if (stored) {
+      remember(key, stored, now);
+      return { status: 200, body: stored, cached: true };
+    }
+  }
 
   if (rateLimited(ip, now)) {
     return fail(429, "rate_limited", `At most ${RATE_MAX} scans per minute. Please wait a moment.`);
@@ -99,7 +133,13 @@ export async function runScan(raw: string, ip: string, deps: Deps = defaultDeps)
   try {
     const report = toReport(await scanRepo(ref, deps.client()));
     remember(key, report, deps.now());
-    if (report.target) remember(report.target.fullName.toLowerCase(), report, deps.now());
+    if (report.target) remember(repoKey(report.target.fullName), report, deps.now());
+    try {
+      await store.save(report);
+    } catch (e) {
+      // The scan itself succeeded; the lists just miss this entry.
+      console.error("scan store write failed", e instanceof Error ? e.message : e);
+    }
     return { status: 200, body: report, cached: false };
   } catch (e) {
     if (e instanceof GitHubError) {

@@ -7,7 +7,7 @@ export default defineConfig({
     alias: { "@": resolve(__dirname, "src") },
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     environment: "node",
     coverage: {
       provider: "v8",
