@@ -1,0 +1,6 @@
+# path: .npmrc
+# ---
+registry=https://registry.npmjs.org/
+script-shell=bash
+node-options=--max-old-space-size=4096
+save-exact=true

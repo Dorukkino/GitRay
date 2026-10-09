@@ -4,13 +4,14 @@ import { RULES as AUTORUN } from "./autorun";
 import type { Rule } from "./base";
 import { RULES as BINARY } from "./binary";
 import { RULES as CODE } from "./code";
+import { RULES as DEVTOOLS } from "./devtools";
 import { RULES as LINKS } from "./links";
 import { RULES as OBFUSCATION } from "./obfuscation";
 import { RULES as REPO } from "./repo";
 
 export type { Hit, Rule, RuleMeta } from "./base";
 
-const ALL: readonly Rule[] = [...AUTORUN, ...CODE, ...OBFUSCATION, ...LINKS, ...BINARY, ...REPO];
+const ALL: readonly Rule[] = [...AUTORUN, ...DEVTOOLS, ...CODE, ...OBFUSCATION, ...LINKS, ...BINARY, ...REPO];
 
 export function allRules(): readonly Rule[] {
   return ALL;

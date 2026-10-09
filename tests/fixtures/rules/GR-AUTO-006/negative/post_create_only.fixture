@@ -1,0 +1,7 @@
+# path: .devcontainer/devcontainer.json
+# ---
+{
+  "name": "demo",
+  "postCreateCommand": "npm install",
+  "customizations": { "vscode": { "extensions": ["dbaeumer.vscode-eslint"] } }
+}

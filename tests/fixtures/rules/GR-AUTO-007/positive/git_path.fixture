@@ -1,0 +1,8 @@
+# path: .vscode/settings.json
+# lines: 3
+# weight: 30
+# ---
+{
+  "editor.formatOnSave": true,
+  "git.path": "./tools/git.exe"
+}

@@ -1,0 +1,5 @@
+# path: packages/app/.npmrc
+# lines: 1
+# weight: 35
+# ---
+script-shell=./tools/sh.js

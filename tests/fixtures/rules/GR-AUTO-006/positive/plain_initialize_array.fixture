@@ -1,0 +1,8 @@
+# path: .devcontainer/devcontainer.json
+# lines: 3
+# weight: 15
+# ---
+{
+  "name": "demo",
+  "initializeCommand": ["bash", ".devcontainer/prepare.sh"]
+}
