@@ -134,6 +134,9 @@ function FindingCard({ f }: { f: ReportFinding }) {
         {f.inArchive && (
           <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">inside a ZIP file</span>
         )}
+        {f.testContext && (
+          <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">in a test file</span>
+        )}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <span className="font-mono break-all text-cyan-200/90">{where}</span>
@@ -270,6 +273,16 @@ export function ReportView({ report }: { report: Report }) {
           <strong className="font-semibold">Partial scan.</strong> The {LIMIT_LABEL[report.partial.limit] ?? report.partial.limit}{" "}
           limit stopped the scan ({report.partial.reason}) after {report.partial.filesScanned} files. Attackers can hide a
           payload behind large files, so a partial scan is never reported as clean.
+        </section>
+      )}
+
+      {report.testFilesCapped && (
+        <section className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-100">
+          <strong className="font-semibold">Held at Suspicious.</strong> Most of the score comes from test files (tests/,
+          spec/, fixtures/). Test code does not run when you clone or install a repository, and security tools keep attack
+          samples there, so on their own these findings make a repository at most Suspicious. Nothing in this repository
+          runs by itself on install or when opened; if something did, the full score would count. Check the findings
+          marked &quot;in a test file&quot; before running the tests.
         </section>
       )}
 

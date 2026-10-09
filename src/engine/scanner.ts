@@ -117,6 +117,7 @@ function finish(
     score: scored.score,
     verdict: scored.verdict,
     ruleScores: scored.ruleScores,
+    testFilesCapped: scored.testFilesCapped,
     stats,
     partial,
     archiveCheck,

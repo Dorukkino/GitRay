@@ -8,6 +8,7 @@ import {
   isCommentLine,
   isDocPath,
   isSourcePath,
+  isTestPath,
   iterScanLines,
   openQuoteAt,
   revealHidden,
@@ -39,6 +40,15 @@ describe("iterScanLines", () => {
     expect(windows.every((w) => w.text.length <= SCAN_WINDOW)).toBe(true);
     // Each window says where it starts, so a rule can tell a token cut by the window.
     expect(windows.filter((w) => w.line === 1).map((w) => w.offset)).toEqual([0, 9000, 18000]);
+  });
+
+  it("recognizes test code and test data by path", () => {
+    for (const p of ["tests/a.py", "src/__tests__/x.ts", "spec/fixtures/a.lnk", "a/testdata/b.bin", "x.test.ts", "pkg/x_test.go", "test_api.py", "src/FooTests.cs", "data/tests/a.zip!/inner.js"]) {
+      expect(isTestPath(p), p).toBe(true);
+    }
+    for (const p of ["src/index.ts", "latest/notes.md", "contest.py", "attest/x.js", "src/testing.ts", "package.json"]) {
+      expect(isTestPath(p), p).toBe(false);
+    }
   });
 
   it("spots comment lines and string literals", () => {

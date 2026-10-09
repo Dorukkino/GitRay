@@ -91,6 +91,33 @@ export function isSourcePath(path: string): boolean {
   return SOURCE_SUFFIXES.has(extension(path));
 }
 
+const TEST_DIRS = new Set([
+  "test",
+  "tests",
+  "spec",
+  "specs",
+  "__tests__",
+  "__mocks__",
+  "__fixtures__",
+  "fixtures",
+  "testdata",
+  "test-data",
+  "test_data",
+  "e2e",
+]);
+const TEST_FILE = /(?:\.(?:test|spec)\.[a-z0-9]+|_test\.[a-z0-9]+|^test_[^/]*\.py|Tests?\.(?:cs|java|kt))$/;
+
+/**
+ * Test code and test data ("tests/", "spec/", "fixtures/", "*.test.ts", "test_x.py").
+ * Nothing here runs when a repository is cloned or installed; security tools keep
+ * their attack samples here. Used to label findings and in scoring.ts, never to skip files.
+ */
+export function isTestPath(path: string): boolean {
+  const parts = path.split("/");
+  const name = parts.pop() ?? "";
+  return parts.some((part) => TEST_DIRS.has(part.toLowerCase())) || TEST_FILE.test(name);
+}
+
 // "#" starts a comment in shell, Python, Ruby, YAML, Dockerfiles and PowerShell,
 // but not a C preprocessor directive or a shebang.
 const COMMENT_LINE =

