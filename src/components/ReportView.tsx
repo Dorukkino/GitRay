@@ -20,21 +20,29 @@ const LIMIT_LABEL: Record<string, string> = {
   maxHiddenFiles: "hidden files",
 };
 
-/** What the OSV dependency check found. */
-function dependencyCheckText(report: Report): { text: string; warn: boolean } | null {
-  // Reports stored before this check existed have no dependencyCheck.
+/** What the OSV dependency check found. Always says something, so the check is never invisible. */
+function dependencyCheckText(report: Report): { text: string; warn: boolean } {
   const check = report.dependencyCheck;
-  if (!check) return null;
+  // Reports stored before this check existed have no dependencyCheck.
+  if (!check) return { text: "Not checked: this report is older than the dependency check. Scan again to include it.", warn: false };
   const packages = `${check.packages} package${check.packages === 1 ? "" : "s"}`;
   switch (check.status) {
     case "ok":
-      return { text: `Checked ${packages} against OSV's malicious-package list: none is known malware.`, warn: false };
+      return { text: `Checked ${packages} against OSV's list of known malicious packages: none found.`, warn: false };
     case "found":
       return { text: `${check.malicious} of ${packages} declared here are known malware according to OSV.`, warn: true };
     case "unavailable":
       return { text: "OSV could not be reached, so dependencies were not checked against known malware.", warn: true };
+    case "none":
+      return {
+        text: "No dependency files (package.json, requirements.txt, pyproject.toml or lockfiles), so there was nothing to check.",
+        warn: false,
+      };
     default:
-      return null;
+      return {
+        text: report.partial ? "Not checked, because the scan stopped early." : "Not checked.",
+        warn: report.partial !== null,
+      };
   }
 }
 
@@ -62,6 +70,15 @@ function archiveCheckText(report: Report): { text: string; warn: boolean } | nul
     default:
       return null;
   }
+}
+
+function ExtraCheck({ label, check }: { label: string; check: { text: string; warn: boolean } }) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+      <dt className="shrink-0 font-medium text-slate-400 sm:w-56">{label}</dt>
+      <dd className={check.warn ? "text-amber-300/90" : "text-slate-500"}>{check.text}</dd>
+    </div>
+  );
 }
 
 function formatBytes(n: number): string {
@@ -242,12 +259,10 @@ export function ReportView({ report }: { report: Report }) {
           {(report.stats.archivesSkipped ?? 0) > 0 && <> · {report.stats.archivesSkipped} ZIP archives too large to open</>}{" "}
           · {(report.durationMs / 1000).toFixed(1)} s · scanned {new Date(report.startedAt).toUTCString()}
         </p>
-        {archiveCheck && (
-          <p className={`mt-2 text-xs ${archiveCheck.warn ? "text-amber-300/90" : "text-slate-500"}`}>{archiveCheck.text}</p>
-        )}
-        {dependencyCheck && (
-          <p className={`mt-1 text-xs ${dependencyCheck.warn ? "text-amber-300/90" : "text-slate-500"}`}>{dependencyCheck.text}</p>
-        )}
+        <dl className="mt-4 space-y-1.5 border-t border-slate-800 pt-4 text-xs">
+          <ExtraCheck label="Malicious dependencies (OSV)" check={dependencyCheck} />
+          {archiveCheck && <ExtraCheck label="Files hidden from the download" check={archiveCheck} />}
+        </dl>
       </section>
 
       {report.partial && (

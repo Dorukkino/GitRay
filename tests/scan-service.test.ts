@@ -83,6 +83,20 @@ describe("runScan", () => {
     expect((await runScan("octo/demo", "ip", deps(gh, later, store))).cached).toBe(false);
   });
 
+  it("scans again when the stored report comes from another engine version", async () => {
+    const gh = new FakeGitHub();
+    const store = new MapStore();
+    await runScan("octo/demo", "ip", deps(gh, clock(), store));
+    const stored = store.saved.get("octo/demo")!;
+    store.saved.set("octo/demo", { ...stored, engineVersion: "0.0.1" });
+
+    resetScanService();
+    const calls = gh.requests.length;
+    const again = await runScan("octo/demo", "ip", deps(gh, clock(), store));
+    expect(again.cached).toBe(false);
+    expect(gh.requests.length).toBeGreaterThan(calls);
+  });
+
   it("scans again when fresh is asked, unless the last scan is under a minute old", async () => {
     const gh = new FakeGitHub();
     const store = new MapStore();
