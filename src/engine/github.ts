@@ -57,27 +57,30 @@ export class GitHubClient {
     if (options.token) this.headers.Authorization = `Bearer ${options.token}`;
   }
 
-  private async request(url: string, init: { accept?: string; signal?: AbortSignal; auth?: boolean }): Promise<Response> {
+  private async request(
+    url: string,
+    init: { accept?: string; signal?: AbortSignal; auth?: boolean; download?: boolean },
+  ): Promise<Response> {
     const headers = { ...this.headers };
     if (init.accept) headers.Accept = init.accept;
     if (init.auth === false) delete headers.Authorization;
+    // API calls get their own timeout; downloads are bounded by the caller's time budget.
+    const timeout = AbortSignal.timeout(API_TIMEOUT_MS);
+    const signal = init.download ? init.signal : init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
     try {
-      return await this.fetchImpl(url, {
-        headers,
-        redirect: "manual",
-        signal: init.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
-      });
+      return await this.fetchImpl(url, { headers, redirect: "manual", signal });
     } catch (e) {
-      if (init.signal?.aborted) throw e;
+      if (init.download && init.signal?.aborted) throw e;
+      if (init.signal?.aborted) throw new GitHubError("GitHub did not answer within the time budget");
       throw new GitHubError(`Request to GitHub failed (${e instanceof Error ? e.name : "error"})`);
     }
   }
 
   /** GET from the API, following redirects only within api.github.com. */
-  private async get(path: string, accept?: string): Promise<Response> {
+  private async get(path: string, accept?: string, signal?: AbortSignal): Promise<Response> {
     let url = `${API_URL}${path}`;
     for (let i = 0; i <= MAX_API_REDIRECTS; i++) {
-      const resp = await this.request(url, { accept });
+      const resp = await this.request(url, { accept, signal });
       if (!REDIRECT_CODES.has(resp.status)) {
         await raiseForStatus(resp);
         return resp;
@@ -87,8 +90,8 @@ export class GitHubClient {
     throw new GitHubError("Repository moved or renamed: too many redirects");
   }
 
-  private async getJson(path: string): Promise<unknown> {
-    const resp = await this.get(path);
+  private async getJson(path: string, signal?: AbortSignal): Promise<unknown> {
+    const resp = await this.get(path, undefined, signal);
     try {
       return await resp.json();
     } catch {
@@ -96,8 +99,9 @@ export class GitHubClient {
     }
   }
 
-  async getRepoInfo(ref: RepoRef): Promise<RepoInfo> {
-    const repo = await this.getJson(`/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}`);
+  /** `signal` bounds the whole lookup (every request also has its own timeout). */
+  async getRepoInfo(ref: RepoRef, signal?: AbortSignal): Promise<RepoInfo> {
+    const repo = await this.getJson(`/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}`, signal);
     if (!isObject(repo) || !isObject(repo.owner)) throw new GitHubError("Unexpected repository response");
     if (repo.private === true) throw new GitHubError("Only public repositories can be scanned", "private");
 
@@ -114,13 +118,14 @@ export class GitHubClient {
     const shaResp = await this.get(
       `${base}/commits/${encodeURIComponent(defaultBranch)}`,
       "application/vnd.github.sha",
+      signal,
     );
     const headSha = (await shaResp.text()).trim();
     if (!SHA.test(headSha)) throw new GitHubError("Unexpected commit SHA from GitHub");
 
     const [ownerCreatedAt, releaseAssets] = await Promise.all([
-      this.ownerCreatedAt(ownerLogin),
-      this.releaseAssets(base),
+      this.ownerCreatedAt(ownerLogin, signal),
+      this.releaseAssets(base, signal),
     ]);
 
     return {
@@ -142,17 +147,17 @@ export class GitHubClient {
     };
   }
 
-  private async ownerCreatedAt(login: string): Promise<string | null> {
+  private async ownerCreatedAt(login: string, signal?: AbortSignal): Promise<string | null> {
     try {
-      const user = await this.getJson(`/users/${encodeURIComponent(login)}`);
+      const user = await this.getJson(`/users/${encodeURIComponent(login)}`, signal);
       return isObject(user) ? str(user.created_at) : null;
     } catch {
       return null;
     }
   }
 
-  private async releaseAssets(base: string): Promise<ReleaseAsset[]> {
-    const releases = await this.getJson(`${base}/releases?per_page=${MAX_RELEASES}`);
+  private async releaseAssets(base: string, signal?: AbortSignal): Promise<ReleaseAsset[]> {
+    const releases = await this.getJson(`${base}/releases?per_page=${MAX_RELEASES}`, signal);
     if (!Array.isArray(releases)) throw new GitHubError("Unexpected releases response");
     const assets: ReleaseAsset[] = [];
     for (const rel of releases) {
@@ -173,7 +178,7 @@ export class GitHubClient {
   /** Stream the raw (still gzipped) tarball of a commit. */
   async streamTarball(info: RepoInfo, limits: Limits, signal?: AbortSignal): Promise<AsyncIterable<Uint8Array>> {
     if (!SHA.test(info.headSha) || !FULL_NAME.test(info.fullName)) throw new GitHubError("Invalid tarball target");
-    let resp = await this.request(`${API_URL}/repos/${info.fullName}/tarball/${info.headSha}`, { signal });
+    let resp = await this.request(`${API_URL}/repos/${info.fullName}/tarball/${info.headSha}`, { signal, download: true });
     if (REDIRECT_CODES.has(resp.status)) {
       const location = resp.headers.get("location") ?? "";
       let target: URL;
@@ -186,7 +191,7 @@ export class GitHubClient {
         throw new GitHubError("Tarball redirect to an unexpected host");
       }
       await resp.body?.cancel();
-      resp = await this.request(target.href, { signal, auth: target.hostname === "api.github.com" });
+      resp = await this.request(target.href, { signal, auth: target.hostname === "api.github.com", download: true });
     }
     await raiseForStatus(resp);
     const length = Number(resp.headers.get("content-length"));
@@ -231,6 +236,10 @@ async function raiseForStatus(resp: Response): Promise<void> {
   if (resp.ok) return;
   await resp.body?.cancel();
   if (resp.status === 404) throw new GitHubError("Repository not found (or not public)", "not_found");
+  if (resp.status === 401) {
+    // The server's GITHUB_TOKEN is invalid or expired; say so instead of a bare status code.
+    throw new GitHubError("GitHub rejected the server's access token (GITHUB_TOKEN is invalid or expired)");
+  }
   if ((resp.status === 403 || resp.status === 429) && resp.headers.get("x-ratelimit-remaining") === "0") {
     throw new GitHubError("GitHub API rate limit reached; try again later", "rate_limited");
   }

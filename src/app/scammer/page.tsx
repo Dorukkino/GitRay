@@ -8,8 +8,9 @@ export const metadata: Metadata = {
   description: "Recently scanned GitHub repositories that GitRay rated dangerous.",
 };
 
-// Rebuilt at most every 30 seconds, so the database is not queried on every visit.
-export const revalidate = 30;
+// Rebuilt at most once a minute, so the database is not queried on every visit
+// (and the free Neon database can sleep when nobody is looking).
+export const revalidate = 60;
 
 export default async function ScammerPage() {
   const { items, configured, failed } = await loadList("dangerous");

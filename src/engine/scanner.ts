@@ -120,13 +120,33 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
   const rules = options.rules ?? allRules();
   // Wall-clock time, independent of the (injectable) clock used for dates.
   const deadline = Date.now() + limits.timeBudgetMs;
-  const info = await client.getRepoInfo(ref);
-
+  // One budget for the whole scan, metadata lookups included.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), Math.max(0, deadline - Date.now()));
+  const timer = setTimeout(() => controller.abort(), limits.timeBudgetMs);
+  try {
+    // Without metadata there is nothing to report: a timeout here is a GitHubError.
+    const info = await client.getRepoInfo(ref, controller.signal);
+    return await scanWithInfo(info, client, controller, deadline, limits, rules, started, now, options);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function scanWithInfo(
+  info: RepoInfo,
+  client: GitHubClient,
+  controller: AbortController,
+  deadline: number,
+  limits: Limits,
+  rules: readonly Rule[],
+  started: Date,
+  now: () => Date,
+  options: ScanOptions,
+): Promise<ScanResult> {
   const stats = emptyStats();
   const timeLimit = () => new LimitExceeded("timeBudgetMs", limits.timeBudgetMs, "time budget for the scan ran out");
   try {
+    if (controller.signal.aborted) throw timeLimit();
     if (info.sizeKb > limits.maxRepoSizeKb) {
       throw new LimitExceeded(
         "maxRepoSizeKb",
@@ -151,8 +171,6 @@ export async function scanRepo(ref: RepoRef, client: GitHubClient, options: Scan
     const ctx = contextFor(info, started);
     const findings = rules.flatMap((rule) => runRepoRule(rule, info, ctx));
     return finish(info, findings, stats, partialFrom(limit), rules, started, now);
-  } finally {
-    clearTimeout(timer);
   }
 }
 

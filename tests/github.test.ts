@@ -87,6 +87,19 @@ describe("GitHubClient.getRepoInfo", () => {
     await expect(client(bad).getRepoInfo(ref)).rejects.toThrow(/Unexpected repository response/);
   });
 
+  it("explains a rejected server token", async () => {
+    const gh = new FakeGitHub();
+    gh.overrides.set("/repos/octo/demo", () => Response.json({ message: "Bad credentials" }, { status: 401 }));
+    await expect(client(gh).getRepoInfo(ref)).rejects.toThrow(/GITHUB_TOKEN is invalid or expired/);
+  });
+
+  it("stops metadata lookups when the scan budget is spent", async () => {
+    const gh = new FakeGitHub();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(client(gh).getRepoInfo(ref, controller.signal)).rejects.toThrow(/time budget/);
+  });
+
   it("tolerates a missing owner profile", async () => {
     const gh = new FakeGitHub();
     gh.overrides.set("/users/octo", () => Response.json({}, { status: 403 }));

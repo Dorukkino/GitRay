@@ -14,14 +14,15 @@ function clientIp(request: NextRequest): string {
 /**
  * GET /api/scan?repo=owner/name[&fresh=1]: scan a public GitHub repository and
  * return the JSON report. A recent stored result is returned unless fresh=1.
+ * Responses are not cached by the CDN: after "Scan again now" every visitor
+ * must see the new result, and the memory and database caches keep repeats cheap.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const fresh = params.get("fresh") === "1";
   const outcome = await runScan(params.get("repo") ?? "", clientIp(request), undefined, { fresh });
   const headers: Record<string, string> = {
-    "Cache-Control":
-      outcome.status === 200 && !fresh ? "public, max-age=0, s-maxage=60, stale-while-revalidate=60" : "no-store",
+    "Cache-Control": "no-store",
     "X-GitRay-Cache": outcome.cached ? "hit" : "miss",
   };
   return Response.json(outcome.body, { status: outcome.status, headers });

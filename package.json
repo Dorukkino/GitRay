@@ -39,6 +39,6 @@
   "description": "Scan GitHub repositories for malware tricks without cloning or running them.",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   }
 }
