@@ -30,7 +30,7 @@ export function SiteHeader() {
     { href: localePath(locale, "/rules"), label: dict.nav.rules },
   ];
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-bg/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-bg">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
         <HomeLink />
         <nav aria-label={dict.nav.label} className="order-3 -mx-1 flex w-full items-center gap-1 overflow-x-auto text-sm md:order-none md:w-auto">

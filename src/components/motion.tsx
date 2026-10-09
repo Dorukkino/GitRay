@@ -49,9 +49,10 @@ const SCRUB_COLUMN_DELAY = 0.08;
 
 /**
  * Tied to the scroll position instead of a timer: the card is hidden while the
- * page sits at the top and comes in as fast as the reader scrolls (and goes
- * back when they scroll up). The outer box is measured, the inner one moves,
- * so the movement never changes the measurement.
+ * page sits at the top and comes in as fast as the reader scrolls. It comes in
+ * once: scrolling back up leaves it in place (a card caught halfway finishes on
+ * its own), and once it is fully in, it stops listening to the scroll. The outer box is measured, the inner one moves, so
+ * the movement never changes the measurement.
  */
 export function ScrollReveal({ children, className, column = 0 }: { children: ReactNode; className?: string; column?: number }) {
   const box = useRef<HTMLDivElement>(null);
@@ -63,17 +64,27 @@ export function ScrollReveal({ children, className, column = 0 }: { children: Re
   const smooth = useSpring(progress, { stiffness: 260, damping: 32, mass: 0.35 });
   const opacity = useTransform(smooth, [0, 0.7], [0, 1]);
   const y = useTransform(smooth, [0, 1], [90, 0]);
-  const scale = useTransform(smooth, [0, 1], [0.93, 1]);
 
+  const done = useRef(false);
+  const lastScroll = useRef(0);
   const update = (scroll: number) => {
+    if (done.current) return;
+    const up = scroll < lastScroll.current;
+    lastScroll.current = scroll;
     const { start, end } = range.current;
-    progress.set(Math.min(1, Math.max(0, (scroll - start) / (end - start))));
+    let next = Math.min(1, Math.max(0, (scroll - start) / (end - start)));
+    // Only forward: a card that came in stays, and one caught halfway when the reader turns back finishes on its own.
+    if (up && progress.get() > 0) next = 1;
+    if (next <= progress.get()) return;
+    progress.set(next);
+    if (next >= 1) done.current = true;
   };
 
   useEffect(() => {
     const el = box.current;
     if (!el) return;
     const measure = () => {
+      if (done.current) return;
       const vh = window.innerHeight;
       const top = el.getBoundingClientRect().top + window.scrollY;
       const distance = vh * SCRUB_DISTANCE;
@@ -107,7 +118,7 @@ export function ScrollReveal({ children, className, column = 0 }: { children: Re
 
   return (
     <div ref={box} className={className}>
-      <motion.div className="h-full" style={reduce ? undefined : { opacity, y, scale }}>
+      <motion.div className="h-full will-change-transform" style={reduce ? undefined : { opacity, y }}>
         {children}
       </motion.div>
     </div>
