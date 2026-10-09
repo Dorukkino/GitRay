@@ -465,6 +465,7 @@ Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imle
   - Logonun kendi röntgen ışını iniyor ve her inişten sonra yaklaşık 3,5 saniye bekliyor (döngü 4,2 sn yerine 6 sn; iniş hızı aynı).
 - **Kaydırma animasyonu ve link kutusu** (PR 14):
   - "Nasıl çalışır", "GitRay neye bakar" ve "Kararlar" kartları artık sayfa açılınca görünmüyor; aşağı kaydırdıkça kaydırma hızıyla birlikte aşağıdan yukarı kayarak geliyor (aynı satırdaki kartlar sırayla), yukarı kaydırınca geri gidiyor (`ScrollReveal`). Kullanıcı ilk iki bölümü istedi; tutarlı olsun diye Kararlar da aynı şekilde yapıldı.
+  - Kullanıcı canlıda sayfanın en altında Kararlar kartlarının yarım ve farklı yüksekliklerde kaldığını gördü: sayfa daha fazla kaydırılamadığı için son satır animasyonun ortasında kalıyordu. Düzeltme (PR 15): sayfanın sonuna yakın kartların animasyonu en alta varıldığında bitecek şekilde kısaltılıyor; kaydırılamayacak kadar kısa sayfalarda kartlar hemen görünüyor.
   - Link kutusundaki sabit "github.com/" öneki kaldırıldı. Kutu boş başlıyor; "https://github.com/sahip/repo" yalnızca gri örnek yazı. Tam link yapıştırılabiliyor (`/tree/...` linkleri ve `.git` sonu dahil, `parseTarget` zaten destekliyordu).
 
 ## Sıradaki adımlar (öncelik sırasıyla)
