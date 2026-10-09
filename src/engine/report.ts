@@ -5,7 +5,7 @@
  */
 
 import { allRules } from "./rules";
-import { sanitize } from "./text";
+import { isTestPath, sanitize } from "./text";
 import type { ArchiveCheck, Category, DependencyCheck, Finding, ScanResult, Verdict } from "./types";
 import { ENGINE_VERSION } from "./version";
 import { ARCHIVE_SEPARATOR } from "./zip";
@@ -41,6 +41,8 @@ export interface ReportFinding {
   githubUrl: string | null;
   /** The finding is in a file inside a ZIP ("release.zip!/setup/run.js"). */
   inArchive: boolean;
+  /** The finding is in test code or test data ("tests/", "*.test.ts"). */
+  testContext: boolean;
 }
 
 export interface ReportRule {
@@ -86,6 +88,8 @@ export interface Report {
   archiveCheck: ArchiveCheck;
   /** Declared dependencies checked against OSV's malicious-package records. */
   dependencyCheck: DependencyCheck;
+  /** Findings in test files alone would have made it dangerous; the verdict was held at suspicious. */
+  testFilesCapped: boolean;
   stats: ScanResult["stats"];
   rules: ReportRule[];
   findings: ReportFinding[];
@@ -166,6 +170,7 @@ export function toReport(result: ScanResult): Report {
       : null,
     archiveCheck: { ...result.archiveCheck },
     dependencyCheck: { ...result.dependencyCheck },
+    testFilesCapped: result.testFilesCapped,
     stats: { ...result.stats },
     rules: Object.entries(result.ruleScores)
       .map(([id, points]) => {
@@ -193,6 +198,7 @@ export function toReport(result: ScanResult): Report {
       docContext: f.docContext,
       githubUrl: fullName && repo ? githubLine(fullName, repo.headSha, f) : null,
       inArchive: f.path.includes(ARCHIVE_SEPARATOR),
+      testContext: isTestPath(f.path),
     })),
     omittedFindings: result.findings.length - kept.length,
     releaseAssets: (repo?.releaseAssets ?? []).map((a) => {

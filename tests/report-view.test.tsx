@@ -34,12 +34,40 @@ function report(dependencyCheck: DependencyCheck) {
     partial: null,
     archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     dependencyCheck,
+    testFilesCapped: false,
     rulesRun: [],
     startedAt: "2026-10-01T00:00:00.000Z",
     durationMs: 5,
   };
   return toReport(result);
 }
+
+describe("ReportView test files", () => {
+  it("labels findings in test files and explains a held verdict", () => {
+    const r = report({ status: "none", packages: 0, malicious: 0 });
+    const finding = {
+      ruleId: "GR-CODE-002",
+      title: "Downloads a script and pipes it into a shell",
+      category: "code" as const,
+      severity: "high" as const,
+      weight: 35,
+      path: "tests/pane.test.ts",
+      line: 3,
+      snippet: "curl x | sh",
+      why: "w",
+      note: null,
+      docContext: false,
+      githubUrl: null,
+      inArchive: false,
+      testContext: true,
+    };
+    const html = renderToStaticMarkup(
+      <ReportView report={{ ...r, verdict: "suspicious", score: 69, testFilesCapped: true, findings: [finding] }} />,
+    );
+    expect(html).toContain("Held at Suspicious");
+    expect(html).toContain("in a test file");
+  });
+});
 
 describe("ReportView dependency check", () => {
   it("says how many packages OSV checked", () => {

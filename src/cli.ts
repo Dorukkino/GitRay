@@ -35,6 +35,9 @@ function printReport(r: Report): void {
   if (r.partial) {
     out.push(`Partial scan: ${r.partial.reason} (${r.partial.filesScanned} files scanned)`);
   }
+  if (r.testFilesCapped) {
+    out.push("Held at suspicious: the score above 69 comes from test files, and nothing runs by itself on install");
+  }
   out.push(
     `Scanned ${r.stats.textFiles} text and ${r.stats.binaryFiles} binary files with ${r.rulesRun} rules in ${(r.durationMs / 1000).toFixed(1)} s`,
   );
@@ -65,7 +68,7 @@ function printReport(r: Report): void {
     out.push("", "Findings:");
     for (const f of r.findings) {
       const where = f.path ? `${f.path}${f.line ? `:${f.line}` : ""}` : "(repository)";
-      out.push(`  [${f.severity.toUpperCase()}] ${f.ruleId} ${where}`);
+      out.push(`  [${f.severity.toUpperCase()}] ${f.ruleId} ${where}${f.testContext ? "  (test file)" : ""}`);
       out.push(`      ${f.title}${f.note ? ` - ${f.note}` : ""}`);
       if (f.snippet) out.push(`      > ${f.snippet}`);
     }

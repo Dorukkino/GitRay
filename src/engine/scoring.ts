@@ -1,5 +1,6 @@
 /** Turn findings into a 0-100 score and a verdict. */
 
+import { isTestPath } from "./text";
 import type { Finding, Verdict } from "./types";
 
 export const MAX_SCORE = 100;
@@ -19,17 +20,43 @@ export function verdictFor(score: number): Verdict {
   return "clean";
 }
 
-export function score(
-  findings: Iterable<Finding>,
-  complete = true,
-): { score: number; verdict: Verdict; ruleScores: Record<string, number> } {
-  const perRule = ruleScores(findings);
-  const total = Math.min(
+function total(perRule: Record<string, number>): number {
+  return Math.min(
     MAX_SCORE,
     Object.values(perRule).reduce((a, b) => a + b, 0),
   );
-  let verdict = verdictFor(total);
+}
+
+export interface Scored {
+  score: number;
+  verdict: Verdict;
+  ruleScores: Record<string, number>;
+  /**
+   * Findings in test files pushed the score to "dangerous" on their own and were
+   * held at "suspicious": see score().
+   */
+  testFilesCapped: boolean;
+}
+
+export function score(findings: Iterable<Finding>, complete = true): Scored {
+  const list = [...findings];
+  const perRule = ruleScores(list);
+  let points = total(perRule);
+  let testFilesCapped = false;
+  if (points >= DANGEROUS_AT) {
+    // Test code does not run on clone or install, and security tools keep attack
+    // samples in their tests. Findings there still count in full, but on their own
+    // they make a repository at most suspicious. Not when something runs by itself
+    // (an install script, a folder-open task): that could start the test file.
+    const outside = list.filter((f) => !isTestPath(f.path));
+    const autorun = outside.some((f) => f.category === "autorun");
+    if (!autorun && total(ruleScores(outside)) < DANGEROUS_AT) {
+      points = DANGEROUS_AT - 1;
+      testFilesCapped = true;
+    }
+  }
+  let verdict = verdictFor(points);
   // A partial scan is never called clean: the unread part may hold the payload.
   if (!complete && verdict === "clean") verdict = "incomplete";
-  return { score: total, verdict, ruleScores: perRule };
+  return { score: points, verdict, ruleScores: perRule, testFilesCapped };
 }

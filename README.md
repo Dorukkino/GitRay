@@ -65,7 +65,7 @@ Optional settings in `.env.local` (see `.env.example`):
 - `src/cli.ts`: command-line scanner
 - `tests/`: Vitest tests and harmless rule fixtures
 
-Project rules and architecture: [`CLAUDE.md`](CLAUDE.md). Progress log: [`PROGRESS.md`](PROGRESS.md) (both in Turkish).
+Project rules and architecture: [`CLAUDE.md`](CLAUDE.md) (in Turkish).
 
 ## Limitations
 

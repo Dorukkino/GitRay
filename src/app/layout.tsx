@@ -21,7 +21,6 @@ const NAV = [
   { href: "/safe-zone", label: "Safe Zone" },
   { href: "/scammer", label: "Scammer" },
   { href: "/rules", label: "Rules" },
-  { href: "/progress", label: "Progress" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

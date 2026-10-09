@@ -162,6 +162,8 @@ export interface ScanResult {
   partial: PartialScan | null;
   archiveCheck: ArchiveCheck;
   dependencyCheck: DependencyCheck;
+  /** Test files alone would have made the repository dangerous; the verdict was held at suspicious. */
+  testFilesCapped: boolean;
   rulesRun: string[];
   startedAt: string;
   durationMs: number;
