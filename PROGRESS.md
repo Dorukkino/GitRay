@@ -4,22 +4,22 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 
 ## Şu anki durum
 
-**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında listeleniyor.
+**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında ve üst menüdeki açılır pencerede listeleniyor; ana sayfa son 7 günde taranan repo sayısını gösteriyor.
 
 | Parça | Durum |
 | --- | --- |
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
 | 35 kural, 9 kategori | Hazır |
 | ZIP içeriğini tarama, `export-ignore` ile saklanan dosyaları yakalama | Hazır (5. oturum) |
-| Web sitesi: arama, sonuç, Safe Zone, Scammer, kurallar | Hazır; 10. oturumda yeni tasarım (açık/koyu tema, Motion animasyonları, kullanıcının logosu) |
+| Web sitesi: arama, sonuç, Safe Zone, Scammer, Son tarananlar, kurallar | Hazır; 10. oturumda yeni tasarım (açık/koyu tema, Motion animasyonları, kullanıcının logosu, kaydırınca gelen kartlar), 11. oturumda son tarananlar ve haftalık sayı |
 | Diller | İngilizce ve Türkçe (10. oturum); yenisi `src/i18n/` ile eklenir |
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
-| Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
+| Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
-| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3 |
-| Testler | 24 dosya, 808 test |
-| Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
+| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GitRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
+| Testler | 24 dosya, 837 test |
+| Vercel'e deploy | Canlıda: gitray.vercel.app (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
@@ -493,7 +493,8 @@ Kullanıcı sordu: GitRay'i GitRay'de taratınca neden Tehlikeli 100 çıkıyor?
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
-2. ~~**Tasarım**~~ (10. oturumda yapıldı). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
+2. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
+   - Haftalık sayı şu an farklı repoları sayıyor (aynı repo iki kez taranırsa bir). Her taramayı ayrı saymak istenirse taramalar için ayrı bir sayaç gerekir.
    - Başka diller: `src/i18n/` altına sözlük eklemek yeterli.
    - Bulgu notlarının (`note`) çevirisi için motorun not metinlerini kimlikli hale getirmek gerekir (şu an İngilizce).
 3. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
