@@ -143,8 +143,9 @@ const KNOWN_TO_ANTIVIRUS: Rule = {
   weight: 70,
   why:
     "VirusTotal runs files through about 70 antivirus engines. This exact file, matched by its " +
-    "SHA-256 fingerprint (nothing is downloaded or run), is detected by some of them. Several " +
-    "detections mean known malware; one or two can be a false positive, so they weigh less.",
+    "SHA-256 fingerprint (nothing is downloaded or run), is detected by some of them. Five or " +
+    "more detections mean known malware. A few detections are common false positives on " +
+    "installers and small launchers, so they weigh little.",
   *scanRepo(_info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
     for (const f of ctx.flaggedFiles ?? []) {
       if (f.reputation.status !== "found") continue;
@@ -155,7 +156,7 @@ const KNOWN_TO_ANTIVIRUS: Rule = {
         path: f.source === "repository" ? f.name : "",
         line: 0,
         text: f.source === "release" ? `release asset ${f.name}` : "",
-        weight: known ? undefined : 20,
+        weight: known ? undefined : 10,
         note:
           `${s.malicious} of ${total} antivirus engines detect ${f.source === "release" ? "this release file" : "it"}` +
           (known ? "" : " (few detections: may be a false positive)"),

@@ -213,12 +213,29 @@ describe("the VirusTotal step of a scan", () => {
     expect(report.reputationCheck.files[1].virusTotalUrl).toBe(`https://www.virustotal.com/gui/file/${releaseSha}`);
   });
 
+  it("skips checksum lists, looks up at most 10 files and only counts the rest", async () => {
+    const gh = new FakeGitHub();
+    const names = ["sha256.sum", "SHA256SUMS", "checksums.txt", "uv.tar.gz.sha256", "notes.md"];
+    const programs = Array.from({ length: 13 }, (_, i) => `tool-${i}.zip`);
+    gh.releases = [
+      {
+        tag_name: "v1",
+        assets: [...names, ...programs].map((name, i) => ({ name, size: 1, digest: `sha256:${sha(100 + i)}` })),
+      },
+    ];
+    const rep = new FakeReputation(new Map());
+    const result = await scanRepo({ owner: "octo", repo: "demo" }, new GitHubClient({ fetch: gh.fetch }), { reputation: rep });
+    expect(rep.asked).toHaveLength(10);
+    expect(result.reputationCheck.files.map((f) => f.name)).toEqual(programs.slice(0, 10).map((n) => `v1/${n}`));
+    expect(result.reputationCheck.notLookedUp).toBe(3);
+  });
+
   it("weighs a few detections on a release file lightly", async () => {
     const gh = new FakeGitHub();
     gh.releases = [{ tag_name: "v2", assets: [{ name: "app.dmg", size: 1, digest: `sha256:${sha(5)}` }] }];
     const rep = new FakeReputation(new Map([[sha(5), found(2)]]));
     const result = await scanRepo({ owner: "octo", repo: "demo" }, new GitHubClient({ fetch: gh.fetch }), { reputation: rep });
-    expect(result.ruleScores["GR-BIN-003"]).toBe(20);
+    expect(result.ruleScores["GR-BIN-003"]).toBe(10);
     expect(result.findings.find((f) => f.ruleId === "GR-BIN-003")).toMatchObject({ path: "", line: 0 });
   });
 

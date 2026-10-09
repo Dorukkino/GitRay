@@ -111,7 +111,7 @@ export interface Report {
   /** Repositories "git clone --recursive" adds (.gitmodules). Not scanned; `github` can be scanned separately. */
   submodules: ReportSubmodule[];
   /** Committed programs and release assets looked up on VirusTotal. */
-  reputationCheck: { status: ReputationCheck["status"]; files: ReportCheckedFile[] };
+  reputationCheck: { status: ReputationCheck["status"]; files: ReportCheckedFile[]; notLookedUp: number };
   stats: ScanResult["stats"];
   rules: ReportRule[];
   findings: ReportFinding[];
@@ -209,6 +209,7 @@ export function toReport(result: ScanResult): Report {
           virusTotalUrl: `https://www.virustotal.com/gui/file/${f.sha256}`,
           reputation: f.reputation,
         })),
+      notLookedUp: result.reputationCheck.notLookedUp,
     },
     stats: { ...result.stats },
     rules: Object.entries(result.ruleScores)

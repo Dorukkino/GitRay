@@ -91,7 +91,10 @@ export interface ReputationCheck {
    * partial: some files were not looked up (quota); unavailable: VirusTotal failed.
    */
   status: "not_configured" | "none" | "ok" | "found" | "partial" | "unavailable";
+  /** The files looked up (at most Limits.maxReputationLookups). */
   files: CheckedFile[];
+  /** Further candidates left out by that limit (or by a missing key or failure). */
+  notLookedUp: number;
 }
 
 export interface MaliciousDependency {

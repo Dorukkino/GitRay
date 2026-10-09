@@ -60,17 +60,28 @@ function reputationCheckText(report: Report): { text: string; warn: boolean } {
     ? ` ${unknown} ${unknown === 1 ? "is" : "are"} unknown to VirusTotal, which does not mean safe.`
     : "";
   const filesText = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
+  // Reports from engine 0.6 have no notLookedUp.
+  const more = check.notLookedUp ?? 0;
+  const moreText = more
+    ? ` ${more} more file${more === 1 ? " was" : "s were"} not looked up (at most 10 per scan).`
+    : "";
   switch (check.status) {
     case "found":
-      return { text: `Antivirus engines flag ${flagged} of ${filesText(files.length)} looked up by fingerprint.${unknownText}`, warn: true };
+      return {
+        text: `Antivirus engines flag ${flagged} of ${filesText(files.length)} looked up by fingerprint.${unknownText}${moreText}`,
+        warn: true,
+      };
     case "ok":
-      return { text: `Looked up ${filesText(looked.length)} by fingerprint: no antivirus engine flags them.${unknownText}`, warn: false };
+      return {
+        text: `Looked up ${filesText(looked.length)} by fingerprint: no antivirus engine flags them.${unknownText}${moreText}`,
+        warn: false,
+      };
     case "partial":
       return {
         text:
           `Looked up ${looked.length} of ${filesText(files.length)}; the rest wait for VirusTotal's shared quota ` +
-          `(4 a minute, 500 a day). Scan again later.${unknownText}`,
-        warn: true,
+          `(4 a minute, 500 a day) and are looked up when the repository is scanned again.${unknownText}${moreText}`,
+        warn: false,
       };
     case "unavailable":
       return { text: "VirusTotal could not be reached, so programs and release files were not looked up.", warn: true };
@@ -90,7 +101,8 @@ function reputationText(r: Reputation): { text: string; tone: "bad" | "ok" | "mu
       : { text: `0/${total} engines detect it`, tone: "ok" };
   }
   if (r.status === "unknown") return { text: "unknown to VirusTotal", tone: "muted" };
-  return { text: r.reason === "error" ? "lookup failed" : "not looked up yet (quota)", tone: "muted" };
+  const reason = { error: "lookup failed", quota: "not looked up yet (shared quota)", limit: "not looked up (10 per scan)" }[r.reason];
+  return { text: reason, tone: "muted" };
 }
 
 /** Each fingerprint looked up, with a link built from the validated SHA-256 only. */

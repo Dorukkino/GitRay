@@ -1,6 +1,6 @@
 # path: 
 # lines: 0
-# weight: 20
+# weight: 10
 # format: repo
 # ---
 {"context": {"flaggedFiles": [{"source": "release", "name": "v1.0/tool-setup.exe", "sha256": "0000000000000000000000000000000000000000000000000000000000000002", "reputation": {"status": "found", "stats": {"malicious": 2, "suspicious": 0, "harmless": 0, "undetected": 68}}}]}}

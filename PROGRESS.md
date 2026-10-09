@@ -17,9 +17,9 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3 |
-| Testler | 23 dosya, 774 test |
+| Testler | 23 dosya, 775 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
-| VirusTotal kontrolü | Hazır (9. oturum); çalışması için `VIRUSTOTAL_API_KEY` Vercel'e eklenmeli (rehberde Adım 5) |
+| VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
 
@@ -438,10 +438,18 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
   - Bu çalışma ortamından virustotal.com'a erişilemiyor. Testler sahte bir VirusTotal sunucusu kullanıyor: cevaplar, 404, 429, 401, dakika ve gün kotası, önbellek, sıralama, yarım tarama, hata durumu.
   - Gerçek doğrulama, anahtar eklendikten sonra Vercel'de yapılacak.
 - `ENGINE_VERSION` 0.6.0 oldu; kural sayısı 35.
+- **Canlı deneme** (kullanıcı anahtarı Vercel'e ekledi):
+  - `astral-sh/uv` taramasında VirusTotal çalıştı; 3 dosyayı 1–4 antivirüs "zararlı" saydı. Bunlar büyük ihtimalle yanlış alarm.
+  - Ekran görüntüsünde üç sorun göründü ve düzeltildi (`ENGINE_VERSION` 0.7.0):
+    - `sha256.sum` gibi checksum listeleri soruluyordu. Artık `.sum`, `SHA256SUMS`, `checksums.txt`, `.sha256` vb. atlanıyor.
+    - Tarama başına 10 dosya sınırını aşan onlarca dosya tek tek "not looked up yet (quota)" diye listeleniyordu. Bu hem kalabalıktı hem de yanlıştı, çünkü sebep kota değil sınırdı. Artık yalnızca sorulan dosyalar listeleniyor, kalanlar "N more files were not looked up" diye sayılıyor.
+    - 1–4 motorun "zararlı" demesi +20'den +10'a indi. Kurulum dosyalarında ve küçük başlatıcılarda bu kadar az tespit genelde yanlış alarm; uv bu yüzden Tehlikeli sınırına itiliyordu.
+  - Kota notu: bir tarama en fazla 4 dosyayı canlı sorar. Kalanlar aynı repo tekrar tarandıkça sorulur, sorulanlar 1 gün hatırlanır.
+
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Kullanıcı:** VirusTotal anahtarını Vercel'e eklemek (rehberde Adım 5) ve canlıda bir release'li repo taramak.
+1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
 2. **Tasarım** (kullanıcının isteği: önerilen ve kararlaştırılan işler bittikten sonra): koyu tema yerine daha açık ve okunaklı bir arayüz. Sıradaki büyük iş bu.
 3. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
 4. **Liste kalitesi:** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür.
