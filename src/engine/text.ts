@@ -193,8 +193,13 @@ export function defang(s: string): string {
     .replace(FTP_SCHEME, "fxp://");
 }
 
+/** Cut to at most `max` UTF-16 units without splitting a surrogate pair (an emoji). */
 function truncate(s: string, max: number): string {
-  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+  if (s.length <= max) return s;
+  let end = max - 1;
+  const last = s.charCodeAt(end - 1);
+  if (last >= 0xd800 && last <= 0xdbff) end -= 1;
+  return `${s.slice(0, end)}…`;
 }
 
 /** A short, display-safe excerpt of a line, centred on `column`. */
@@ -209,7 +214,8 @@ export function snippet(line: string, column = 0, max = SNIPPET_MAX): string {
     const body = text.slice(start, start + max - 2);
     text = `${start > 0 ? "…" : ""}${body}${start + max - 2 < text.length ? "…" : ""}`;
   }
-  return defang(text);
+  // Slicing may have split a surrogate pair; lone surrogates are not valid JSON for Postgres.
+  return defang(text).toWellFormed();
 }
 
 /**
@@ -217,6 +223,6 @@ export function snippet(line: string, column = 0, max = SNIPPET_MAX): string {
  * characters are revealed, URLs defanged, length bounded.
  */
 export function sanitize(s: string, max = SNIPPET_MAX): string {
-  const wellFormed = s.toWellFormed();
-  return truncate(defang(revealHidden(wellFormed).text), max);
+  // toWellFormed last: truncating must not leave half of an emoji behind.
+  return truncate(defang(revealHidden(s).text), max).toWellFormed();
 }

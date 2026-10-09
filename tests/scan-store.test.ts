@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Report, Verdict } from "../src/engine";
 import type { Db } from "../src/lib/db";
 import { PostgresScanStore } from "../src/lib/scan-store";
+import { sanitize } from "../src/engine/text";
 
 function pgliteDb(pg: PGlite): Db {
   return {
@@ -96,6 +97,38 @@ describe("PostgresScanStore", () => {
     await store.save(report("octo/demo", "clean", "2026-10-02T00:00:00Z"));
     expect(await store.list("dangerous", 10)).toEqual([]);
     expect((await store.list("clean", 10)).map((s) => s.fullName)).toEqual(["octo/demo"]);
+  });
+
+  it("never lets an older scan overwrite a newer one", async () => {
+    await store.save(report("octo/demo", "clean", "2026-10-05T00:00:00Z"));
+    await store.save(report("octo/demo", "dangerous", "2026-10-04T00:00:00Z"));
+    expect((await store.list("clean", 10)).map((s) => s.fullName)).toEqual(["octo/demo"]);
+    expect(await store.list("dangerous", 10)).toEqual([]);
+  });
+
+  it("stores text that was cut in the middle of an emoji", async () => {
+    const r = report("octo/demo", "clean", "2026-10-02T00:00:00Z");
+    const emoji = String.fromCodePoint(0x1f600);
+    r.target!.description = sanitize(`${"x".repeat(298)}${emoji}${emoji}`, 300);
+    await store.save(r);
+    expect((await store.list("clean", 1))[0].description).toBe(r.target!.description);
+  });
+
+  it("prunes the oldest rows beyond the limit", async () => {
+    for (let i = 0; i < 5; i++) await store.save(report(`o/r${i}`, "clean", `2026-10-0${i + 1}T00:00:00Z`));
+    await store.prune(2);
+    expect((await store.list("clean", 10)).map((s) => s.fullName)).toEqual(["o/r4", "o/r3"]);
+  });
+
+  it("treats losing the table-creation race as success", async () => {
+    const raced = new PostgresScanStore({
+      async query<T>(text: string, params?: unknown[]) {
+        if (text.startsWith("CREATE")) throw Object.assign(new Error("duplicate key"), { code: "23505" });
+        return (await pg.query(text, params)).rows as T[];
+      },
+    });
+    await store.save(report("octo/demo", "clean", "2026-10-02T00:00:00Z")); // creates the table
+    expect((await raced.list("clean", 10)).map((s) => s.fullName)).toEqual(["octo/demo"]);
   });
 
   it("returns a stored report only when it is recent enough", async () => {
