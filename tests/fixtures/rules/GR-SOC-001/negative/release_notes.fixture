@@ -1,0 +1,3 @@
+# path: CHANGELOG.md
+# ---
+- Sign Windows binaries, which should reduce antivirus false positives.

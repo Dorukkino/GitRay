@@ -1,0 +1,4 @@
+# path: plugins/perl.plugin.zsh
+# ---
+alias latest-perl='curl -s https://example.invalid/get.html | perl -wlne '\''if (/perl-([\d.]+)\.tar\.gz/) { print $1; exit;}'\'
+latest() { curl -s https://example.invalid/v.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["v"])'; }

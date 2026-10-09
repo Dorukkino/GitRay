@@ -1,6 +1,6 @@
 # path: .devcontainer/devcontainer.json
 # lines: 3
-# weight: 15
+# weight: 10
 # ---
 {
   "name": "demo",

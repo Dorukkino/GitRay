@@ -1,6 +1,6 @@
 # path: keys.py
 # lines: 2
-# weight: 25
+# weight: 15
 # ---
 import os
 p = os.path.join(home, ".ssh", "id_ed25519")

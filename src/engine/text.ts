@@ -57,6 +57,9 @@ const DOC_TXT_NAMES = new Set([
   "contributing.txt",
   "authors.txt",
   "notice.txt",
+  // Python package metadata: the project's README as "long description".
+  "pkg-info",
+  "metadata",
 ]);
 
 const SOURCE_SUFFIXES = new Set(
@@ -88,6 +91,44 @@ export function isSourcePath(path: string): boolean {
   return SOURCE_SUFFIXES.has(extension(path));
 }
 
+// "#" starts a comment in shell, Python, Ruby, YAML, Dockerfiles and PowerShell,
+// but not a C preprocessor directive or a shebang.
+const COMMENT_LINE =
+  /^\s*(?:#(?!!|\s*(?:define|include|if|ifdef|ifndef|elif|else|endif|undef|pragma|import|error|line)\b)|\/\/|\/\*|\*(?:\s|\/|$)|<!--|rem(?:\s+(?![=:(+\-*/%<>!.,])|$))/i;
+
+/** The whole line is a comment, in any common language. Comments never run. */
+export function isCommentLine(text: string): boolean {
+  return COMMENT_LINE.test(text);
+}
+
+/**
+ * The quote character of the string literal open at `index` in a single line
+ * (", ' or `), or null outside strings. Backslash escapes are honored; it is a
+ * best-effort scan of one line, not a parser.
+ */
+export function openQuoteAt(text: string, index: number): string | null {
+  let quote: string | null = null;
+  for (let i = 0; i < index && i < text.length; i++) {
+    const c = text[i];
+    if (quote) {
+      if (c === "\\") i++;
+      else if (c === quote) quote = null;
+    } else if (c === '"' || c === "'" || c === "`") {
+      quote = c;
+    }
+  }
+  return quote;
+}
+
+/** Index of the quote that closes a string literal open at `from`, or -1. */
+export function closingQuote(text: string, from: number, quote: string): number {
+  for (let i = from; i < text.length; i++) {
+    if (text[i] === "\\") i++;
+    else if (text[i] === quote) return i;
+  }
+  return -1;
+}
+
 /**
  * Split on "\n" and "\r\n" only, the way editors and GitHub number lines.
  * Other separators (\v, \f, U+2028, ...) would shift reported line numbers.
@@ -103,6 +144,8 @@ export interface ScanLine {
   line: number;
   /** The line, or a window of it for very long lines. */
   text: string;
+  /** Where the window starts in the line (0 for the first window and for short lines). */
+  offset: number;
 }
 
 /** Yield lines; long lines are yielded as overlapping windows. */
@@ -111,12 +154,12 @@ export function* iterScanLines(content: string): Generator<ScanLine> {
   for (let i = 0; i < lines.length; i++) {
     const text = lines[i];
     if (text.length <= SCAN_WINDOW) {
-      yield { line: i + 1, text };
+      yield { line: i + 1, text, offset: 0 };
       continue;
     }
     const step = SCAN_WINDOW - SCAN_OVERLAP;
     for (let start = 0; start < text.length; start += step) {
-      yield { line: i + 1, text: text.slice(start, start + SCAN_WINDOW) };
+      yield { line: i + 1, text: text.slice(start, start + SCAN_WINDOW), offset: start };
       if (start + SCAN_WINDOW >= text.length) break;
     }
   }

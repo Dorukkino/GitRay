@@ -1,6 +1,6 @@
 # path: App/App.csproj
 # lines: 4
-# weight: 15
+# weight: 10
 # ---
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>

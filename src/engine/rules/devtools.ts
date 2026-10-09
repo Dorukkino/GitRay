@@ -39,7 +39,7 @@ const DEVCONTAINER: Rule = {
   id: "GR-AUTO-006",
   title: "Dev container runs a command on your computer",
   category: "autorun",
-  weight: 15,
+  weight: 10,
   appliesTo: [".devcontainer/devcontainer.json", ".devcontainer.json", ".devcontainer/*/devcontainer.json"],
   why:
     "initializeCommand runs on your own machine, not inside the container, as soon as you " +
@@ -155,7 +155,8 @@ const ASSISTANT_HOOKS: Rule = {
   id: "GR-AUTO-008",
   title: "AI coding assistant runs commands automatically",
   category: "autorun",
-  weight: 25,
+  // A hook that runs a project file or prints text is like an install script; risky commands weigh 40.
+  weight: 15,
   appliesTo: [
     ".claude/settings.json",
     ".claude/settings.local.json",

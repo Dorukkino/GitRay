@@ -1,6 +1,6 @@
 # path: package.json
 # lines: 4
-# weight: 15
+# weight: 10
 # ---
 {
   "name": "demo",

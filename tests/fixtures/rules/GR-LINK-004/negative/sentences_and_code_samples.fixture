@@ -1,0 +1,8 @@
+# path: README.md
+# ---
+- Create an encrypted archive with a specific password:
+Password-protected zip files are not supported.
+  password: 's00pers3cret',
+PW=pwd.${{ github.run_number }}
+password = # A project token.
+`patator unzip_pass zipfile=file.zip password=FILE0`

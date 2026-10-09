@@ -1,0 +1,6 @@
+# path: installer/setup.iss
+# lines: 2
+# weight: 5
+# ---
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Demo"; ValueData: "{app}\demo.exe"

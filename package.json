@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "scan": "tsx src/cli.ts",
+    "calibrate": "tsx scripts/calibrate.ts",
     "check": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {

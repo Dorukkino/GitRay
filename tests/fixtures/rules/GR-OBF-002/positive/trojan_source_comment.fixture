@@ -1,6 +1,6 @@
 # path: auth.py
 # lines: 3
-# weight: 30
+# weight: 15
 # ---
 def is_admin(user):
     access_level = "user"

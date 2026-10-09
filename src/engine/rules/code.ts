@@ -2,13 +2,13 @@
 
 import { extension, iterScanLines } from "../text";
 import type { TextFile } from "../types";
-import { type Hit, type Rule, regexRule } from "./base";
-import { PIPE_TO_SHELL_PATTERNS, WORKFLOW_PATHS } from "./autorun";
+import { type Hit, type Rule, pathMatches, regexRule } from "./base";
+import { CI_PATHS, CONTAINER_BUILD_PATHS, pipeToShellHits } from "./autorun";
 
 const PIPE = String.raw`(?<!\|)\|(?!\|)`;
 const SHELL = String.raw`(?:sudo\s+)?(?:(?:/usr(?:/local)?)?/bin/)?(?:ba|z|da|k)?sh\b`;
 
-const DECODE_EXEC = regexRule({
+const DECODE_EXEC_PATTERNS = regexRule({
   id: "GR-CODE-001",
   title: "Decodes hidden code and executes it",
   category: "code",
@@ -21,8 +21,10 @@ const DECODE_EXEC = regexRule({
   patterns: [
     // Python: exec/eval of decoded or decompressed data.
     /\b(?:exec|eval)\s*\(.{0,60}?\b(?:b64decode|b32decode|b85decode|a85decode|decompress|fromhex|unhexlify|decodebytes|marshal\.loads|codecs\.decode)\s*\(/,
-    // JavaScript: eval/Function of decoded data.
-    /\beval\s*\(\s*(?:atob|unescape|decodeURIComponent)\s*\(/,
+    // JavaScript: eval/Function of decoded data. URL-decoding a variable is GR-CODE-001's
+    // weak form (old code parsing cookies); URL-decoding an encoded literal is not.
+    /\beval\s*\(\s*atob\s*\(/,
+    /\beval\s*\(\s*(?:unescape|decodeURIComponent)\s*\(\s*["'`]/,
     /\beval\s*\(\s*Buffer\.from\s*\(.{0,200}?['"](?:base64|hex)['"]/,
     /\b(?:new\s+)?Function\s*\(\s*(?:atob\s*\(|Buffer\.from\s*\()/,
     /\beval\s*\(\s*String\.fromCharCode\s*\(/,
@@ -35,22 +37,60 @@ const DECODE_EXEC = regexRule({
   ],
 });
 
-const PIPE_TO_SHELL = regexRule({
+/** eval of URL-decoded data held in a variable: old code parsing cookies or query strings does this. */
+const EVAL_URL_DECODED = /\beval\s*\(\s*(?:unescape|decodeURIComponent)\s*\(/;
+
+const DECODE_EXEC: Rule = {
+  ...DECODE_EXEC_PATTERNS,
+  *scanText(file: TextFile, ctx): Iterable<Hit> {
+    const strong = new Set<number>();
+    for (const hit of DECODE_EXEC_PATTERNS.scanText!(file, ctx)) {
+      strong.add(hit.line);
+      yield hit;
+    }
+    for (const { line, text } of iterScanLines(file.content)) {
+      if (strong.has(line)) continue;
+      const m = EVAL_URL_DECODED.exec(text);
+      if (m) yield { line, text, column: m.index, weight: 10, note: "evaluates URL-decoded data from a variable" };
+    }
+  },
+};
+
+const PIPE_TO_SHELL: Rule = {
   id: "GR-CODE-002",
   title: "Downloads a script and pipes it into a shell",
   category: "code",
   weight: 35,
   // "curl ... | sh" is a common, legitimate install line in READMEs.
   docWeight: 0,
-  // Workflows run on GitHub's servers: see GR-CI-001.
-  exclude: WORKFLOW_PATHS,
+  // CI configurations run on a build server: see GR-CI-001.
+  exclude: CI_PATHS,
   why:
     "A remote script is downloaded and executed immediately, without being saved or " +
     "reviewed. Whoever controls that URL controls your machine.",
-  patterns: PIPE_TO_SHELL_PATTERNS,
-});
+  *scanText(file: TextFile): Iterable<Hit> {
+    const container = pathMatches(file.path, CONTAINER_BUILD_PATHS);
+    for (const hit of pipeToShellHits(file)) {
+      yield container ? { ...hit, weight: 5, note: "runs inside a container image build, not directly on your computer" } : hit;
+    }
+  },
+};
 
-const BROWSER_CREDENTIALS = regexRule({
+const BROWSER_STORES: readonly RegExp[] = [
+  /["'\\/]Login Data\b/,
+  /\blogins\.json\b/,
+  /\bkey[34]\.db\b/,
+  /\bcookies\.sqlite\b/,
+  // "encrypted_key" alone is a standard JWE field; Chrome's os_crypt key is the indicator.
+  /Local State.{0,200}?os_crypt/i,
+  /os_crypt.{0,40}?encrypted_key/i,
+  /(?:Google[\\/]+Chrome|BraveSoftware[\\/]+Brave-Browser|Microsoft[\\/]+Edge|Opera Software[\\/]+Opera (?:Stable|GX Stable)|Yandex[\\/]+YandexBrowser)[\\/]+(?:User Data|Default)/i,
+  /Mozilla[\\/]+Firefox[\\/]+Profiles/i,
+];
+/** Windows DPAPI: browsers encrypt saved passwords with it, but so do many ordinary programs. */
+const DPAPI = /\bCryptUnprotectData\b/;
+
+const BROWSER_CREDENTIALS: Rule = {
   id: "GR-CODE-003",
   title: "Reads browser password or cookie stores",
   category: "code",
@@ -59,21 +99,26 @@ const BROWSER_CREDENTIALS = regexRule({
   why:
     "References the files where browsers keep saved passwords, cookies and the keys that " +
     "decrypt them. Info-stealer malware goes after exactly these files.",
-  patterns: [
-    /["'\\/]Login Data\b/,
-    /\blogins\.json\b/,
-    /\bkey[34]\.db\b/,
-    /\bcookies\.sqlite\b/,
-    /\bCryptUnprotectData\b/,
-    // "encrypted_key" alone is a standard JWE field; Chrome's os_crypt key is the indicator.
-    /Local State.{0,200}?os_crypt/i,
-    /os_crypt.{0,40}?encrypted_key/i,
-    /(?:Google[\\/]+Chrome|BraveSoftware[\\/]+Brave-Browser|Microsoft[\\/]+Edge|Opera Software[\\/]+Opera (?:Stable|GX Stable)|Yandex[\\/]+YandexBrowser)[\\/]+(?:User Data|Default)/i,
-    /Mozilla[\\/]+Firefox[\\/]+Profiles/i,
-  ],
-});
+  *scanText(file: TextFile): Iterable<Hit> {
+    // DPAPI next to a browser store is a stealer; DPAPI alone is ordinary Windows code.
+    const browserStore = BROWSER_STORES.some((p) => p.test(file.content));
+    for (const { line, text } of iterScanLines(file.content)) {
+      const store = BROWSER_STORES.map((p) => p.exec(text)).find((m) => m !== null);
+      if (store) {
+        yield { line, text, column: store.index };
+        continue;
+      }
+      const dpapi = DPAPI.exec(text);
+      if (dpapi) {
+        yield browserStore
+          ? { line, text, column: dpapi.index, note: "decrypts with Windows DPAPI next to browser password files" }
+          : { line, text, column: dpapi.index, weight: 10, note: "decrypts with Windows DPAPI; no browser files referenced" };
+      }
+    }
+  },
+};
 
-const SSH_KEYS = regexRule({
+const SSH_KEY_PATTERNS = regexRule({
   id: "GR-CODE-004",
   title: "Reads SSH private keys",
   category: "code",
@@ -87,6 +132,28 @@ const SSH_KEYS = regexRule({
     /["']\.ssh["']\s*[,)]/,
   ],
 });
+
+/** Ways to send data out. A stealer reads the key and ships it; SSH tooling only reads it. */
+const NETWORK_SEND =
+  /\b(?:fetch|axios|XMLHttpRequest|sendBeacon|https?\.(?:request|get)|request\.post|requests\.(?:post|put|get)|urlopen|urllib|http\.client|httpx|net\.connect|socket\.(?:socket|connect|send)|WebClient|UploadString|UploadFile|Invoke-WebRequest|Invoke-RestMethod|smtplib|ftplib|curl|wget)\b|\b(?:nc|ncat|netcat)\s+(?:-\S+\s+)*[\w.-]+\s+\d{2,5}\b|discord(?:app)?\.com\/api\/webhooks|api\.telegram\.org/i;
+/** Planting a key in authorized_keys is a backdoor by itself; no network needed. */
+const AUTHORIZED_KEYS = /authorized_keys/;
+
+const SSH_KEYS: Rule = {
+  ...SSH_KEY_PATTERNS,
+  *scanText(file: TextFile, ctx): Iterable<Hit> {
+    const sends = NETWORK_SEND.test(file.content);
+    for (const hit of SSH_KEY_PATTERNS.scanText!(file, ctx)) {
+      if (AUTHORIZED_KEYS.test(hit.text)) {
+        yield hit;
+        continue;
+      }
+      yield sends
+        ? { ...hit, note: "the same file can send data over the network" }
+        : { ...hit, weight: 15, note: "no network use in the same file (SSH tools read keys too)" };
+    }
+  },
+};
 
 const CRYPTO_WALLETS = regexRule({
   id: "GR-CODE-005",
@@ -121,7 +188,7 @@ const EXFIL_ENDPOINTS = regexRule({
   ],
 });
 
-const WINDOWS_LOLBINS = regexRule({
+const LOLBIN_PATTERNS = regexRule({
   id: "GR-CODE-007",
   title: "Uses Windows tools to download, hide or persist",
   category: "code",
@@ -143,6 +210,21 @@ const WINDOWS_LOLBINS = regexRule({
     /\\CurrentVersion\\Run(?:Once)?\b/i,
   ],
 });
+
+/** Installer definitions (Inno Setup, WiX, NSIS): run keys and hidden PowerShell are what installers do. */
+const INSTALLER_PATHS = ["*.iss", "*.wxs", "*.wxi", "*.nsi", "*.nsh"];
+
+const WINDOWS_LOLBINS: Rule = {
+  ...LOLBIN_PATTERNS,
+  *scanText(file: TextFile, ctx): Iterable<Hit> {
+    const installer = pathMatches(file.path, INSTALLER_PATHS);
+    for (const hit of LOLBIN_PATTERNS.scanText!(file, ctx)) {
+      yield installer
+        ? { ...hit, weight: 5, note: "installer script: runs only when someone builds and runs the installer" }
+        : hit;
+    }
+  },
+};
 
 const DATA_EXTENSIONS = new Set(
   (
