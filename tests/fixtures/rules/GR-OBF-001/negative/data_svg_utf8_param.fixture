@@ -1,0 +1,3 @@
+# path: modules/chrome/tab-folders.css
+# ---
+.folder { mask-image: url("data:image/svg+xml;utf8;base64,Z2EzmS06PyLCFkC6Yoevs4kW8J99M2u4nJY3yubJX9Jj3K42JnapLdmRVhXyt4etxhZ4UGcKRI4BbDRc/e6IFHaE5jKbdvoNWyE38+u3Kb/KcZjs+y3xgKktCRwFK3mv0WsU72yhFiRPngFhVCKFZzPmyfkOozZxQYtn08MgWvCxeewOIb3dt5nHvyab8GgfGB4kSyz9LWgl7DXhj1HFf8w72EEe29JcL60SgEkCldUMVjdgZlbSz2ZiatBeiBcu4QnsX7jbZsVxOk/apzmnuE8b37C4UDfDz7astj9iS3DA9RThcGv26EERgEvor99SyXqIIO7lQW7hSmj3qNOcKEhhra2a3PyeqrZwMWFW4zJYAapasUv22THkqqoryqNCqGq+wN20O2jc3Fio"); }
