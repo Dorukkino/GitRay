@@ -4,7 +4,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Şu anki durum
 
-**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt, sitemap ve security.txt hazır: site bir domaine bağlanmaya hazır (iletişim adresi `CONTACT_EMAIL` ile Vercel'de girilir). Repo private, kod açık kaynak değil.
+**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt ve sitemap hazır: site bir domaine bağlanmaya hazır. Sitede iletişim bölümü yok (kullanıcı kararı). Repo private, kod açık kaynak değil.
 
 | Parça | Durum |
 | --- | --- |
@@ -18,7 +18,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 25 dosya, 858 test |
+| Testler | 25 dosya, 852 test |
 | Vercel'e deploy | Canlıda: gitray.vercel.app (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -55,10 +55,9 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 **Adım 6: Domain bağla** (14. oturum; domain alınınca).
 1. Vercel → proje → Settings → **Domains** → domaini yaz → Add. Vercel'in gösterdiği DNS kaydını (genelde bir `A` ya da `CNAME`) domaini aldığın yerin DNS ayarlarına ekle. Doğrulanınca HTTPS sertifikası kendiliğinden gelir.
-2. Aynı ekranda yeni domaini **production** domaini yap (gitray.vercel.app ona yönlendirilsin). Kanonik linkler, sitemap, robots.txt ve security.txt Vercel'in production domainini kendiliğinden kullanır; `SITE_URL` yalnızca başka bir adres göstermek istersen gerekir.
+2. Aynı ekranda yeni domaini **production** domaini yap (gitray.vercel.app ona yönlendirilsin). Kanonik linkler, sitemap, ve robots.txt Vercel'in production domainini kendiliğinden kullanır; `SITE_URL` yalnızca başka bir adres göstermek istersen gerekir.
 3. Deployments → Redeploy (sitemap build sırasında yazılır).
-4. Vercel → proje → Settings → Environment Variables → Key `CONTACT_EMAIL`, Value: ziyaretçilerin yazacağı e-posta adresi (spam gelebileceği için bu iş için ayrı bir adres önerilir) → Save → Redeploy. Repo private olduğu için sitedeki tek iletişim yolu bu: gizlilik ve şartlar sayfalarındaki iletişim cümleleri, footer'daki "İletişim" linki, Scammer sayfasındaki "yanlış alarmı bildir" cümlesi ve `/.well-known/security.txt` bu adres girilene kadar görünmez.
-5. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://<domain>/sitemap.xml` adresini gönder.
+4. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://<domain>/sitemap.xml` adresini gönder.
 
 **Adım 7: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
@@ -528,9 +527,15 @@ Kullanıcı GitHub'da "Private vulnerability reporting" ayarını açamadı. Seb
 - `LICENSE` MIT'ten "All rights reserved" metnine çevrildi, `package.json` lisansı `UNLICENSED`. README'deki lisans ve güvenlik notları güncellendi.
 - Testler: iletişim adresi doğrulaması, adres yokken iletişim satırlarının düşmesi, security.txt'nin mailto içermesi ve adres yokken sunulmaması (25 dosya, 858 test).
 
+### 10 Ekim 2026 (16. oturum): İletişim kaldırıldı, son tarananlar kaydırmayla geliyor
+
+- Kullanıcı: "iletişim kısmını kaldır". `CONTACT_EMAIL`, footer'daki İletişim linki, gizlilik ve şartlardaki iletişim cümleleri, Scammer sayfasındaki yanlış alarm bildirme cümlesi ve `/.well-known/security.txt` (Contact alanı zorunlu olduğu için) kaldırıldı. Scammer sayfasındaki "bu liste otomatik, kişi kararı değil" uyarısı duruyor. Not: artık repo sahiplerinin kayıt silme ya da yanlış alarm bildirme yolu yok; gerekirse ileride tekrar konuşulur.
+- Kullanıcı: "son tarananlardaki listeye de aynı şekilde frame motion verelim". Ana sayfadaki son tarananlar satırları artık ayrı küçük kartlar ve her biri "GiTRay neye bakar" kartları gibi `ScrollReveal` ile kaydırmaya bağlı geliyor (sayfa en üstteyken gizli, kaydırdıkça gelir, kaydırma durunca ekrandakiler yerine oturur).
+- Testler: 25 dosya, 852 test (iletişim ve security.txt testleri çıktı).
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Domain ve iletişim adresi** (kullanıcı): yukarıdaki Adım 6; Vercel'e `CONTACT_EMAIL` ekle.
+1. **Domain** (kullanıcı): yukarıdaki Adım 6.
 2. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
 3. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
    - Haftalık sayı şu an farklı repoları sayıyor (aynı repo iki kez taranırsa bir). Her taramayı ayrı saymak istenirse taramalar için ayrı bir sayaç gerekir.

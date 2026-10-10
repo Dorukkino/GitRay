@@ -25,7 +25,6 @@ export const en = {
     label: "Site",
     privacy: "Privacy",
     terms: "Terms",
-    contact: "Contact",
   },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
   language: { label: "Language" },
@@ -449,7 +448,6 @@ export const en = {
       "This list is produced automatically by heuristics, not by a person. Security tools and malware research " +
       "repositories can land here because they contain the very patterns GiTRay looks for. Open a repository to see " +
       "every finding and why it counts. If a repository is listed by mistake, rescan it after a fix.",
-    report: "To report a false positive, write to {contact}.",
     empty: "No dangerous repositories found yet. Repositories that score 70 or more appear here.",
   },
 
@@ -541,14 +539,8 @@ export const en = {
         ],
       },
       {
-        title: "Questions and removal requests",
-        paragraphs: [
-          "For a question about this policy, or if you own a repository and want its stored result deleted, write " +
-            "to {contact}.",
-          "A stored result can be deleted, but anyone can scan a public repository again later, which stores a new " +
-            "result.",
-          "If this policy changes, the date at the top changes with it.",
-        ],
+        title: "Changes",
+        paragraphs: ["If this policy changes, the date at the top changes with it."],
       },
     ],
   },
@@ -579,7 +571,6 @@ export const en = {
           "A Dangerous verdict or a place on the Scammer list is an automated assessment of the files in one commit. " +
             "It is not a statement about the people behind a repository, and it can be wrong: security tools and " +
             "malware research often contain the very patterns GiTRay looks for. Read the findings before you decide.",
-          "To report a false positive, write to {contact}.",
           "You decide what you clone, install or run, and you are responsible for that decision.",
         ],
       },
@@ -597,8 +588,6 @@ export const en = {
             "and per hour. Do not scan in bulk with scripts, try to get around the limits, or attack, overload or " +
             "probe the service. The JSON API at /api/scan can be used for personal, non-commercial use within the " +
             "same limits.",
-          "Found a security problem in GiTRay itself? Please report it privately to {contact} before telling " +
-            "anyone else.",
         ],
       },
       {
@@ -610,11 +599,8 @@ export const en = {
         ],
       },
       {
-        title: "Changes and questions",
-        paragraphs: [
-          "These terms can change; the date at the top shows the latest version.",
-          "Questions go to {contact}.",
-        ],
+        title: "Changes",
+        paragraphs: ["These terms can change; the date at the top shows the latest version."],
       },
     ],
   },
