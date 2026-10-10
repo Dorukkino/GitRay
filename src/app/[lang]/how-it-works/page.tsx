@@ -48,7 +48,7 @@ export default async function HowItWorksPage({ params }: PageProps<"/[lang]/how-
       <ol className="mt-10 grid gap-4 md:grid-cols-2">
         {t.steps.map((s, i) => (
           <li key={s.title} className="animate-enter" style={{ animationDelay: `${160 + i * 70}ms` }}>
-            <Lift className="h-full rounded-2xl border border-line bg-surface p-6 shadow-sm">
+            <Lift className="h-full rounded-2xl border border-line bg-surface p-6 shadow-sm hover:bg-raised">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/12 text-accent ring-1 ring-accent/20">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={STEP_ICONS[i] ?? STEP_ICONS[0]} />
