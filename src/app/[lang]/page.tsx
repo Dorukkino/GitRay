@@ -94,11 +94,11 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             {recent.items.map((s) => {
               const [owner, repo] = s.fullName.split("/");
               return (
-                <li key={s.fullName}>
+                <li key={s.fullName} className="lift-host">
                   <ScrollReveal>
                     <Link
                       href={scanPath(lang, owner, repo)}
-                      className="lift group flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm hover:bg-raised sm:px-5"
+                      className="lift lift-sm group flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm hover:bg-raised sm:px-5"
                     >
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: VERDICT_STYLE[s.verdict].color }} />
                       <span className={`hidden w-24 shrink-0 text-sm font-medium sm:block ${VERDICT_STYLE[s.verdict].text}`}>
