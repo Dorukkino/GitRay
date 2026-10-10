@@ -533,6 +533,10 @@ Kullanıcı GitHub'da "Private vulnerability reporting" ayarını açamadı. Seb
 - Kullanıcı: "son tarananlardaki listeye de aynı şekilde frame motion verelim". Ana sayfadaki son tarananlar satırları artık ayrı küçük kartlar ve her biri "GiTRay neye bakar" kartları gibi `ScrollReveal` ile kaydırmaya bağlı geliyor (sayfa en üstteyken gizli, kaydırdıkça gelir, kaydırma durunca ekrandakiler yerine oturur).
 - Testler: 25 dosya, 852 test (iletişim ve security.txt testleri çıktı).
 
+### 10 Ekim 2026 (17. oturum): Kartların üzerine gelince daha belirgin
+
+Kullanıcı: üzerine gelinen kart arka plandan daha net ayrılsın (gölge ya da çizgi, seçim bana bırakıldı). Ortak bir `.lift` stili eklendi (`globals.css`) ve tüm kartlara uygulandı (ana sayfadaki kartlar ve son tarananlar satırları, Nasıl çalışır adımları, Safe Zone/Scammer/Son tarananlar listeleri): üzerine gelince kartın kenarı vurgu renginde ince bir çizgi alır, arka planı bir ton açılır ve derin bir gölge düşer; koyu temada gölge zor seçildiği için kartın kendi renginde hafif bir ışıma da var. Karar kartları (Temiz, Şüpheli, Tehlikeli, Eksik) kendi renkleriyle parlar. Chromium'da iki temada ekran görüntüsüyle kontrol edildi.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. **Domain** (kullanıcı): yukarıdaki Adım 6.

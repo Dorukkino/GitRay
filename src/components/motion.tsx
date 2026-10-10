@@ -12,7 +12,7 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 
 import { INTL_LOCALE } from "@/i18n/config";
 import { useI18n } from "@/i18n/provider";
@@ -45,10 +45,10 @@ export function Reveal({
   );
 }
 
-/** A card that rises a little under the pointer. */
-export function Lift({ children, className }: { children: ReactNode; className?: string }) {
+/** A card that rises a little under the pointer and stands out from the page (.lift in globals.css). */
+export function Lift({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
-    <motion.div className={className} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}>
+    <motion.div className={`lift ${className ?? ""}`} style={style} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}>
       {children}
     </motion.div>
   );

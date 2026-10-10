@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -97,7 +98,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
                   <ScrollReveal>
                     <Link
                       href={scanPath(lang, owner, repo)}
-                      className="group flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm transition-colors hover:border-accent/40 hover:bg-raised sm:px-5"
+                      className="lift group flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm hover:bg-raised sm:px-5"
                     >
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: VERDICT_STYLE[s.verdict].color }} />
                       <span className={`hidden w-24 shrink-0 text-sm font-medium sm:block ${VERDICT_STYLE[s.verdict].text}`}>
@@ -126,7 +127,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CATEGORY_ORDER.map((c, i) => (
             <ScrollReveal key={c} column={i % 3}>
-              <Lift className="h-full rounded-2xl border border-line bg-surface p-5 shadow-sm transition-colors hover:border-accent/40">
+              <Lift className="h-full rounded-2xl border border-line bg-surface p-5 shadow-sm hover:bg-raised">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-semibold text-fg">{dict.categories[c].label}</h3>
                   <span className="rounded-full bg-sunken px-2 py-0.5 font-mono text-xs text-muted">{counts.get(c) ?? 0}</span>
@@ -145,7 +146,10 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {VERDICTS.map((v, i) => (
             <ScrollReveal key={v} column={i}>
-              <Lift className={`h-full rounded-2xl border p-5 ${VERDICT_STYLE[v].border} ${VERDICT_STYLE[v].bg}`}>
+              <Lift
+                className={`h-full rounded-2xl border p-5 ${VERDICT_STYLE[v].border} ${VERDICT_STYLE[v].bg}`}
+                style={{ "--lift-ring": VERDICT_STYLE[v].color } as CSSProperties}
+              >
                 <div className={`flex items-center gap-2 font-semibold ${VERDICT_STYLE[v].text}`}>
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: VERDICT_STYLE[v].color }} />
                   {dict.verdicts[v].label}

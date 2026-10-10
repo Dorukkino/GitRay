@@ -62,6 +62,8 @@
   --suspicious: #b45f06;
   --dangerous: #cf2e4a;
   --incomplete: #0a6fb0;
+  --lift-shadow: 0 22px 44px -18px rgb(14 27 51 / 0.32), 0 8px 18px -10px rgb(14 27 51 / 0.18);
+  --lift-glow: 0%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -93,6 +95,8 @@
     --suspicious: #f8bd52;
     --dangerous: #ff7d92;
     --incomplete: #62c3ff;
+  --lift-shadow: 0 24px 48px -16px rgb(2 6 18 / 0.8);
+  --lift-glow: 45%;
   }
 }
 
@@ -124,6 +128,31 @@
   --suspicious: #f8bd52;
   --dangerous: #ff7d92;
   --incomplete: #62c3ff;
+  --lift-shadow: 0 24px 48px -16px rgb(2 6 18 / 0.8);
+  --lift-glow: 45%;
+}
+
+/*
+ * Hover state of the cards (Lift and list rows): an accent outline and a deeper
+ * shadow set the card off the page in both themes (the dark theme adds a glow,
+ * where a shadow alone barely shows). --lift-ring lets a card use its own colour
+ * (the verdict cards). Unlayered, so it wins over the shadow-sm
+ * utility. Only on hover, never while scrolling.
+ */
+.lift {
+  --lift-ring: var(--accent);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+.lift:hover {
+  border-color: color-mix(in srgb, var(--lift-ring) 70%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lift-ring) 45%, transparent),
+    var(--lift-shadow),
+    0 0 36px -6px color-mix(in srgb, var(--lift-ring) var(--lift-glow), transparent);
 }
 
 body {
