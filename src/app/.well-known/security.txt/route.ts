@@ -4,5 +4,7 @@ import { securityTxt } from "@/lib/security-txt";
 export const revalidate = 86400;
 
 export function GET() {
-  return new Response(securityTxt(), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  const text = securityTxt();
+  if (!text) return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }

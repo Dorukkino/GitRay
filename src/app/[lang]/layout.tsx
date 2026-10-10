@@ -7,7 +7,7 @@ import { Providers } from "@/components/Providers";
 import { SiteHeader } from "@/components/SiteHeader";
 import { INTL_LOCALE, LOCALES, isLocale, localePath } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { REPO_URL, SITE_NAME, siteUrl } from "@/lib/site";
+import { SITE_NAME, contactEmail, siteUrl } from "@/lib/site";
 
 import "../globals.css";
 
@@ -41,6 +41,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
   const dict = getDictionary(lang);
+  const contact = contactEmail();
   return (
     <html lang={lang} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
@@ -66,9 +67,11 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                 <Link href={localePath(lang, "/terms")} className="text-muted transition-colors hover:text-fg">
                   {dict.footer.terms}
                 </Link>
-                <a href={REPO_URL} className="text-muted transition-colors hover:text-fg" rel="noopener noreferrer">
-                  {dict.footer.source}
-                </a>
+                {contact && (
+                  <a href={`mailto:${contact}`} className="text-muted transition-colors hover:text-fg">
+                    {dict.footer.contact}
+                  </a>
+                )}
               </nav>
             </div>
           </footer>

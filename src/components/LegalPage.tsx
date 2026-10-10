@@ -20,7 +20,15 @@ export const legalLink = (href: string, label: string) => (
   </a>
 );
 
+/** A mailto link for the configured contact address, or null without one. */
+export const contactLink = (email: string | null) => (email ? legalLink(`mailto:${email}`, email) : null);
+
 export const legalCode = (text: string) => <code className="rounded bg-sunken px-1.5 py-0.5 font-mono text-[0.85em] text-fg">{text}</code>;
+
+/** True when every {placeholder} in the text has a node; a contact line without a contact address is left out. */
+export function canFill(template: string, nodes: Record<string, ReactNode>): boolean {
+  return [...template.matchAll(/\{(\w+)\}/g)].every((m) => nodes[m[1]] != null);
+}
 
 /** The privacy policy and the terms: a title, a date and plain sections. */
 export function LegalPage({ text, locale, nodes }: { text: LegalText; locale: Locale; nodes: Record<string, ReactNode> }) {
@@ -42,11 +50,13 @@ export function LegalPage({ text, locale, nodes }: { text: LegalText; locale: Lo
       {text.sections.map((s) => (
         <Reveal as="section" key={s.title} className="mt-10">
           <h2 className="text-xl font-semibold tracking-tight text-fg">{s.title}</h2>
-          {s.paragraphs.map((p, i) => (
-            <p key={i} className="mt-3 leading-relaxed text-muted">
-              {rich(p, nodes)}
-            </p>
-          ))}
+          {s.paragraphs
+            .filter((p) => canFill(p, nodes))
+            .map((p, i) => (
+              <p key={i} className="mt-3 leading-relaxed text-muted">
+                {rich(p, nodes)}
+              </p>
+            ))}
         </Reveal>
       ))}
     </article>

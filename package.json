@@ -37,7 +37,7 @@
     "vitest": "^5.0.3"
   },
   "description": "Scan GitHub repositories for malware tricks without cloning or running them.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "engines": {
     "node": "22.x"
   }

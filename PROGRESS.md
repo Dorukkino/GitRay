@@ -1,10 +1,10 @@
 # GiTRay ilerleme günlüğü
 
-Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu public olduğu için dosya GitHub'da görünür.
+Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
 
 ## Şu anki durum
 
-**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt, sitemap ve security.txt hazır: site bir domaine bağlanmaya hazır.
+**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt, sitemap ve security.txt hazır: site bir domaine bağlanmaya hazır (iletişim adresi `CONTACT_EMAIL` ile Vercel'de girilir). Repo private, kod açık kaynak değil.
 
 | Parça | Durum |
 | --- | --- |
@@ -18,7 +18,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 25 dosya, 855 test |
+| Testler | 25 dosya, 858 test |
 | Vercel'e deploy | Canlıda: gitray.vercel.app (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -57,9 +57,8 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 1. Vercel → proje → Settings → **Domains** → domaini yaz → Add. Vercel'in gösterdiği DNS kaydını (genelde bir `A` ya da `CNAME`) domaini aldığın yerin DNS ayarlarına ekle. Doğrulanınca HTTPS sertifikası kendiliğinden gelir.
 2. Aynı ekranda yeni domaini **production** domaini yap (gitray.vercel.app ona yönlendirilsin). Kanonik linkler, sitemap, robots.txt ve security.txt Vercel'in production domainini kendiliğinden kullanır; `SITE_URL` yalnızca başka bir adres göstermek istersen gerekir.
 3. Deployments → Redeploy (sitemap build sırasında yazılır).
-4. GitHub → repo → Settings → **Security** (Code security) → **Private vulnerability reporting** → Enable. security.txt ve `SECURITY.md` güvenlik açığı bildirimlerini oraya yönlendiriyor; kapalıysa link 404 verir.
-5. İsteğe bağlı: GitHub → repo → Settings → General → Repository name'i `GiTRay` yap. Sitedeki linkler zaten `Dorukkino/GiTRay` yazıyor; GitHub büyük/küçük harfe bakmadığı için iki durumda da çalışır.
-6. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://<domain>/sitemap.xml` adresini gönder.
+4. Vercel → proje → Settings → Environment Variables → Key `CONTACT_EMAIL`, Value: ziyaretçilerin yazacağı e-posta adresi (spam gelebileceği için bu iş için ayrı bir adres önerilir) → Save → Redeploy. Repo private olduğu için sitedeki tek iletişim yolu bu: gizlilik ve şartlar sayfalarındaki iletişim cümleleri, footer'daki "İletişim" linki, Scammer sayfasındaki "yanlış alarmı bildir" cümlesi ve `/.well-known/security.txt` bu adres girilene kadar görünmez.
+5. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://<domain>/sitemap.xml` adresini gönder.
 
 **Adım 7: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
@@ -519,9 +518,19 @@ Kullanıcının istekleri: son tarananlar açılır pencere yerine ana sayfada o
 - Doğrulama: `npm run check` (25 dosya, 855 test), `npm run build`; Chromium'da geçici örnek veriyle (commit'ten önce geri alındı) iki dil, iki tema, 1360 ve 390 genişlik: ana sayfa sırası, liste, haftalık metin, menüde açılır pencere yok, Nasıl çalışır menüde seçili, footer linkleri, gizlilik/şartlar sayfaları, robots/sitemap/security.txt yönlendirmesiz 200; HTML'de "GitRay" kalmadı; konsolda hata yok.
 - Doğrulanamayan: Vercel ve Neon gizlilik politikası linkleri (`vercel.com/legal/privacy-policy`, `neon.com/privacy-policy`) bu ortamdan açılamadı (ağ politikası); canlıda bir kez tıklanıp bakılmalı.
 
+### 10 Ekim 2026 (15. oturum): Repo private kalıyor, kod açık kaynak değil
+
+Kullanıcı GitHub'da "Private vulnerability reporting" ayarını açamadı. Sebep: repo private, bu ayar yalnızca public repolarda var. Ayrıca repo private olunca sitedeki bütün GitHub linkleri (Issues, yanlış alarm bildirme, kaynak kod, `SECURITY.md`) ziyaretçilere 404 veriyordu. Kullanıcı kararı: "repo gizli kalacak, proje bana özel, açık kaynak paylaşmayacağım".
+
+- Siteden repoya giden her link kaldırıldı (footer'daki kaynak kod linki, Issues, güvenlik bildirimi). `SECURITY.md` silindi.
+- Tek iletişim yolu artık `CONTACT_EMAIL` ortam değişkeni (`src/lib/site.ts` `contactEmail`, biçimi doğrulanır). Adres varsa: gizlilik ve şartlar sayfalarında iletişim cümleleri, footer'da "İletişim" linki, Scammer sayfasında "yanlış alarmı bildirmek için ... adresine yazın" ve `security.txt` (`Contact: mailto:`). Adres yoksa bunların hepsi görünmez (security.txt 404). Kullanıcı adres vermedi; Vercel'e kendisi ekleyecek.
+- Metinler: "açık kaynak" ifadeleri kaldırıldı, şartlara "Site, kodu ve tasarımı geliştiricisine aittir. Tüm hakları saklıdır." eklendi, MIT maddesi çıktı.
+- `LICENSE` MIT'ten "All rights reserved" metnine çevrildi, `package.json` lisansı `UNLICENSED`. README'deki lisans ve güvenlik notları güncellendi.
+- Testler: iletişim adresi doğrulaması, adres yokken iletişim satırlarının düşmesi, security.txt'nin mailto içermesi ve adres yokken sunulmaması (25 dosya, 858 test).
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Domain** (kullanıcı): yukarıdaki Adım 6; GitHub'da private vulnerability reporting'i aç.
+1. **Domain ve iletişim adresi** (kullanıcı): yukarıdaki Adım 6; Vercel'e `CONTACT_EMAIL` ekle.
 2. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
 3. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
    - Haftalık sayı şu an farklı repoları sayıyor (aynı repo iki kez taranırsa bir). Her taramayı ayrı saymak istenirse taramalar için ayrı bir sayaç gerekir.
