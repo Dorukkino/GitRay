@@ -45,12 +45,14 @@ export function Reveal({
   );
 }
 
-/** A card that rises a little under the pointer and stands out from the page (.lift in globals.css). */
+/** A card that rises a little under the pointer and stands out from the page (.lift and .lift-host in globals.css). */
 export function Lift({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
-    <motion.div className={`lift ${className ?? ""}`} style={style} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}>
-      {children}
-    </motion.div>
+    <div className="lift-host h-full">
+      <div className={`lift ${className ?? ""}`} style={style}>
+        {children}
+      </div>
+    </div>
   );
 }
 

@@ -62,8 +62,10 @@
   --suspicious: #b45f06;
   --dangerous: #cf2e4a;
   --incomplete: #0a6fb0;
-  --lift-shadow: 0 22px 44px -18px rgb(14 27 51 / 0.32), 0 8px 18px -10px rgb(14 27 51 / 0.18);
-  --lift-glow: 0%;
+  --lift-shadow: 0 26px 50px -18px rgb(14 27 51 / 0.42), 0 10px 22px -10px rgb(14 27 51 / 0.26);
+  --lift-glow: 38%;
+  --lift-edge: 85%;
+  --lift-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -97,6 +99,7 @@
     --incomplete: #62c3ff;
   --lift-shadow: 0 24px 48px -16px rgb(2 6 18 / 0.8);
   --lift-glow: 45%;
+  --lift-edge: 60%;
   }
 }
 
@@ -130,29 +133,45 @@
   --incomplete: #62c3ff;
   --lift-shadow: 0 24px 48px -16px rgb(2 6 18 / 0.8);
   --lift-glow: 45%;
+  --lift-edge: 60%;
 }
 
 /*
- * Hover state of the cards (Lift and list rows): an accent outline and a deeper
- * shadow set the card off the page in both themes (the dark theme adds a glow,
- * where a shadow alone barely shows). --lift-ring lets a card use its own colour
- * (the verdict cards). Unlayered, so it wins over the shadow-sm
- * utility. Only on hover, never while scrolling.
+ * Hover state of the cards (Lift and list rows): the card rises a little, its
+ * outline takes the card's colour and a deeper shadow sets it off the page (the
+ * dark theme adds a glow, where a shadow alone barely shows). --lift-ring lets
+ * a card use its own colour (the verdict cards), --lift-rise how far it rises.
+ *
+ * The hover is read from .lift-host, a box that never moves around the card: a
+ * card that reacts to its own :hover rises away from a pointer resting on its
+ * bottom edge, drops back and rises again, which reads as stutter. Unlayered, so
+ * it wins over the shadow-sm utility. Only on hover, never while scrolling.
  */
 .lift {
   --lift-ring: var(--accent);
+  --lift-rise: -4px;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.25s ease,
-    background-color 0.2s ease,
-    transform 0.2s ease;
+    translate 0.5s var(--lift-ease),
+    border-color 0.4s ease,
+    box-shadow 0.5s var(--lift-ease),
+    background-color 0.4s ease;
 }
-.lift:hover {
-  border-color: color-mix(in srgb, var(--lift-ring) 70%, transparent);
+/* List rows rise less than cards. */
+.lift-sm {
+  --lift-rise: -2px;
+}
+.lift-host:hover .lift {
+  translate: 0 var(--lift-rise);
+  border-color: color-mix(in srgb, var(--lift-ring) var(--lift-edge), transparent);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--lift-ring) 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--lift-ring) var(--lift-edge), transparent),
     var(--lift-shadow),
     0 0 36px -6px color-mix(in srgb, var(--lift-ring) var(--lift-glow), transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift-host:hover .lift {
+    translate: none;
+  }
 }
 
 body {

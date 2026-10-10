@@ -39,10 +39,10 @@ export function RepoList({
       {items.map((s, i) => {
         const [owner, repo] = s.fullName.split("/");
         return (
-          <Reveal as="li" key={s.fullName} delay={Math.min(i, 8) * 0.04}>
+          <Reveal as="li" key={s.fullName} delay={Math.min(i, 8) * 0.04} className="lift-host">
             <Link
               href={scanPath(locale, owner, repo)}
-              className="lift group block rounded-2xl border border-line bg-surface/85 p-4 shadow-sm hover:-translate-y-0.5 hover:bg-raised"
+              className="lift lift-sm group block rounded-2xl border border-line bg-surface/85 p-4 shadow-sm hover:bg-raised"
             >
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <VerdictBadge verdict={s.verdict} label={dict.verdicts[s.verdict].label} />

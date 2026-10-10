@@ -537,6 +537,10 @@ Kullanıcı GitHub'da "Private vulnerability reporting" ayarını açamadı. Seb
 
 Kullanıcı: üzerine gelinen kart arka plandan daha net ayrılsın (gölge ya da çizgi, seçim bana bırakıldı). Ortak bir `.lift` stili eklendi (`globals.css`) ve tüm kartlara uygulandı (ana sayfadaki kartlar ve son tarananlar satırları, Nasıl çalışır adımları, Safe Zone/Scammer/Son tarananlar listeleri): üzerine gelince kartın kenarı vurgu renginde ince bir çizgi alır, arka planı bir ton açılır ve derin bir gölge düşer; koyu temada gölge zor seçildiği için kartın kendi renginde hafif bir ışıma da var. Karar kartları (Temiz, Şüpheli, Tehlikeli, Eksik) kendi renkleriyle parlar. Chromium'da iki temada ekran görüntüsüyle kontrol edildi.
 
+### 10 Ekim 2026 (18. oturum): Üzerine gelme daha akıcı, açık temada daha belirgin
+
+Kullanıcı: kart kalkarken "tık tık tık" yapıyor, açık temada efekt çok az görünüyor. Sebep: kart kendi üzerine gelinme durumuna bakıyordu; fare kartın alt kenarındayken kart 4 px kalkınca fareden kaçıyor, düşüyor, tekrar kalkıyordu. Düzeltme: fareyi yerinde duran dış kutu algılıyor, yalnızca içteki kart kalkıyor; hareket yaylı animasyon yerine 0,5 sn'lik yumuşak bir CSS geçişi (liste satırları 2 px). Açık temada gölge koyulaştırıldı, çerçeve güçlendirildi ve hafif mavi bir ışıma eklendi. Ölçüm (Chromium, fare kartın alt kenarından 1 px yukarıda): kart 0'dan 4 px'e kesintisiz çıkıp orada sabit kalıyor; iki temada ekran görüntüsüyle kontrol edildi.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. **Domain** (kullanıcı): yukarıdaki Adım 6.
