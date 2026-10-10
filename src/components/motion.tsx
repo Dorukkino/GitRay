@@ -58,13 +58,39 @@ export function Lift({ children, className }: { children: ReactNode; className?:
 const SCRUB_DISTANCE = 0.45;
 /** Extra scroll before the next card of the same row starts, as a share of the viewport. */
 const SCRUB_COLUMN_DELAY = 0.08;
+/** Quiet time after the last scroll event that counts as "the reader stopped". */
+const SCROLL_IDLE_MS = 150;
+
+const idleListeners = new Set<() => void>();
+let idleTimer: number | undefined;
+const onScroll = () => {
+  window.clearTimeout(idleTimer);
+  idleTimer = window.setTimeout(() => {
+    for (const listener of idleListeners) listener();
+  }, SCROLL_IDLE_MS);
+};
+
+/** One shared window listener tells every card when scrolling has stopped. */
+function onScrollIdle(listener: () => void): () => void {
+  if (idleListeners.size === 0) window.addEventListener("scroll", onScroll, { passive: true });
+  idleListeners.add(listener);
+  return () => {
+    idleListeners.delete(listener);
+    if (idleListeners.size === 0) {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(idleTimer);
+    }
+  };
+}
 
 /**
  * Tied to the scroll position instead of a timer: the card is hidden while the
  * page sits at the top and comes in as fast as the reader scrolls. It comes in
- * once: scrolling back up leaves it in place (a card caught halfway finishes on
- * its own), and once it is fully in, it stops listening to the scroll. The outer box is measured, the inner one moves, so
- * the movement never changes the measurement.
+ * once: scrolling back up leaves it in place, and when the reader stops
+ * scrolling every card on screen finishes on its own, so a row never rests half
+ * in and staggered. Once fully in, it stops listening to the scroll. The outer
+ * box is measured, the inner one moves, so the movement never changes the
+ * measurement.
  */
 export function ScrollReveal({ children, className, column = 0 }: { children: ReactNode; className?: string; column?: number }) {
   const box = useRef<HTMLDivElement>(null);
@@ -127,6 +153,21 @@ export function ScrollReveal({ children, className, column = 0 }: { children: Re
   }, [column]);
 
   useMotionValueEvent(scrollY, "change", update);
+
+  // When scrolling stops, finish the card if any part of it is on screen.
+  useEffect(
+    () =>
+      onScrollIdle(() => {
+        const el = box.current;
+        if (done.current || !el) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          progress.set(1);
+          done.current = true;
+        }
+      }),
+    [progress],
+  );
 
   return (
     <div ref={box} className={className}>
