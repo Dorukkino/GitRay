@@ -57,8 +57,7 @@ Optional settings in `.env.local` (see `.env.example`):
 1. Import the repository on vercel.com (framework: Next.js, no extra settings) and add `GITHUB_TOKEN` as an environment variable.
 2. In the project's Storage tab, create a Neon Postgres database (free plan) and connect it to the project; Vercel adds `DATABASE_URL`. The table is created on first use.
 3. Redeploy.
-4. Custom domain: add it in the project's Domains settings and make it the production domain. Canonical links, the sitemap, `robots.txt` and `/.well-known/security.txt` follow Vercel's production domain automatically; set `SITE_URL` only to override it.
-5. Contact: add `CONTACT_EMAIL` (the address visitors use for questions, removal requests, false positives and security reports) and redeploy.
+4. Custom domain: add it in the project's Domains settings and make it the production domain. Canonical links, the sitemap and `robots.txt` follow Vercel's production domain automatically; set `SITE_URL` only to override it.
 
 ## API
 
@@ -81,7 +80,7 @@ GiTRay is a static, pattern-based scanner. It recognises known tricks; it does n
 
 ## Privacy and security
 
-The site has no accounts, analytics or tracking cookies. Its privacy policy is at `/<lang>/privacy` and its terms at `/<lang>/terms`. The only public contact is the address in `CONTACT_EMAIL` (privacy and terms pages, footer, Scammer list, `/.well-known/security.txt`); without it those lines are left out, so set it in production.
+The site has no accounts, analytics or tracking cookies. Its privacy policy is at `/<lang>/privacy` and its terms at `/<lang>/terms`.
 
 ## License
 

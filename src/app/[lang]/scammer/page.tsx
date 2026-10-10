@@ -6,7 +6,7 @@ import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { rich } from "@/i18n/format";
 import { LIST_LIMIT, loadList } from "@/lib/lists";
-import { contactEmail, pageAlternates } from "@/lib/site";
+import { pageAlternates } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/scammer">): Promise<Metadata> {
   const { lang } = await params;
@@ -24,7 +24,6 @@ export default async function ScammerPage({ params }: PageProps<"/[lang]/scammer
   if (!isLocale(lang)) notFound();
   const dict = getDictionary(lang);
   const t = dict.scammer;
-  const contact = contactEmail();
   const { items, configured, failed } = await loadList("dangerous");
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -36,21 +35,9 @@ export default async function ScammerPage({ params }: PageProps<"/[lang]/scammer
       <p className="mt-3 text-muted">
         {rich(t.intro, { n: LIST_LIMIT, score: <strong className="text-dangerous">{t.score}</strong> })}
       </p>
-      {/* This warning and the report line must stay: the list is a heuristic, not a person's judgement. */}
+      {/* This warning must stay: the list is a heuristic, not a person's judgement. */}
       <p className="mt-4 rounded-2xl border border-dangerous/25 bg-dangerous/5 px-4 py-3 text-sm text-fg/90">
         {t.warning}
-        {contact && (
-          <>
-            {" "}
-            {rich(t.report, {
-              contact: (
-                <a href={`mailto:${contact}`} className="text-accent underline">
-                  {contact}
-                </a>
-              ),
-            })}
-          </>
-        )}
       </p>
       <div className="mt-8">
         {failed ? (

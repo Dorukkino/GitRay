@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { LegalPage, contactLink, legalCode, legalLink } from "@/components/LegalPage";
+import { LegalPage, legalCode, legalLink } from "@/components/LegalPage";
 import { LOCALE_COOKIE, isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { THEME_KEY, contactEmail, pageAlternates } from "@/lib/site";
+import { THEME_KEY, pageAlternates } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/privacy">): Promise<Metadata> {
   const { lang } = await params;
@@ -25,7 +25,6 @@ export default async function PrivacyPage({ params }: PageProps<"/[lang]/privacy
         theme: legalCode(THEME_KEY),
         vercel: legalLink("https://vercel.com/legal/privacy-policy", "Vercel"),
         neon: legalLink("https://neon.com/privacy-policy", "Neon"),
-        contact: contactLink(contactEmail()),
       }}
     />
   );

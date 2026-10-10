@@ -88,16 +88,16 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
               {h.recentAll} <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
-          {/* Names come from our own sanitized reports; React escapes them. */}
-          <Reveal delay={0.05}>
-            <ul className="mt-6 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
-              {recent.items.map((s) => {
-                const [owner, repo] = s.fullName.split("/");
-                return (
-                  <li key={s.fullName}>
+          {/* Each row comes in with the scroll like the cards below. Names come from our own sanitized reports; React escapes them. */}
+          <ul className="mt-6 space-y-2">
+            {recent.items.map((s) => {
+              const [owner, repo] = s.fullName.split("/");
+              return (
+                <li key={s.fullName}>
+                  <ScrollReveal>
                     <Link
                       href={scanPath(lang, owner, repo)}
-                      className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-sunken sm:px-5"
+                      className="group flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm transition-colors hover:border-accent/40 hover:bg-raised sm:px-5"
                     >
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: VERDICT_STYLE[s.verdict].color }} />
                       <span className={`hidden w-24 shrink-0 text-sm font-medium sm:block ${VERDICT_STYLE[s.verdict].text}`}>
@@ -108,11 +108,11 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
                       <span className="hidden shrink-0 font-mono text-xs text-subtle sm:inline">{fmt(dict.lists.score, { n: s.score })}</span>
                       <span className="w-24 shrink-0 text-right text-xs text-subtle">{relativeTime(lang, s.scannedAt, recent.at)}</span>
                     </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </Reveal>
+                  </ScrollReveal>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 

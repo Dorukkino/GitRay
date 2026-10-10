@@ -22,7 +22,6 @@ export const tr: Dictionary = {
     label: "Site",
     privacy: "Gizlilik",
     terms: "Kullanım şartları",
-    contact: "İletişim",
   },
   theme: { label: "Tema", system: "Sistem", light: "Açık", dark: "Koyu" },
   language: { label: "Dil" },
@@ -455,7 +454,6 @@ export const tr: Dictionary = {
       "yazılım araştırma repoları, GiTRay'in aradığı kalıpların ta kendisini içerdikleri için buraya düşebilir. Her " +
       "bulguyu ve neden sayıldığını görmek için repoyu açın. Bir repo yanlışlıkla listelendiyse düzeltmeden sonra " +
       "yeniden tarayın.",
-    report: "Yanlış alarmı bildirmek için {contact} adresine yazın.",
     empty: "Henüz tehlikeli repo bulunmadı. 70 ya da üstü puan alan repolar burada görünür.",
   },
 
@@ -547,14 +545,8 @@ export const tr: Dictionary = {
         ],
       },
       {
-        title: "Sorular ve silme istekleri",
-        paragraphs: [
-          "Bu politika hakkında bir sorunuz varsa ya da bir reponun sahibi olarak saklanan sonucunun silinmesini " +
-            "istiyorsanız {contact} adresine yazın.",
-          "Saklanan bir sonuç silinebilir, ama herkese açık bir repoyu daha sonra herkes yeniden tarayabilir ve bu " +
-            "yeni bir sonuç saklar.",
-          "Bu politika değişirse en üstteki tarih de değişir.",
-        ],
+        title: "Değişiklikler",
+        paragraphs: ["Bu politika değişirse en üstteki tarih de değişir."],
       },
     ],
   },
@@ -586,7 +578,6 @@ export const tr: Dictionary = {
             "değerlendirmesidir. Reponun arkasındaki kişiler hakkında bir ifade değildir ve yanlış olabilir: güvenlik " +
             "araçları ve zararlı yazılım araştırmaları çoğu zaman GiTRay'in aradığı kalıpları içerir. Bulguları " +
             "karar vermeden önce okuyun.",
-          "Yanlış alarmı bildirmek için {contact} adresine yazın.",
           "Neyi klonlayacağınıza, kuracağınıza ya da çalıştıracağınıza siz karar verirsiniz ve bu kararın " +
             "sorumluluğu size aittir.",
         ],
@@ -606,8 +597,6 @@ export const tr: Dictionary = {
             "taramalar ziyaretçi başına ve saatlik olarak sınırlıdır. Scriptlerle toplu tarama yapmayın, sınırları " +
             "aşmaya çalışmayın, hizmete saldırmayın, onu aşırı yüklemeyin ya da yoklamayın. /api/scan adresindeki " +
             "JSON API'si aynı sınırlar içinde kişisel ve ticari olmayan kullanım için açıktır.",
-          "GiTRay'in kendisinde bir güvenlik sorunu mu buldunuz? Lütfen kimseye anlatmadan önce {contact} adresine " +
-            "gizlice bildirin.",
         ],
       },
       {
@@ -619,11 +608,8 @@ export const tr: Dictionary = {
         ],
       },
       {
-        title: "Değişiklikler ve sorular",
-        paragraphs: [
-          "Bu şartlar değişebilir; en üstteki tarih son sürümü gösterir.",
-          "Sorular için {contact}.",
-        ],
+        title: "Değişiklikler",
+        paragraphs: ["Bu şartlar değişebilir; en üstteki tarih son sürümü gösterir."],
       },
     ],
   },
