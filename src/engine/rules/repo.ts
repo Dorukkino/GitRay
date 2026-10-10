@@ -61,7 +61,7 @@ const ARCHIVE_GAP: Rule = {
   why:
     "A .gitattributes export-ignore rule keeps these files out of the archive GitHub " +
     "serves, yet \"git clone\" still delivers them. Packages often use it to drop tests, " +
-    "but it is also a way to hide a payload from scanners that read the archive. GitRay " +
+    "but it is also a way to hide a payload from scanners that read the archive. GiTRay " +
     "downloads these files separately and scans them like the rest.",
   *scanRepo(_info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
     const hidden = ctx.exportIgnored ?? [];

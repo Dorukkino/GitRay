@@ -14,7 +14,7 @@
 import { Readable } from "node:stream";
 import { createGunzip } from "node:zlib";
 
-import { ArchiveError, GitRayError, LimitExceeded } from "./errors";
+import { ArchiveError, GiTRayError, LimitExceeded } from "./errors";
 import { MAX_TAR_META_BYTES, type Limits } from "./limits";
 import { isLockfile } from "./deps";
 import { executableKind } from "./rules/binary";
@@ -51,7 +51,7 @@ export async function* gunzip(source: AsyncIterable<Uint8Array>): AsyncGenerator
   try {
     for await (const out of z) yield out as Uint8Array;
   } catch (e) {
-    if (e instanceof GitRayError) throw e;
+    if (e instanceof GiTRayError) throw e;
     throw new ArchiveError(`invalid gzip data: ${e instanceof Error ? e.message : String(e)}`);
   } finally {
     input.destroy();

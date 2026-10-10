@@ -1,5 +1,5 @@
 /**
- * The GitRay logo, drawn inline so it stays sharp at any size and follows the
+ * The GiTRay logo, drawn inline so it stays sharp at any size and follows the
  * theme: the letters use the text colour, with no background. An x-ray beam
  * sweeps down and shows the bones inside the letters, then rests a few
  * seconds before the next sweep (styles and timing in globals.css, .gr-*).

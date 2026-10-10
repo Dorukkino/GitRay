@@ -6,6 +6,8 @@
 
 import { useSyncExternalStore } from "react";
 
+import { THEME_KEY } from "@/lib/site";
+
 export interface Pref<T extends string> {
   get(): T;
   getServer(): T;
@@ -52,7 +54,7 @@ function createPref<T extends string>(key: string, fallback: T, valid: readonly 
 export type Theme = "system" | "light" | "dark";
 
 // public/theme.js reads the same key before the first paint.
-export const themePref = createPref<Theme>("gitray-theme", "system", ["system", "light", "dark"]);
+export const themePref = createPref<Theme>(THEME_KEY, "system", ["system", "light", "dark"]);
 
 export function usePref<T extends string>(pref: Pref<T>): T {
   return useSyncExternalStore(pref.subscribe, pref.get, pref.getServer);

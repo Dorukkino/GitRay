@@ -1,10 +1,10 @@
 /**
- * GitRay scanning engine. Pure TypeScript on Node.js built-ins: no web
+ * GiTRay scanning engine. Pure TypeScript on Node.js built-ins: no web
  * framework, no database, and it never executes anything it reads.
  */
 
 export { readArchive, type ArchiveEntry } from "./archive";
-export { ArchiveError, GitHubError, GitRayError, InvalidTarget, LimitExceeded } from "./errors";
+export { ArchiveError, GitHubError, GiTRayError, InvalidTarget, LimitExceeded } from "./errors";
 export { GitHubClient, type GitHubClientOptions } from "./github";
 export { OsvClient } from "./osv";
 export { VirusTotalClient, VirusTotalError, type Reputation, type ReputationService } from "./virustotal";

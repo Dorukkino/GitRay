@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { HeroScan } from "@/components/HeroScan";
 import { CountUp, Lift, Reveal, ScrollReveal } from "@/components/motion";
@@ -7,24 +8,21 @@ import { ScanForm } from "@/components/ScanForm";
 import { CATEGORY_ORDER, VERDICT_STYLE } from "@/components/verdict";
 import { allRules } from "@/engine";
 import type { Category, Verdict } from "@/engine";
-import { isLocale, localePath } from "@/i18n/config";
+import { isLocale, localePath, scanPath } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { fmt, plural } from "@/i18n/format";
-import { loadWeeklyCount } from "@/lib/lists";
+import { fmt, plural, relativeTime } from "@/i18n/format";
+import { loadRecent, loadWeeklyCount } from "@/lib/lists";
+import { pageAlternates } from "@/lib/site";
 
 const VERDICTS: Verdict[] = ["clean", "suspicious", "dangerous", "incomplete"];
 
-const STEP_ICONS = [
-  // Cloud with an arrow: metadata from the API.
-  "M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 9.5 4.5 4.5 0 0 1 17.5 18H7zM12 11v6m-3-3 3 3 3-3",
-  // Chip: memory.
-  "M8 4v2m4-2v2m4-2v2M8 18v2m4-2v2m4-2v2M4 8h2m-2 4h2m-2 4h2m12-8h2m-2 4h2m-2 4h2M7 6h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z",
-  // Magnifier over lines: explainable rules.
-  "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm5-2 4 4M8 9h6m-6 3h4",
-];
-
 // Rebuilt at most once a minute for the weekly count, like the list pages.
 export const revalidate = 60;
+
+export async function generateMetadata({ params }: PageProps<"/[lang]">): Promise<Metadata> {
+  const { lang } = await params;
+  return isLocale(lang) ? { alternates: pageAlternates(lang, "/") } : {};
+}
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -32,8 +30,8 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   const dict = getDictionary(lang);
   const h = dict.home;
   const rules = allRules();
-  // Hidden without a database or when the query fails.
-  const weekly = await loadWeeklyCount();
+  // Both are hidden without a database or when the query fails.
+  const [weekly, recent] = await Promise.all([loadWeeklyCount(), loadRecent()]);
   const counts = new Map<Category, number>();
   for (const r of rules) counts.set(r.category, (counts.get(r.category) ?? 0) + 1);
 
@@ -82,29 +80,41 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <Reveal>
-          <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">{h.howTitle}</h2>
-        </Reveal>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {h.steps.map((s, i) => (
-            <ScrollReveal key={s.title} column={i}>
-              <Lift className="h-full rounded-2xl border border-line bg-surface p-6 shadow-sm">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/12 text-accent ring-1 ring-accent/20">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d={STEP_ICONS[i] ?? STEP_ICONS[0]} />
-                  </svg>
-                </div>
-                <h3 className="mt-4 font-semibold text-fg">
-                  <span className="mr-2 font-mono text-sm text-subtle">0{i + 1}</span>
-                  {s.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{s.text}</p>
-              </Lift>
-            </ScrollReveal>
-          ))}
-        </div>
-      </section>
+      {recent && recent.items.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pb-6">
+          <Reveal className="flex items-end justify-between gap-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">{h.recentTitle}</h2>
+            <Link href={localePath(lang, "/recent")} className="group text-sm font-medium text-accent hover:text-accent-strong">
+              {h.recentAll} <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+            </Link>
+          </Reveal>
+          {/* Names come from our own sanitized reports; React escapes them. */}
+          <Reveal delay={0.05}>
+            <ul className="mt-6 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
+              {recent.items.map((s) => {
+                const [owner, repo] = s.fullName.split("/");
+                return (
+                  <li key={s.fullName}>
+                    <Link
+                      href={scanPath(lang, owner, repo)}
+                      className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-sunken sm:px-5"
+                    >
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: VERDICT_STYLE[s.verdict].color }} />
+                      <span className={`hidden w-24 shrink-0 text-sm font-medium sm:block ${VERDICT_STYLE[s.verdict].text}`}>
+                        {dict.verdicts[s.verdict].label}
+                      </span>
+                      <span className="sr-only sm:hidden">{dict.verdicts[s.verdict].label}:</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-sm text-fg group-hover:text-accent">{s.fullName}</span>
+                      <span className="hidden shrink-0 font-mono text-xs text-subtle sm:inline">{fmt(dict.lists.score, { n: s.score })}</span>
+                      <span className="w-24 shrink-0 text-right text-xs text-subtle">{relativeTime(lang, s.scannedAt, recent.at)}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Reveal>
+        </section>
+      )}
 
       <section className="mx-auto max-w-6xl px-4 py-14">
         <Reveal className="flex items-end justify-between gap-4">

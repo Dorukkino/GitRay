@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Providers } from "@/components/Providers";
 import { SiteHeader } from "@/components/SiteHeader";
-import { LOCALES, isLocale } from "@/i18n/config";
+import { INTL_LOCALE, LOCALES, isLocale, localePath } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { REPO_URL, SITE_NAME, siteUrl } from "@/lib/site";
 
 import "../globals.css";
 
@@ -21,7 +23,18 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
   const { lang } = await params;
   if (!isLocale(lang)) return {};
   const dict = getDictionary(lang);
-  return { title: { default: dict.meta.title, template: "%s · GitRay" }, description: dict.meta.description };
+  return {
+    metadataBase: new URL(siteUrl()),
+    title: { default: dict.meta.title, template: `%s · ${SITE_NAME}` },
+    description: dict.meta.description,
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      title: dict.meta.title,
+      description: dict.meta.description,
+      locale: INTL_LOCALE[lang].replace("-", "_"),
+    },
+  };
 }
 
 export default async function RootLayout({ children, params }: LayoutProps<"/[lang]">) {
@@ -43,9 +56,20 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           <footer className="mt-12 border-t border-line/80 py-8 text-sm text-subtle">
             <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-xl">{dict.footer.note}</p>
-              <a href="https://github.com/Dorukkino/GitRay" className="text-muted transition-colors hover:text-fg" rel="noopener noreferrer">
-                {dict.footer.source}
-              </a>
+              <nav aria-label={dict.footer.label} className="flex flex-wrap gap-x-5 gap-y-2">
+                <Link href={localePath(lang, "/how-it-works")} className="text-muted transition-colors hover:text-fg">
+                  {dict.nav.how}
+                </Link>
+                <Link href={localePath(lang, "/privacy")} className="text-muted transition-colors hover:text-fg">
+                  {dict.footer.privacy}
+                </Link>
+                <Link href={localePath(lang, "/terms")} className="text-muted transition-colors hover:text-fg">
+                  {dict.footer.terms}
+                </Link>
+                <a href={REPO_URL} className="text-muted transition-colors hover:text-fg" rel="noopener noreferrer">
+                  {dict.footer.source}
+                </a>
+              </nav>
             </div>
           </footer>
         </Providers>

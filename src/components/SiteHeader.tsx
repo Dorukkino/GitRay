@@ -9,7 +9,6 @@ import { useI18n } from "@/i18n/provider";
 
 import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { ScanNavItem } from "./RecentMenu";
 import { ThemeToggle } from "./ThemeToggle";
 
 function HomeLink() {
@@ -26,6 +25,8 @@ export function SiteHeader() {
   const pathname = usePathname() ?? "";
   const scanActive = pathname === `/${locale}` || pathname.startsWith(`/${locale}/scan/`) || pathname.startsWith(`/${locale}/recent`);
   const nav = [
+    { href: localePath(locale), label: dict.nav.scan, active: scanActive },
+    { href: localePath(locale, "/how-it-works"), label: dict.nav.how },
     { href: localePath(locale, "/safe-zone"), label: dict.nav.safeZone },
     { href: localePath(locale, "/scammer"), label: dict.nav.scammer },
     { href: localePath(locale, "/rules"), label: dict.nav.rules },
@@ -34,11 +35,10 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-line/80 bg-bg">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
         <HomeLink />
-        {/* Wraps instead of scrolling on narrow screens, so the recent scans menu is never clipped. */}
+        {/* Wraps instead of scrolling on narrow screens. */}
         <nav aria-label={dict.nav.label} className="order-3 -mx-1 flex w-full flex-wrap items-center gap-1 text-sm md:order-none md:w-auto">
-          <ScanNavItem active={scanActive} />
           {nav.map((item) => {
-            const active = pathname.startsWith(item.href);
+            const active = item.active ?? pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

@@ -22,5 +22,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Not the API, Next.js assets or the files in public/ and app/ that are served as they are.
-  matcher: ["/((?!api/|_next/|__nextjs|brand/|theme\\.js|favicon\\.ico|icon\\.svg|robots\\.txt|sitemap\\.xml).*)"],
+  matcher: ["/((?!api/|_next/|__nextjs|brand/|theme\\.js|favicon\\.ico|icon\\.svg|robots\\.txt|sitemap\\.xml|\\.well-known/).*)"],
 };

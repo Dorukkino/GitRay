@@ -6,7 +6,7 @@
 
 import {
   GitHubClient,
-  GitRayError,
+  GiTRayError,
   InvalidTarget,
   OsvClient,
   type Report,
@@ -118,7 +118,7 @@ export async function main(argv: string[]): Promise<number> {
     return EXIT[report.verdict];
   } catch (e) {
     if (e instanceof InvalidTarget) console.error(`${e.message}\n${USAGE}`);
-    else if (e instanceof GitRayError) console.error(`error: ${e.message}`);
+    else if (e instanceof GiTRayError) console.error(`error: ${e.message}`);
     else console.error(`unexpected error: ${e instanceof Error ? e.message : String(e)}`);
     return EXIT.error;
   }

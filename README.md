@@ -1,10 +1,10 @@
-# GitRay
+# GiTRay
 
-<img src="public/brand/gitray-logo-full.svg" alt="GitRay" width="420">
+<img src="public/brand/gitray-logo-full.svg" alt="GiTRay" width="420">
 
-**Is this GitHub repo safe to clone?** GitRay scans public GitHub repositories for the tricks malware repos use, without cloning, building or running anything.
+**Is this GitHub repo safe to clone?** GiTRay scans public GitHub repositories for the tricks malware repos use, without cloning, building or running anything.
 
-Malware increasingly ships inside GitHub repositories: fake tools and game cheats whose README links to a password-protected archive, "take-home test" projects whose VS Code task runs when the folder is opened, packages whose install script downloads a payload. GitRay reads the repository the safe way and explains what it found, line by line.
+Malware increasingly ships inside GitHub repositories: fake tools and game cheats whose README links to a password-protected archive, "take-home test" projects whose VS Code task runs when the folder is opened, packages whose install script downloads a payload. GiTRay reads the repository the safe way and explains what it found, line by line.
 
 ## What it checks
 
@@ -31,7 +31,7 @@ The latest result of every scanned repository is stored. Clean repositories are 
 1. Repository metadata, owner age and release digests come from the GitHub API. Release files are never downloaded; their SHA-256 can be looked up on VirusTotal.
 2. The source tarball is streamed and unpacked **in memory** with hard limits (download size, unpacked size, file count, bytes per file, time). Nothing touches the disk, links are never followed and nothing is executed.
 3. Every text file goes through the text rules; binary files are identified by their header bytes only. ZIP files are opened in memory (with zip-bomb limits) and their files scanned as well.
-4. GitHub's archive leaves out files marked `export-ignore` in `.gitattributes`, although `git clone` still delivers them. GitRay compares the archive with the commit's file list and downloads any missing file separately, so a payload cannot hide there.
+4. GitHub's archive leaves out files marked `export-ignore` in `.gitattributes`, although `git clone` still delivers them. GiTRay compares the archive with the commit's file list and downloads any missing file separately, so a payload cannot hide there.
 5. Declared dependencies (lockfiles first, for exact versions) are checked against OSV's malicious-package records. Only confirmed malware counts, not ordinary vulnerabilities.
 6. The report is sanitized (hidden characters revealed, URLs defanged) before the UI shows it.
 
@@ -57,6 +57,7 @@ Optional settings in `.env.local` (see `.env.example`):
 1. Import the repository on vercel.com (framework: Next.js, no extra settings) and add `GITHUB_TOKEN` as an environment variable.
 2. In the project's Storage tab, create a Neon Postgres database (free plan) and connect it to the project; Vercel adds `DATABASE_URL`. The table is created on first use.
 3. Redeploy.
+4. Custom domain: add it in the project's Domains settings and make it the production domain. Canonical links, the sitemap, `robots.txt` and `/.well-known/security.txt` follow Vercel's production domain automatically; set `SITE_URL` only to override it.
 
 ## API
 
@@ -75,7 +76,11 @@ Project rules and architecture: [`CLAUDE.md`](CLAUDE.md) (in Turkish).
 
 ## Limitations
 
-GitRay is a static, pattern-based scanner. It recognises known tricks; it does not run code in a sandbox, so a clean result lowers the risk but does not prove a repository is safe.
+GiTRay is a static, pattern-based scanner. It recognises known tricks; it does not run code in a sandbox, so a clean result lowers the risk but does not prove a repository is safe.
+
+## Privacy and security
+
+The site has no accounts, analytics or tracking cookies. Its privacy policy is at `/<lang>/privacy` and its terms at `/<lang>/terms`. To report a vulnerability in GiTRay itself, see [SECURITY.md](SECURITY.md).
 
 ## License
 

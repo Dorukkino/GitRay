@@ -1,7 +1,7 @@
 /**
  * Client for OSV (osv.dev), Google's free open vulnerability database. Only
  * its malicious-package records (IDs starting with "MAL-", from the OpenSSF
- * malicious-packages project) are used: GitRay looks for malware, not for
+ * malicious-packages project) are used: GiTRay looks for malware, not for
  * ordinary vulnerabilities. Package names and versions are the only data sent.
  */
 
@@ -74,7 +74,7 @@ export class OsvClient {
     try {
       resp = await this.fetchImpl(`${this.apiUrl}${path}`, {
         method: init.body === undefined ? "GET" : "POST",
-        headers: { "Content-Type": "application/json", "User-Agent": `gitray/${ENGINE_VERSION}` },
+        headers: { "Content-Type": "application/json", "User-Agent": `GiTRay/${ENGINE_VERSION}` },
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
         signal,
       });

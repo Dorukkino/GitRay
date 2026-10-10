@@ -4,31 +4,34 @@ import type { Dictionary } from "./en";
 
 export const tr: Dictionary = {
   meta: {
-    title: "GitRay: GitHub reposunu klonlamadan önce tara",
+    title: "GiTRay: GitHub reposunu klonlamadan önce tara",
     description:
-      "GitRay herkese açık GitHub repolarını hiçbir şeyi klonlamadan ya da çalıştırmadan zararlı yazılım hilelerine " +
+      "GiTRay herkese açık GitHub repolarını hiçbir şeyi klonlamadan ya da çalıştırmadan zararlı yazılım hilelerine " +
       "(kurulumda çalışan scriptler, saklı yükler, şifre hırsızları, sahte indirme linkleri) karşı tarar.",
   },
-  nav: { label: "Ana menü", scan: "Tara", safeZone: "Güvenli Bölge", scammer: "Dolandırıcılar", rules: "Kurallar" },
-  recentMenu: {
-    open: "Son taramaları göster",
-    title: "Son taranan repolar",
-    seeAll: "Tüm son taramaları gör",
-    empty: "Henüz tarama yok.",
-    failed: "Liste şu an yüklenemedi.",
+  nav: {
+    label: "Ana menü",
+    scan: "Tara",
+    how: "Nasıl çalışır",
+    safeZone: "Güvenli Bölge",
+    scammer: "Dolandırıcılar",
+    rules: "Kurallar",
   },
   footer: {
-    note: "GitRay taradığı kodu asla klonlamaz, derlemez ya da çalıştırmaz. Sonuçlar sezgiseldir, garanti değildir.",
+    note: "GiTRay taradığı kodu asla klonlamaz, derlemez ya da çalıştırmaz. Sonuçlar sezgiseldir, garanti değildir.",
+    label: "Site",
+    privacy: "Gizlilik",
+    terms: "Kullanım şartları",
     source: "GitHub'daki kaynak kodu",
   },
   theme: { label: "Tema", system: "Sistem", light: "Açık", dark: "Koyu" },
   language: { label: "Dil" },
-  logo: "GitRay ana sayfa",
+  logo: "GiTRay ana sayfa",
 
   home: {
     weekly: {
-      one: "repo son 7 günde tarandı",
-      other: "repo son 7 günde tarandı",
+      one: "repo son haftada tarandı",
+      other: "repo son haftada tarandı",
     },
     badge: "{rules} kural · hiçbir şey klonlanmaz ya da çalıştırılmaz",
     titleBefore: "Bu GitHub reposunu ",
@@ -36,7 +39,7 @@ export const tr: Dictionary = {
     titleAfter: " mi?",
     intro:
       "Zararlı yazılımlar artık GitHub repolarında saklanıyor: kurduğunuz, derlediğiniz ya da açtığınız anda kod " +
-      "çalıştıran sahte araçlar, hileler ve iş görüşmesi projeleri. GitRay repoyu güvenli yoldan okur ve ne bulduğunu " +
+      "çalıştıran sahte araçlar, hileler ve iş görüşmesi projeleri. GiTRay repoyu güvenli yoldan okur ve ne bulduğunu " +
       "satır satır anlatır.",
     panel: {
       title: "Sahte bir reponun röntgeni",
@@ -47,7 +50,31 @@ export const tr: Dictionary = {
       hidden: "ekran dışına itilmiş kod",
       clean: "temiz",
     },
-    howTitle: "Nasıl çalışır",
+    recentTitle: "Son tarananlar",
+    recentAll: "Tümünü gör",
+    looksTitle: "GiTRay neye bakar",
+    allRules: "{n} kuralın hepsi",
+    verdictsTitle: "Kararlar",
+    ranges: {
+      clean: "Puan 30'un altında",
+      suspicious: "Puan 30 ile 69 arası",
+      dangerous: "Puan 70 ya da üstü",
+      incomplete: "Bir sınır taramayı durdurdu",
+    },
+    disclaimer:
+      "GiTRay statik bir tarayıcıdır: bilinen hileleri tanır, kodu korumalı bir ortamda çalıştırmaz. Temiz sonuç " +
+      "riski azaltır; bir reponun güvenli olduğunu kanıtlamaz.",
+  },
+
+  how: {
+    metaTitle: "Nasıl çalışır",
+    metaDescription:
+      "GiTRay bir GitHub reposunu tararken ne olur: API'den bilgiler, bellekte okunan bir arşiv, açıklanabilir " +
+      "kurallar ve bir puan. Hiçbir şey klonlanmaz ya da çalıştırılmaz.",
+    title: "Nasıl çalışır",
+    intro:
+      "GiTRay bir repoyu klonlamadan, kurmadan ya da açmadan önce tek bir soruyu yanıtlar: zararlı yazılımların " +
+      "kullandığı bilinen bir hileyi kullanıyor mu? Tara'ya bastığınızda olanlar şunlar.",
     steps: [
       {
         title: "Klon değil, bilgi",
@@ -68,19 +95,46 @@ export const tr: Dictionary = {
           "Her kural bilinen bir hileyi arar ve neden tehlikeli olduğunu anlatır. Her bulgu dosya, satır, kodun " +
           "kendisi ve 0-100 puana katkısıyla gelir.",
       },
+      {
+        title: "Puan ve karar",
+        text:
+          "Her kural en güçlü bulgusuyla puana bir kez katılır, toplam en fazla 100'dür. 30'un altı Temiz, 30'dan " +
+          "itibaren Şüpheli, 70'ten itibaren Tehlikeli. Bir güvenlik sınırı taramayı durdurursa karar Eksik olur, " +
+          "asla Temiz değil.",
+      },
     ],
-    looksTitle: "GitRay neye bakar",
-    allRules: "{n} kuralın hepsi",
-    verdictsTitle: "Kararlar",
-    ranges: {
-      clean: "Puan 30'un altında",
-      suspicious: "Puan 30 ile 69 arası",
-      dangerous: "Puan 70 ya da üstü",
-      incomplete: "Bir sınır taramayı durdurdu",
-    },
-    disclaimer:
-      "GitRay statik bir tarayıcıdır: bilinen hileleri tanır, kodu korumalı bir ortamda çalıştırmaz. Temiz sonuç " +
-      "riski azaltır; bir reponun güvenli olduğunu kanıtlamaz.",
+    neverTitle: "GiTRay'in asla yapmadıkları",
+    never: [
+      {
+        title: "Repodaki kodu çalıştırmak",
+        text: "Kurulum, derleme, script ya da korumalı ortam yok. Her dosya yalnızca okunur.",
+      },
+      {
+        title: "Repoyu diske yazmak",
+        text: "Arşiv bellekte, sıkı sınırlarla açılır; bu yüzden bir arşiv bombası diski dolduramaz.",
+      },
+      {
+        title: "Release dosyalarını indirmek",
+        text:
+          "Yalnızca SHA-256 parmak izleri VirusTotal'de aranır. Hiçbir dosya yüklenmez ya da indirilmez.",
+      },
+      {
+        title: "Reponun söylediğine güvenmek",
+        text:
+          "Dosya adları, README metni ve kod; görünmez karakterler görünür hale getirilerek ve linkler etkisizleştirilerek " +
+          "gösterilir. Repodan gelen linkler asla tıklanabilir değildir.",
+      },
+    ],
+    limitsTitle: "Sınırlar",
+    limits: [
+      "Sonuçlar sezgiseldir. Temiz kararı riski azaltır; bir reponun güvenli olduğunu kanıtlamaz.",
+      "Yalnızca bilinen hileler tanınır. Yepyeni bir teknik, onu tanıyan bir kural yazılana kadar fark edilmeyebilir.",
+      "Sonuç yalnızca taranan commit için geçerlidir. Sonraki bir commit her şeyi değiştirebilir.",
+      "Git submodule'leri listelenir ama taranmaz, çünkü başka repolardan gelirler.",
+      "Bir güvenlik sınırı taramayı durdurursa karar Eksik olur, asla Temiz değil.",
+    ],
+    ctaTitle: "Bir repoda deneyin",
+    ctaRules: "{n} kuralın hepsini gör",
   },
 
   form: {
@@ -143,7 +197,7 @@ export const tr: Dictionary = {
     clean: {
       label: "Temiz",
       summary:
-        "Bilinen hiçbir zararlı yazılım hilesi bulunmadı. Bu bir garanti değildir: GitRay bilinen kalıpları arar ve " +
+        "Bilinen hiçbir zararlı yazılım hilesi bulunmadı. Bu bir garanti değildir: GiTRay bilinen kalıpları arar ve " +
         "kodu çalıştırmaz.",
     },
     suspicious: {
@@ -193,7 +247,7 @@ export const tr: Dictionary = {
       private: "Yalnızca herkese açık repolar taranabilir.",
       rate_limited: "Kısa sürede çok fazla istek geldi.",
       busy: "Tarayıcı şu an meşgul.",
-      budget_exhausted: "GitRay bu saatin tarama bütçesini doldurdu. Son bir saatte taranan repolar yine açılır.",
+      budget_exhausted: "GiTRay bu saatin tarama bütçesini doldurdu. Son bir saatte taranan repolar yine açılır.",
       invalid_target: "Bu geçerli bir GitHub repo adresi değil.",
       archive_error: "Repo arşivi okunamadı.",
       upstream: "GitHub'a ulaşılamadı ya da beklenmeyen bir cevap geldi.",
@@ -270,10 +324,10 @@ export const tr: Dictionary = {
       hidden: {
         one:
           "{n} dosya GitHub'ın indirme arşivinin dışında bırakılmış (.gitattributes export-ignore) ama git clone ile " +
-          "yine geliyor. GitRay bunların {scanned} tanesini ayrıca indirip taradı.",
+          "yine geliyor. GiTRay bunların {scanned} tanesini ayrıca indirip taradı.",
         other:
           "{n} dosya GitHub'ın indirme arşivinin dışında bırakılmış (.gitattributes export-ignore) ama git clone ile " +
-          "yine geliyor. GitRay bunların {scanned} tanesini ayrıca indirip taradı.",
+          "yine geliyor. GiTRay bunların {scanned} tanesini ayrıca indirip taradı.",
       },
       unavailable: "GitHub commit'in tam dosya listesini vermedi, bu yüzden indirme arşivinden saklanan dosyalar kontrol edilemedi.",
     },
@@ -342,7 +396,7 @@ export const tr: Dictionary = {
     all: "Hepsi",
     anySeverity: "Her önem",
     nothing:
-      "Raporlanacak bir şey yok. GitRay kurulum hook'larına, build dosyalarına, kod kalıplarına, saklı içeriğe, " +
+      "Raporlanacak bir şey yok. GiTRay kurulum hook'larına, build dosyalarına, kod kalıplarına, saklı içeriğe, " +
       "linklere ve ikili dosyalara baktı.",
     noMatch: "Filtrelere uyan bulgu yok.",
     omitted: "Raporu okunur tutmak için daha zayıf {n} bulgu listelenmedi; puanı değiştirmezler.",
@@ -373,7 +427,7 @@ export const tr: Dictionary = {
 
   safeZone: {
     metaTitle: "Güvenli Bölge",
-    metaDescription: "GitRay'in bilinen hiçbir zararlı yazılım hilesi bulmadığı, yakın zamanda taranmış GitHub repoları.",
+    metaDescription: "GiTRay'in bilinen hiçbir zararlı yazılım hilesi bulmadığı, yakın zamanda taranmış GitHub repoları.",
     eyebrow: "Güvenli Bölge",
     title: "Yakın zamanda tarandı, bir şey bulunmadı",
     intro:
@@ -381,7 +435,7 @@ export const tr: Dictionary = {
       "bulduğu anda repo bu listeden çıkar.",
     clean: "temiz",
     note:
-      "Temiz, GitRay'in bildiği hilelerin hiçbirini bulmadığı anlamına gelir. Bir reponun güvenli olduğunun garantisi " +
+      "Temiz, GiTRay'in bildiği hilelerin hiçbirini bulmadığı anlamına gelir. Bir reponun güvenli olduğunun garantisi " +
       "değildir ve yalnızca taranan commit için geçerlidir.",
     empty: "Henüz temiz tarama yok. Eklemek için {link}.",
     emptyLink: "bir repo tarayın",
@@ -389,7 +443,7 @@ export const tr: Dictionary = {
 
   scammer: {
     metaTitle: "Dolandırıcı listesi",
-    metaDescription: "GitRay'in tehlikeli bulduğu, yakın zamanda taranmış GitHub repoları.",
+    metaDescription: "GiTRay'in tehlikeli bulduğu, yakın zamanda taranmış GitHub repoları.",
     eyebrow: "Dolandırıcı listesi",
     title: "Tehlikeli bulunan repolar",
     intro:
@@ -398,7 +452,7 @@ export const tr: Dictionary = {
     score: "70 ya da üstü",
     warning:
       "Bu liste bir kişi tarafından değil, sezgisel kurallarla otomatik olarak üretilir. Güvenlik araçları ve zararlı " +
-      "yazılım araştırma repoları, GitRay'in aradığı kalıpların ta kendisini içerdikleri için buraya düşebilir. Her " +
+      "yazılım araştırma repoları, GiTRay'in aradığı kalıpların ta kendisini içerdikleri için buraya düşebilir. Her " +
       "bulguyu ve neden sayıldığını görmek için repoyu açın. Bir repo yanlışlıkla listelendiyse düzeltmeden sonra " +
       "yeniden tarayın ya da {link}.",
     report: "yanlış alarmı bildirin",
@@ -407,21 +461,21 @@ export const tr: Dictionary = {
 
   recent: {
     metaTitle: "Son tarananlar",
-    metaDescription: "GitRay'de en son taranan GitHub repoları ve kararları.",
+    metaDescription: "GiTRay'de en son taranan GitHub repoları ve kararları.",
     eyebrow: "Son tarananlar",
     title: "Yakın zamanda taranan repolar",
     intro:
-      "Kararı ne olursa olsun GitRay'de en son taranan {n} repo. Her repo bir kez, en son taramasıyla görünür; " +
+      "Kararı ne olursa olsun GiTRay'de en son taranan {n} repo. Her repo bir kez, en son taramasıyla görünür; " +
       "bütün bulguları görmek için repoyu açın.",
     empty: "Henüz tarama yok. Eklemek için {link}.",
     emptyLink: "bir repo tarayın",
   },
 
   rulesPage: {
-    metaDescription: "GitRay'in çalıştırdığı her kural, neye baktığı ve ne kadar ağırlık taşıdığı.",
+    metaDescription: "GiTRay'in çalıştırdığı her kural, neye baktığı ve ne kadar ağırlık taşıdığı.",
     title: "Kurallar",
     intro:
-      "GitRay reponun her dosyasında {count} kural çalıştırır. Bir kural, en güçlü bulgusuyla puana bir kez ağırlığını " +
+      "GiTRay reponun her dosyasında {count} kural çalıştırır. Bir kural, en güçlü bulgusuyla puana bir kez ağırlığını " +
       "ekler. Toplam en fazla 100'dür: {suspicious} altı temiz, {suspicious} ve üstü şüpheli, {dangerous} ve üstü " +
       "tehlikeli. Bazı kurallar daha güçlü kanıtta ağırlığını artırır (örneğin bir şey de indiren bir kurulum " +
       "scripti). Kod kuralları, komutların genellikle örnek olduğu belgelerde ve kaynak kodundaki " +
@@ -429,6 +483,145 @@ export const tr: Dictionary = {
     ignoredInDocs: "belgelerde, arama kalıplarında ve yorumlarda sayılmaz",
     inDocs: "belgelerde, arama kalıplarında ve yorumlarda +{n}",
     files: "dosyalar: {list}",
+  },
+
+  privacy: {
+    metaTitle: "Gizlilik",
+    metaDescription: "GiTRay'in ne sakladığı, diğer servislere ne gönderdiği ve asla neyi toplamadığı.",
+    title: "Gizlilik politikası",
+    updated: "Son güncelleme: {date}",
+    intro:
+      "GiTRay ücretsiz, ticari olmayan, açık kaynaklı bir projedir. Hesap, analitik, reklam ya da takip yoktur. Bu " +
+      "sayfa sitenin sakladığı ya da başkasına ilettiği her şeyi ve nedenini anlatır.",
+    sections: [
+      {
+        title: "Bize gönderdikleriniz",
+        paragraphs: [
+          "Taranmasını istediğiniz reponun adresi. Bu adres o herkese açık repoyu taramak için kullanılır ve sonuçla " +
+            "birlikte saklanır (aşağıya bakın); sizinle ilgili hiçbir bilgiyle birlikte saklanmaz.",
+          "Her web sitesinde olduğu gibi tarayıcınız her istekle IP adresinizi gönderir. GiTRay onu yalnızca bir " +
+            "ziyaretçinin başlatabileceği tarama sayısını sınırlamak için kullanır (dakikada 6). Sunucu bunun için " +
+            "adresi kısa süre bellekte tutar; veritabanı adresin kendisini asla saklamaz, yalnızca anahtarlı bir " +
+            "özetini (HMAC) bir sayaçla tutar ve bu sayaçları yaklaşık bir gün sonra siler. IP adresiniz GiTRay'in " +
+            "loglarına yazılmaz ve aşağıdaki servislere asla gönderilmez.",
+        ],
+      },
+      {
+        title: "Tarama sonuçları herkese açıktır",
+        paragraphs: [
+          "Her reponun son taraması saklanır: reponun adı, açıklaması, yıldız sayısı, commit'i, kararı, puanı ve " +
+            "dosyalarından kısa alıntılarla bulguları. Bu sonuçları herkes tarama sayfasında ve herkese açık " +
+            "listelerde (Son tarananlar, Güvenli Bölge, Dolandırıcılar) görebilir. Taramayı kimin başlattığına dair " +
+            "hiçbir şey sonuçla birlikte saklanmaz. En fazla 5.000 sonuç tutulur; önce en eskileri silinir.",
+        ],
+      },
+      {
+        title: "Çerezler ve tarayıcı depolaması",
+        paragraphs: [
+          "GiTRay takip ya da reklam çerezi kullanmaz, bu yüzden çerez uyarısı da yoktur. İki küçük tercih vardır ve " +
+            "ikisi de yalnızca siz değiştirdiğinizde kaydedilir:",
+          "{lang}: dil menüsünden seçtiğiniz dil; site bir dahaki sefere o dilde açılsın diye (bir yıl).",
+          "{theme}: seçtiğiniz tema (açık ya da koyu). Tarayıcınızın yerel depolamasında kalır, sunucuya asla " +
+            "gönderilmez. Sistem'i seçince silinir.",
+        ],
+      },
+      {
+        title: "Taramaya katılan servisler",
+        paragraphs: [
+          "Tarama sırasında GiTRay'in sunucusu şu servislere bağlanır. Bu servisler sizinle ilgili değil, yalnızca " +
+            "taranan repoyla ilgili bilgi alır:",
+          "GitHub: reponun bilgileri ve dosyaları GitHub'ın API'sinden ve indirme sunucularından okunur.",
+          "OSV (osv.dev): bilinen zararlı paketleri aramak için reponun bağımlı olduğu paketlerin adları ve sürümleri.",
+          "VirusTotal: yalnızca programların ve release dosyalarının SHA-256 parmak izleri. Hiçbir dosya yüklenmez.",
+          "Raporlardaki GitHub ve VirusTotal linkleri sizi o sitelere götürür; orada kendi gizlilik politikaları " +
+            "geçerlidir.",
+        ],
+      },
+      {
+        title: "Barındırma",
+        paragraphs: [
+          "Site {vercel} üzerinde çalışır; tarama sonuçları ve hız sınırı sayaçları {neon} üzerindeki bir Postgres " +
+            "veritabanında tutulur. Vercel, kendi politikası çerçevesinde IP adreslerini de içeren standart istek " +
+            "loglarını tutabilir. Yazı tipleri ve scriptler bu siteden gelir; tarayıcınızda üçüncü taraf script " +
+            "yüklenmez.",
+        ],
+      },
+      {
+        title: "Sorular ve silme istekleri",
+        paragraphs: [
+          "Bu politika hakkında bir sorunuz varsa ya da bir reponun sahibi olarak saklanan sonucunun silinmesini " +
+            "istiyorsanız {issues} üzerinden bir issue açın. Saklanan bir sonuç silinebilir, ama herkese açık bir " +
+            "repoyu daha sonra herkes yeniden tarayabilir ve bu yeni bir sonuç saklar.",
+          "Bu politika değişirse en üstteki tarih de değişir.",
+        ],
+      },
+    ],
+  },
+
+  terms: {
+    metaTitle: "Kullanım şartları",
+    metaDescription: "GiTRay'i kullanma şartları ve sonuçlarının nasıl okunacağı.",
+    title: "Kullanım şartları",
+    updated: "Son güncelleme: {date}",
+    intro:
+      "GiTRay'i kullanarak bu şartları kabul etmiş olursunuz. Şartlar kısa, çünkü hizmet basit: ücretsizdir, hesap " +
+      "yoktur ve yalnızca herkese açık GitHub repolarını okur.",
+    sections: [
+      {
+        title: "Hizmet",
+        paragraphs: [
+          "GiTRay ücretsiz, ticari olmayan, açık kaynaklı bir projedir; olduğu gibi ve erişilebilir olduğu sürece " +
+            "sunulur. Haber verilmeden değişebilir, yavaşlayabilir ya da durabilir.",
+        ],
+      },
+      {
+        title: "Sonuçlar nasıl okunmalı",
+        paragraphs: [
+          "Sonuçlar, bilinen zararlı yazılım hilelerini arayan kurallar tarafından otomatik üretilir. Bir güvenlik " +
+            "denetimi ya da garanti değildir. Temiz kararı bir reponun güvenli olduğunu kanıtlamaz ve GiTRay taradığı " +
+            "kodu çalıştırmaz.",
+          "Tehlikeli kararı ya da Dolandırıcılar listesinde yer almak, tek bir commit'teki dosyaların otomatik bir " +
+            "değerlendirmesidir. Reponun arkasındaki kişiler hakkında bir ifade değildir ve yanlış olabilir: güvenlik " +
+            "araçları ve zararlı yazılım araştırmaları çoğu zaman GiTRay'in aradığı kalıpları içerir. Bulguları " +
+            "okuyun ve yanlış alarmı {issues} üzerinden bildirin.",
+          "Neyi klonlayacağınıza, kuracağınıza ya da çalıştıracağınıza siz karar verirsiniz ve bu kararın " +
+            "sorumluluğu size aittir.",
+        ],
+      },
+      {
+        title: "Repolar ve içerikleri",
+        paragraphs: [
+          "Yalnızca herkese açık GitHub repoları taranabilir. İçerikleri sahiplerine aittir. Raporlar, yalnızca bir " +
+            "bulguyu açıklamak için dosyalardan zararsız hale getirilmiş ve GitHub'daki aslına bağlanan kısa " +
+            "alıntılar gösterir.",
+        ],
+      },
+      {
+        title: "Adil kullanım",
+        paragraphs: [
+          "GiTRay sınırlı bir GitHub ve VirusTotal kotasını tüm ziyaretçiler arasında paylaştırır; bu yüzden " +
+            "taramalar ziyaretçi başına ve saatlik olarak sınırlıdır. Scriptlerle toplu tarama yapmayın, sınırları " +
+            "aşmaya çalışmayın, hizmete saldırmayın, onu aşırı yüklemeyin ya da yoklamayın. /api/scan adresindeki " +
+            "JSON API'si aynı sınırlar içinde kişisel ve ticari olmayan kullanım için açıktır. GiTRay'in kendisinde " +
+            "bir güvenlik sorunu mu buldunuz? Lütfen {security} dosyasında anlatıldığı gibi gizlice bildirin.",
+        ],
+      },
+      {
+        title: "Sorumluluk",
+        paragraphs: [
+          "Yasaların izin verdiği ölçüde GiTRay ve geliştiricisi, sitenin kullanılmasından ya da sonuçlarına " +
+            "güvenilmesinden doğan hiçbir zarardan sorumlu değildir; Temiz kararından sonra zararlı çıkan bir repo da " +
+            "buna dahildir.",
+        ],
+      },
+      {
+        title: "Kaynak kod ve değişiklikler",
+        paragraphs: [
+          "Kaynak kod MIT lisansıyla {source} üzerinde açıktır. Bu şartlar değişebilir; en üstteki tarih son sürümü " +
+            "gösterir. Sorular için {issues}.",
+        ],
+      },
+    ],
   },
 
   notFound: {
@@ -667,7 +860,7 @@ export const tr: Dictionary = {
       why:
         "Bir .gitattributes export-ignore kuralı bu dosyaları GitHub'ın verdiği arşivin dışında tutar ama \"git " +
         'clone" onları yine getirir. Paketler bunu çoğunlukla testleri çıkarmak için kullanır; ama arşivi okuyan ' +
-        "tarayıcılardan bir yükü saklamanın da yoludur. GitRay bu dosyaları ayrıca indirip diğerleri gibi tarar.",
+        "tarayıcılardan bir yükü saklamanın da yoludur. GiTRay bu dosyaları ayrıca indirip diğerleri gibi tarar.",
     },
   },
 };

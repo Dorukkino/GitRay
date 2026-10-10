@@ -59,7 +59,7 @@ export class GitHubClient {
     this.headers = {
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": `gitray/${ENGINE_VERSION}`,
+      "User-Agent": `GiTRay/${ENGINE_VERSION}`,
     };
     // The token is only ever sent to api.github.com and never logged.
     if (options.token) this.headers.Authorization = `Bearer ${options.token}`;
