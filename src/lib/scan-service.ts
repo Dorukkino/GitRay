@@ -190,7 +190,7 @@ async function sharedLimit(rates: RateStore, client: string, now: number): Promi
       return fail(
         503,
         "budget_exhausted",
-        "GitRay has used its scan budget for this hour. Repositories scanned in the last hour still load.",
+        "GiTRay has used its scan budget for this hour. Repositories scanned in the last hour still load.",
       );
     }
   } catch (e) {

@@ -220,7 +220,7 @@ export interface ZipFile {
   method?: number;
 }
 
-/** A minimal ZIP writer (no CRCs: GitRay does not check them). */
+/** A minimal ZIP writer (no CRCs: GiTRay does not check them). */
 export function makeZip(files: ZipFile[]): Uint8Array {
   const parts: Uint8Array[] = [];
   const central: Uint8Array[] = [];

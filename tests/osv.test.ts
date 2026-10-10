@@ -14,7 +14,7 @@ const SOME_VERSIONS: OsvVuln = {
   affected: [{ package: { name: "popular", ecosystem: "npm" }, versions: ["5.6.1"] }],
 };
 
-/** Imitates the two OSV endpoints GitRay uses. */
+/** Imitates the two OSV endpoints GiTRay uses. */
 class FakeOsv {
   /** "ecosystem:name" or "ecosystem:name@version" -> record IDs. */
   matches = new Map<string, string[]>();

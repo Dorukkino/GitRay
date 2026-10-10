@@ -1,5 +1,5 @@
 /**
- * Invariants of our own code. GitRay must never run what it scans, never write
+ * Invariants of our own code. GiTRay must never run what it scans, never write
  * it to disk, never render it as HTML, and must not contain the invisible
  * characters it warns about (they slipped into the code base twice before).
  */

@@ -7,12 +7,13 @@ import { isLocale, localePath } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { rich } from "@/i18n/format";
 import { LIST_LIMIT, loadList } from "@/lib/lists";
+import { pageAlternates } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/safe-zone">): Promise<Metadata> {
   const { lang } = await params;
   if (!isLocale(lang)) return {};
   const t = getDictionary(lang).safeZone;
-  return { title: t.metaTitle, description: t.metaDescription };
+  return { title: t.metaTitle, description: t.metaDescription, alternates: pageAlternates(lang, "/safe-zone") };
 }
 
 // Rebuilt at most once a minute, so the database is not queried on every visit

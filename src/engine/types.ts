@@ -164,7 +164,7 @@ export interface ScanStats {
 
 /**
  * GitHub's tarball honours .gitattributes export-ignore, so a file can reach
- * everyone who runs "git clone" yet be missing from the archive GitRay reads.
+ * everyone who runs "git clone" yet be missing from the archive GiTRay reads.
  * The scan compares the archive with the commit's file list to catch that.
  */
 export interface ArchiveCheck {

@@ -2,7 +2,7 @@
 
 /**
  * The hero picture: an x-ray film of a made-up repository. A beam sweeps down
- * and each file it passes shows what GitRay would say about it. Only file
+ * and each file it passes shows what GiTRay would say about it. Only file
  * names are shown; there is no code here.
  */
 

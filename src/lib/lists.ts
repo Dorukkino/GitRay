@@ -31,3 +31,18 @@ export async function loadWeeklyCount(now = Date.now()): Promise<number | null> 
     return null;
   }
 }
+
+/** How many scans the home page lists. */
+export const HOME_RECENT_LIMIT = 7;
+
+/** The latest scans for the home page with the time they were loaded, or null without a database or when the query fails. */
+export async function loadRecent(limit = HOME_RECENT_LIMIT, now = Date.now()): Promise<{ items: ScanSummary[]; at: number } | null> {
+  const store = getScanStore();
+  if (!store.configured) return null;
+  try {
+    return { items: await store.list("all", limit), at: now };
+  } catch (e) {
+    logError("recent list query failed", e);
+    return null;
+  }
+}

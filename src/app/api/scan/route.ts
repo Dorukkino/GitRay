@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const outcome = await runScan(params.get("repo") ?? "", clientIp(request), undefined, { fresh });
   const headers: Record<string, string> = {
     "Cache-Control": "no-store",
-    "X-GitRay-Cache": outcome.cached ? "hit" : "miss",
+    "X-GiTRay-Cache": outcome.cached ? "hit" : "miss",
   };
   return Response.json(outcome.body, { status: outcome.status, headers });
 }

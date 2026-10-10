@@ -1,10 +1,10 @@
-# GitRay ilerleme günlüğü
+# GiTRay ilerleme günlüğü
 
-Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu public olduğu için dosya GitHub'da görünür.
+Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu public olduğu için dosya GitHub'da görünür.
 
 ## Şu anki durum
 
-**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında ve üst menüdeki açılır pencerede listeleniyor; ana sayfa son 7 günde taranan repo sayısını gösteriyor.
+**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt, sitemap ve security.txt hazır: site bir domaine bağlanmaya hazır.
 
 | Parça | Durum |
 | --- | --- |
@@ -17,8 +17,8 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 | CLI: `npm run scan -- owner/repo` | Hazır |
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
-| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GitRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 24 dosya, 837 test |
+| Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
+| Testler | 25 dosya, 855 test |
 | Vercel'e deploy | Canlıda: gitray.vercel.app (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -53,7 +53,15 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 5. Kontrol: release dosyası olan bir repo tara (örn. `BurntSushi/ripgrep`). Raporda "Antivirus engines (VirusTotal)" satırında "Looked up N files" yazmalı.
 Ücretsiz anahtar dakikada 4, günde 500 soru hakkı verir; site bunu tüm ziyaretçiler arasında paylaştırır ve her cevabı 1 gün hatırlar.
 
-**Adım 6: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
+**Adım 6: Domain bağla** (14. oturum; domain alınınca).
+1. Vercel → proje → Settings → **Domains** → domaini yaz → Add. Vercel'in gösterdiği DNS kaydını (genelde bir `A` ya da `CNAME`) domaini aldığın yerin DNS ayarlarına ekle. Doğrulanınca HTTPS sertifikası kendiliğinden gelir.
+2. Aynı ekranda yeni domaini **production** domaini yap (gitray.vercel.app ona yönlendirilsin). Kanonik linkler, sitemap, robots.txt ve security.txt Vercel'in production domainini kendiliğinden kullanır; `SITE_URL` yalnızca başka bir adres göstermek istersen gerekir.
+3. Deployments → Redeploy (sitemap build sırasında yazılır).
+4. GitHub → repo → Settings → **Security** (Code security) → **Private vulnerability reporting** → Enable. security.txt ve `SECURITY.md` güvenlik açığı bildirimlerini oraya yönlendiriyor; kapalıysa link 404 verir.
+5. İsteğe bağlı: GitHub → repo → Settings → General → Repository name'i `GiTRay` yap. Sitedeki linkler zaten `Dorukkino/GiTRay` yazıyor; GitHub büyük/küçük harfe bakmadığı için iki durumda da çalışır.
+6. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://<domain>/sitemap.xml` adresini gönder.
+
+**Adım 7: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
 ## Yol haritası
 
@@ -155,9 +163,9 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 
 ### 9 Ekim 2026 (4. oturum): Gerçek repolarla ilk kalibrasyon
 
-**İstek:** Kullanıcı token'ı bağladı ve kendi üç reposunu hem GitRay'de hem scanrepo.dev'de taradı. Sonuçlar birbirini tutmadı; hangisinin doğru olduğu soruldu.
+**İstek:** Kullanıcı token'ı bağladı ve kendi üç reposunu hem GiTRay'de hem scanrepo.dev'de taradı. Sonuçlar birbirini tutmadı; hangisinin doğru olduğu soruldu.
 
-| Repo | scanrepo.dev | GitRay (önce) | GitRay (düzeltmeden sonra) | Gerçek durum |
+| Repo | scanrepo.dev | GiTRay (önce) | GiTRay (düzeltmeden sonra) | Gerçek durum |
 | --- | --- | --- | --- | --- |
 | PocketWallet (Expo / React Native bütçe uygulaması) | 70 | 0 | 0 | Temiz |
 | KinoCoach (Next.js + Supabase koçluk uygulaması) | 36 | 0 | 0 | Zararlı kod yok |
@@ -166,7 +174,7 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 **İnceleme** (repolar klonlandı, hiçbir kod çalıştırılmadı):
 - PocketWallet: scanrepo.dev'in "Code Execution" altında işaretlediği üç dosya (`MarketAdviceCard.tsx`, `useBudget.ts`, `currency.ts`) satır satır okundu. Biri arayüz bileşeni, biri kullanıcının kendi Supabase tablolarına yazan hook, biri frankfurter.app'ten döviz kuru çeken yardımcı. Gizli karakter, kod çözme, dinamik çalıştırma ya da veri sızdırma yok. scanrepo.dev'in neden işaretlediği görülemiyor; "wallet" kelimesi, ağ isteği ve yerel depolama birlikteliği bir hırsız (stealer) sezgiselini tetiklemiş olabilir (tahmin, doğrulanamadı). Sonuç: scanrepo.dev'in 70'i yanlış alarm.
 - KinoCoach: Kurulumda otomatik çalışan bir şey yok (`build` sadece `sharp` ile favicon üretiyor), dinamik kod çalıştırma yok, servis anahtarları ortam değişkeninden okunuyor. Zararlı kod bulunmadı.
-- theme-store: GitRay'in 35 puanı üç yanlış alarmdan geliyordu. Hepsi düzeltildi:
+- theme-store: GiTRay'in 35 puanı üç yanlış alarmdan geliyordu. Hepsi düzeltildi:
   1. **Motor hatası:** 120–375 KB'lık tek satırlık gömülü resimler (`data:image/png;base64,...`) 10.000 karakterlik pencerelere bölündüğünde yalnızca ilk pencere `data:` önekini içeriyordu, geri kalanı "rastgele veri" sayılıyordu. Maskeleme artık pencerelemeden önce tüm dosyada yapılıyor.
   2. GitHub'ın özel resim linklerindeki `?jwt=...` imzası rastgele veri sayılıyordu. Linklerin içi artık entropi kontrolüne girmiyor.
   3. ZIP içindeki düz `.js` dosyaları "çalıştırılabilir" sayılıyordu (mod arşivleri `.uc.js` dolu). `.js` listeden çıkarıldı; `.jse`, `.wsf`, `.vbs` gibi Windows Script Host biçimleri kaldı.
@@ -174,8 +182,8 @@ Son güncelleme: **9 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapı
 - theme-store'daki 64 `mod.zip` ayrıca açılıp (çalıştırılmadan) tarandı: zararlı kalıp yok. Çıkanlar mod README'lerindeki kendi GitHub linkleri, `"prepare": "husky"` ve gömülü ikonlardı.
 
 **Öğrenilenler ve fikirler:**
-- GitRay ZIP arşivlerinin içini okumuyor, yalnızca dosya adlarına bakıyor. Bellekte ve limitli ZIP okuma eklenmeli (zararlı yazılım sık sık ZIP içinde gelir).
-- **Olası kaçış yolu:** GitHub'ın tarball'ı `.gitattributes` içindeki `export-ignore` kurallarına uyar. Saldırgan bir dosyayı `export-ignore` ile işaretlerse dosya `git clone` ile gelir ama GitRay'in indirdiği arşivde olmaz. Çözüm önerisi: Git Trees API (`/git/trees/<sha>?recursive=1`) ile dosya listesini alıp arşivdekiyle karşılaştırmak, eksik dosyaları işaretlemek.
+- GiTRay ZIP arşivlerinin içini okumuyor, yalnızca dosya adlarına bakıyor. Bellekte ve limitli ZIP okuma eklenmeli (zararlı yazılım sık sık ZIP içinde gelir).
+- **Olası kaçış yolu:** GitHub'ın tarball'ı `.gitattributes` içindeki `export-ignore` kurallarına uyar. Saldırgan bir dosyayı `export-ignore` ile işaretlerse dosya `git clone` ile gelir ama GiTRay'in indirdiği arşivde olmaz. Çözüm önerisi: Git Trees API (`/git/trees/<sha>?recursive=1`) ile dosya listesini alıp arşivdekiyle karşılaştırmak, eksik dosyaları işaretlemek.
 - Yeni otomatik çalışma vektörleri: Claude Code (`.claude/settings.json` içindeki `hooks`), Cursor ve benzeri yapay zekâ araçlarının proje ayarları komut çalıştırabiliyor. VS Code `folderOpen` kuralına benzer bir kural eklenebilir.
 - Sızdırılmış gizli bilgiler (test dosyalarında şifre, API anahtarı) repoyu klonlayanı değil repo sahibini tehdit eder. Ayrı, puana katılmayan bir "bilgi" kategorisi olarak düşünülebilir.
 
@@ -453,8 +461,8 @@ Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imle
 
 - **Renkler ve tema:** Bütün renkler artık `globals.css`'teki değişkenlerden geliyor. Açık tema yumuşak mavi-gri (bembeyaz değil), koyu tema logonun lacivertinden gelen loş bir ton (eskisi gibi simsiyah değil). Sağ üstte üç seçenek var: Sistem / Açık / Koyu. Seçim tarayıcıda saklanıyor ve sayfa açılırken yanıp sönmeden uygulanıyor (`public/theme.js`).
 - **Diller:** Bütün sayfalar `/en/...` ve `/tr/...` altına taşındı. Dil adres çubuğunda olduğu için sayfalar yine önceden üretiliyor (hızlı). İlk girişte dil tarayıcının dilinden seçiliyor; sağ üstteki EN/TR düğmesi seçimi çerezde hatırlıyor. Eski linkler (`/scan/owner/repo`, `/rules`) `src/proxy.ts` ile doğru dile yönleniyor. 35 kuralın başlıkları ve açıklamaları dahil her şey Türkçeye çevrildi; yalnızca motorun ürettiği kısa bulgu notları İngilizce kaldı.
-- **Animasyonlar (Motion):** sayfa geçişleri, kaydırınca beliren kartlar, kartların fareyle hafifçe yükselmesi, menüde ve filtrelerde kayan seçim hapı, sayarak dolan puan halkası, dolan puan çubukları, tarama adımlarında beliren tikler, ana sayfada sahte bir reponun "röntgeni" (bir ışın dosyaların üzerinden geçerken her dosyaya GitRay'in ne diyeceği çıkıyor). "Hareketi azalt" ayarı açık olanlarda hareketler kapanıyor.
-- **Örümcek (sonra kaldırıldı, aşağıya bak):** Fareyi takip eden küçük bir röntgen örümceği (kemikleri parlayan, 8 bacaklı, bacaklarını gerçek bir örümcek gibi sırayla atan). Tıklamayı engellemiyor, vardığında duruyor, telefonda görünmüyor, alt bilgideki "Örümceği gizle" ile kapatılabiliyor. scanrepo.dev'deki örümceğin kopyası değil, GitRay'in röntgen temasına uygun kendi çizimimiz.
+- **Animasyonlar (Motion):** sayfa geçişleri, kaydırınca beliren kartlar, kartların fareyle hafifçe yükselmesi, menüde ve filtrelerde kayan seçim hapı, sayarak dolan puan halkası, dolan puan çubukları, tarama adımlarında beliren tikler, ana sayfada sahte bir reponun "röntgeni" (bir ışın dosyaların üzerinden geçerken her dosyaya GiTRay'in ne diyeceği çıkıyor). "Hareketi azalt" ayarı açık olanlarda hareketler kapanıyor.
+- **Örümcek (sonra kaldırıldı, aşağıya bak):** Fareyi takip eden küçük bir röntgen örümceği (kemikleri parlayan, 8 bacaklı, bacaklarını gerçek bir örümcek gibi sırayla atan). Tıklamayı engellemiyor, vardığında duruyor, telefonda görünmüyor, alt bilgideki "Örümceği gizle" ile kapatılabiliyor. scanrepo.dev'deki örümceğin kopyası değil, GiTRay'in röntgen temasına uygun kendi çizimimiz.
 - **Logo (sonra değişti, aşağıya bak):** Kullanıcının logosu `public/brand/` altında. Üst menüde madeni para gibi dönüyor, her dönüşten sonra 4,5 saniye bekliyor; logonun kendi tarama ışını animasyonu da çalışıyor. Sekme ikonu logodaki "G" harfinden yapıldı (`src/app/icon.svg`); eski Next.js ikonu silindi.
 - **Yeni bağımlılık:** `motion` 13.4.4 (MIT, ücretsiz; yayımlanalı iki hafta olmuş, sabit sürüm).
 - **Doğrulama:** Bu ortamda production build alınıp Playwright ile ekran görüntüleri incelendi: ana sayfa (açık/İngilizce, koyu/Türkçe, mobil), Kurallar, Dolandırıcılar, 404, gerçek bir tarama raporu (Dorukkino/GitRay) iki temada. Tema seçimi yenilemeden sonra ilk boyamada uygulanıyor, dil değişince aynı sayfada kalınıyor ve çerez sonraki ziyarette yönlendirmeyi belirliyor; konsolda hata yok.
@@ -464,7 +472,7 @@ Kullanıcının istekleri: scanrepo.dev gibi hareketli bir site (özellikle imle
   - Logo artık dönmüyor ve arkasındaki siyah dikdörtgen yok. Satır içi SVG (`BrandLogo`): harfler temanın yazı rengiyle çiziliyor (açık temada lacivert, koyu temada beyaz), her boyutta keskin.
   - Logonun kendi röntgen ışını iniyor ve her inişten sonra yaklaşık 3,5 saniye bekliyor (döngü 4,2 sn yerine 6 sn; iniş hızı aynı).
 - **Kaydırma animasyonu ve link kutusu** (PR 14):
-  - "Nasıl çalışır", "GitRay neye bakar" ve "Kararlar" kartları artık sayfa açılınca görünmüyor; aşağı kaydırdıkça kaydırma hızıyla birlikte aşağıdan yukarı kayarak geliyor (aynı satırdaki kartlar sırayla), yukarı kaydırınca geri gidiyor (`ScrollReveal`). Kullanıcı ilk iki bölümü istedi; tutarlı olsun diye Kararlar da aynı şekilde yapıldı.
+  - "Nasıl çalışır", "GiTRay neye bakar" ve "Kararlar" kartları artık sayfa açılınca görünmüyor; aşağı kaydırdıkça kaydırma hızıyla birlikte aşağıdan yukarı kayarak geliyor (aynı satırdaki kartlar sırayla), yukarı kaydırınca geri gidiyor (`ScrollReveal`). Kullanıcı ilk iki bölümü istedi; tutarlı olsun diye Kararlar da aynı şekilde yapıldı.
   - Kullanıcı canlıda sayfanın en altında Kararlar kartlarının yarım ve farklı yüksekliklerde kaldığını gördü: sayfa daha fazla kaydırılamadığı için son satır animasyonun ortasında kalıyordu. Düzeltme (PR 15): sayfanın sonuna yakın kartların animasyonu en alta varıldığında bitecek şekilde kısaltılıyor; kaydırılamayacak kadar kısa sayfalarda kartlar hemen görünüyor.
   - Kullanıcı isteği (PR 16): kartlar bir kez gelip yerinde kalıyor, yukarı kaydırınca geri gitmiyor; yarıda kalmış kart, okuyucu geri dönünce kendiliğinden tamamlanıyor ve tamamlanan kart kaydırmayı dinlemeyi bırakıyor.
   - "FPS düşüşü var gibi" geri bildirimi ölçüldü (Chromium, 2000×1150, 2x piksel; yazılım çizimi olduğu için gerçek sayılar daha iyi ama karşılaştırma geçerli). Önce: sayfa dururken ortalama 18 ms/kare ve 16–22 takılma (33 ms üstü kare), kaydırırken ortalama 35 ms/kare (yaklaşık 29 FPS). Sebep tek tek kapatılarak bulundu: üst menünün ve kartların buzlu cam efekti (`backdrop-blur`); sayfa dururken takılma da menüdeki bulanıklık ile logonun ışın animasyonunun birleşiminden geliyordu. Bulanıklık kaldırıldı (menü artık düz zemin), kartlardaki büyüme efekti çıkarıldı (yalnızca kayma ve belirme). Sonra: dururken sabit 16,6 ms (60 FPS, sıfır takılma), kaydırırken ortalama 18,5 ms.
@@ -480,35 +488,49 @@ Kullanıcının istekleri: üst menüdeki "Tara"nın altında açılır bir penc
 - Bu ortamda veritabanı olmadığı için görünüş geçici sahte verilerle kontrol edildi (açık/koyu tema, Türkçe/İngilizce, telefon boyutu); sahte veriler commit'lenmedi. Gerçek verilerle canlıda görünecek.
 - Yeni testler: son tarananlar listesi (her karar, en yeni önce, yeniden tarama bir kez), 7 günlük sayım, "dakika önce" metinleri, Temiz repolarda sebep etiketlerinin gizlenmesi.
 
-### 9 Ekim 2026 (12. oturum): GitRay'in kendi taraması ve arama kalıbı bağlamı
+### 9 Ekim 2026 (12. oturum): GiTRay'in kendi taraması ve arama kalıbı bağlamı
 
-Kullanıcı sordu: GitRay'i GitRay'de taratınca neden Tehlikeli 100 çıkıyor? Kendi repomuz tarandı: 125 bulgunun 99'u testlerde (sahte zararlı örnekler), 13'ü belgelerde, 10'u kuralların kendi kaynak kodunda (`src/engine/rules/`: aranacak kalıpların listesi, örn. `certutil|bitsadmin|...|invoke-expression`), 2'si çeviri metinlerinde. Test sınırı devreye girmiyordu çünkü kural dosyaları test sayılmıyor ve oradaki bulgular tek başına 100'ü geçiyordu. İki seçenek anlatıldı (bırakmak ya da arama kalıbı bağlamı); kullanıcı öneriyi seçti.
+Kullanıcı sordu: GiTRay'i GiTRay'de taratınca neden Tehlikeli 100 çıkıyor? Kendi repomuz tarandı: 125 bulgunun 99'u testlerde (sahte zararlı örnekler), 13'ü belgelerde, 10'u kuralların kendi kaynak kodunda (`src/engine/rules/`: aranacak kalıpların listesi, örn. `certutil|bitsadmin|...|invoke-expression`), 2'si çeviri metinlerinde. Test sınırı devreye girmiyordu çünkü kural dosyaları test sayılmıyor ve oradaki bulgular tek başına 100'ü geçiyordu. İki seçenek anlatıldı (bırakmak ya da arama kalıbı bağlamı); kullanıcı öneriyi seçti.
 
 - **Arama kalıbı ve yorum bağlamı:** `GR-CODE-*` bulgusu kaynak kodunda bir regex'in içindeyse ya da yorum satırındaysa belgedeki gibi düşük puan alıyor; raporda "arama kalıbında ya da yorumda, ağırlığı düşürüldü" etiketi var. Aynı satırda metni çalıştıran bir şey varsa indirim yok. Bir regex'in metnini çalıştırmak (`eval(P.source)`) yeni bir `GR-CODE-001` kalıbıyla tam puan alıyor; böylece bu kural saldırganın işine yaramıyor.
 - **`curl | sh` argümansızsa sayılmıyor:** Sitenin kendi metni ("çözüp çalıştırma, curl | sh, ...") `GR-CODE-002` ile +35 alıyordu. İndirme komutunun en az bir argümanı olması gerekiyor artık.
-- **Sonuç:** GitRay kendi taramasında Tehlikeli 100 yerine **Şüpheli 69 (testler yüzünden tutuldu)** çıkıyor. Test dışı toplam 48: CLAUDE.md'deki "antivirüsü kapat" örneği (`GR-SOC-001` +25, bilerek bırakıldı: belge tuzaklarını zayıflatmamak için) ve belgelerdeki küçük puanlar.
+- **Sonuç:** GiTRay kendi taramasında Tehlikeli 100 yerine **Şüpheli 69 (testler yüzünden tutuldu)** çıkıyor. Test dışı toplam 48: CLAUDE.md'deki "antivirüsü kapat" örneği (`GR-SOC-001` +25, bilerek bırakıldı: belge tuzaklarını zayıflatmamak için) ve belgelerdeki küçük puanlar.
 - `ENGINE_VERSION` 0.8.0 (veritabanındaki eski sonuçlar yeniden taranır).
 - Bilerek yapılmayan: repoya konan "beni tarama" listesi. Saldırgan zararlı dosyasını böyle gizlerdi.
 
 ### 10 Ekim 2026 (13. oturum): Kaydırma durunca kartlar yerine oturuyor
 
-Kullanıcı canlıda gördü: "GitRay neye bakar" bölümünde kaydırmayı yarıda bırakınca kartlar basamaklı kalıyordu (sol kart yerinde, ortadaki aşağıda ve yarı saydam, sağdaki zor görünüyor). Sebep: kartlar kaydırma konumuna bağlı ve aynı satırdakiler biraz arayla başlıyor; kaydırma durunca o anki yarım hallerinde donuyorlardı.
+Kullanıcı canlıda gördü: "GiTRay neye bakar" bölümünde kaydırmayı yarıda bırakınca kartlar basamaklı kalıyordu (sol kart yerinde, ortadaki aşağıda ve yarı saydam, sağdaki zor görünüyor). Sebep: kartlar kaydırma konumuna bağlı ve aynı satırdakiler biraz arayla başlıyor; kaydırma durunca o anki yarım hallerinde donuyorlardı.
 
 - Düzeltme: kaydırırken hareket aynen kaydırma hızına bağlı; kaydırma durunca (yaklaşık 0,15 sn sessizlik) ekranda görünen bütün kartlar kendiliğinden yerine oturuyor. Ekranın altındaki kartlar okuyucu oraya inene kadar gizli kalıyor. Bütün kartlar için tek bir kaydırma dinleyicisi var.
 - Doğrulama (Chromium, 1360×900 ve 2000×1150, koyu tema, Türkçe): sayfa açılınca kartlar gizli; birkaç adım kaydırıp durunca ekrandaki her kart tam görünür ve aynı hizada, aşağıdakiler gizli; en altta hepsi yerinde; yukarı dönünce kaybolmuyor; konsolda hata yok.
 - Akıcılık: aynı makinede değişiklikten önce ve sonra ölçüldü. Kaydırırken ortalama kare süresi önce 20,8–21,3 ms, sonra 20,3–20,8 ms; fark yok. Dünkü 18,5 ms'den yüksek olması sunucunun bugünkü yükünden.
 
+### 10 Ekim 2026 (14. oturum): Ana sayfa düzeni, Nasıl çalışır sayfası, GiTRay adı, yayına alma sayfaları
+
+Kullanıcının istekleri: son tarananlar açılır pencere yerine ana sayfada olsun (7 kadar, sayfalama yok), "son 7 günde" yerine "son haftada", Nasıl çalışır ayrı sayfa olsun, projenin adı artık **GiTRay**, domaine bağlamak için gereken sayfalar eklensin ama gereksiz hiçbir şey olmasın. Kararlar (kullanıcıya soruldu): iletişim yalnızca GitHub Issues; domain henüz yok (adres ortam değişkeninden); açılır pencere kalksın, `/recent` sayfası kalsın.
+
+- **Ana sayfa:** giriş → **Son tarananlar** (son 7 tarama: karar, ad, puan, ne zaman; "Tümünü gör" → `/recent`) → GiTRay neye bakar → Kararlar. Veritabanı yoksa liste görünmez. "Tara" menüsündeki açılır pencere ve `/api/recent` silindi; "Tara" artık düz bir menü linki.
+- **Haftalık sayı:** "repo son haftada tarandı" / "scanned in the last week".
+- **Nasıl çalışır sayfası** (`/<dil>/how-it-works`, menüde ve footer'da): eski 3 adım + "Puan ve karar" adımı, "GiTRay'in asla yapmadıkları" (kod çalıştırmaz, diske yazmaz, release indirmez, repo metnine güvenmez), "Sınırlar" ve sayfanın sonunda tarama kutusu.
+- **Ad:** kullanıcının gördüğü her yerde GiTRay (sözlükler, sayfa başlıkları, README, kural metni, hata sınıfı `GiTRayError`, `X-GiTRay-Cache` başlığı, User-Agent). Logonun çizimi zaten G-i-T-R-a-y (büyük T), değişmedi. `gitray-lang` çerezi ve `gitray-theme` anahtarı bilerek küçük harf kaldı: değişse herkesin dil ve tema seçimi sıfırlanırdı. Kural metni değiştiği için `ENGINE_VERSION` 0.8.1.
+- **Yayına alma:** Gizlilik politikası ve Kullanım şartları (İngilizce + Türkçe, footer'da). Metinler koda göre yazıldı: hesap/analitik/takip yok; IP yalnızca hız sınırı için, veritabanında yalnızca HMAC özeti, yaklaşık 1 günde silinir, loglanmaz; tarama sonuçları herkese açık ve kimin taradığı saklanmaz; tek çerez kullanıcının seçtiği dil, tema yalnızca tarayıcıda; GitHub/OSV/VirusTotal'e ziyaretçi bilgisi gitmez; Vercel ve Neon. Çerez uyarısı gerekmiyor (takip çerezi yok). Şartlar: ücretsiz ve olduğu gibi, sonuçlar sezgisel (Temiz garanti değil, Tehlikeli kişiler hakkında bir suçlama değil), adil kullanım, sorumluluk sınırı, MIT lisansı. Yargı yeri maddesi yok (bilinmiyor, uydurulmadı).
+- `robots.txt` (`/api/` kapalı), `sitemap.xml` (8 sayfa × 2 dil, dil alternatifleriyle), `/.well-known/security.txt`, `SECURITY.md`, her sayfada kanonik adres + hreflang, Open Graph başlık/açıklama. Adres: `SITE_URL` → Vercel production domaini → localhost.
+- Doğrulama: `npm run check` (25 dosya, 855 test), `npm run build`; Chromium'da geçici örnek veriyle (commit'ten önce geri alındı) iki dil, iki tema, 1360 ve 390 genişlik: ana sayfa sırası, liste, haftalık metin, menüde açılır pencere yok, Nasıl çalışır menüde seçili, footer linkleri, gizlilik/şartlar sayfaları, robots/sitemap/security.txt yönlendirmesiz 200; HTML'de "GitRay" kalmadı; konsolda hata yok.
+- Doğrulanamayan: Vercel ve Neon gizlilik politikası linkleri (`vercel.com/legal/privacy-policy`, `neon.com/privacy-policy`) bu ortamdan açılamadı (ağ politikası); canlıda bir kez tıklanıp bakılmalı.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
-2. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
+1. **Domain** (kullanıcı): yukarıdaki Adım 6; GitHub'da private vulnerability reporting'i aç.
+2. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
+3. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
    - Haftalık sayı şu an farklı repoları sayıyor (aynı repo iki kez taranırsa bir). Her taramayı ayrı saymak istenirse taramalar için ayrı bir sayaç gerekir.
    - Başka diller: `src/i18n/` altına sözlük eklemek yeterli.
    - Bulgu notlarının (`note`) çevirisi için motorun not metinlerini kimlikli hale getirmek gerekir (şu an İngilizce).
-3. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
-4. **Liste kalitesi:** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür.
-5. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
-6. **Cloudflare Turnstile:** yalnızca kötüye kullanım görülürse (9. oturumdaki karar).
+4. **Kalibrasyonun 2. turu:** daha fazla repo (Go, Java, PHP, mobil), özellikle commit'lenmiş programlar (`GR-BIN-001`) için bir ayar. VirusTotal sonucu "0 motor" olan programlar için puanı düşürmek düşünülebilir (karar gerektirir).
+5. **Liste kalitesi:** Scammer listesi herkese açık; kalan yanlış alarmlar orada görünür.
+6. **Diğer arşiv biçimleri** (`.rar`, `.7z`, `.tar.gz`, `.jar`) şu an açılmıyor.
+7. **Cloudflare Turnstile:** yalnızca kötüye kullanım görülürse (9. oturumdaki karar).
 
 ## Bilinen sınırlamalar ve kalibrasyon notları
 

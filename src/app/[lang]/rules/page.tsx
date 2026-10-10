@@ -8,12 +8,13 @@ import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { fmt } from "@/i18n/format";
 import { ruleText } from "@/i18n/rules";
+import { pageAlternates } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/rules">): Promise<Metadata> {
   const { lang } = await params;
   if (!isLocale(lang)) return {};
   const dict = getDictionary(lang);
-  return { title: dict.rulesPage.title, description: dict.rulesPage.metaDescription };
+  return { title: dict.rulesPage.title, description: dict.rulesPage.metaDescription, alternates: pageAlternates(lang, "/rules") };
 }
 
 const SEVERITY_TEXT = { high: "text-dangerous bg-dangerous/10", medium: "text-suspicious bg-suspicious/10", low: "text-muted bg-sunken" } as const;

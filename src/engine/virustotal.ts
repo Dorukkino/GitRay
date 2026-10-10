@@ -71,7 +71,7 @@ export class VirusTotalClient {
     let resp: Response;
     try {
       resp = await this.fetchImpl(`${this.apiUrl}/files/${sha256}`, {
-        headers: { "x-apikey": this.apiKey, accept: "application/json", "User-Agent": `gitray/${ENGINE_VERSION}` },
+        headers: { "x-apikey": this.apiKey, accept: "application/json", "User-Agent": `GiTRay/${ENGINE_VERSION}` },
         signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       });
     } catch (e) {

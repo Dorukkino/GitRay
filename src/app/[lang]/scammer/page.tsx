@@ -6,12 +6,13 @@ import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { rich } from "@/i18n/format";
 import { LIST_LIMIT, loadList } from "@/lib/lists";
+import { NEW_ISSUE_URL, pageAlternates } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/scammer">): Promise<Metadata> {
   const { lang } = await params;
   if (!isLocale(lang)) return {};
   const t = getDictionary(lang).scammer;
-  return { title: t.metaTitle, description: t.metaDescription };
+  return { title: t.metaTitle, description: t.metaDescription, alternates: pageAlternates(lang, "/scammer") };
 }
 
 // Rebuilt at most once a minute, so the database is not queried on every visit
@@ -39,7 +40,7 @@ export default async function ScammerPage({ params }: PageProps<"/[lang]/scammer
         {rich(t.warning, {
           link: (
             <a
-              href="https://github.com/Dorukkino/GitRay/issues/new"
+              href={NEW_ISSUE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent underline"
