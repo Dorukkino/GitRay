@@ -9,7 +9,8 @@ import sitemap from "../src/app/sitemap";
 import { LOCALES } from "../src/i18n/config";
 import { loadRecent } from "../src/lib/lists";
 import { securityTxt } from "../src/lib/security-txt";
-import { SECURITY_REPORT_URL, STATIC_PAGES, THEME_KEY, pageAlternates, siteUrl } from "../src/lib/site";
+import { STATIC_PAGES, THEME_KEY, contactEmail, pageAlternates, siteUrl } from "../src/lib/site";
+import { canFill } from "../src/components/LegalPage";
 import { config } from "../src/proxy";
 
 describe("siteUrl", () => {
@@ -61,15 +62,37 @@ describe("sitemap and robots", () => {
   });
 });
 
+describe("contact address", () => {
+  it("accepts a plain address and nothing else", () => {
+    expect(contactEmail({ CONTACT_EMAIL: " hello@gitray.example " })).toBe("hello@gitray.example");
+    expect(contactEmail({})).toBeNull();
+    expect(contactEmail({ CONTACT_EMAIL: "not an address" })).toBeNull();
+    expect(contactEmail({ CONTACT_EMAIL: "a@b" })).toBeNull();
+    expect(contactEmail({ CONTACT_EMAIL: 'x"><script>@evil.example' })).toBeNull();
+    expect(contactEmail({ CONTACT_EMAIL: `${"a".repeat(250)}@b.co` })).toBeNull();
+  });
+
+  it("leaves out legal lines whose placeholders have nothing to show", () => {
+    expect(canFill("Write to {contact}.", { contact: null })).toBe(false);
+    expect(canFill("Write to {contact}.", { contact: "x" })).toBe(true);
+    expect(canFill("No placeholders.", {})).toBe(true);
+  });
+});
+
 describe("security.txt", () => {
-  it("has a contact and an expiry less than a year ahead", () => {
+  it("has a mailto contact and an expiry less than a year ahead", () => {
     const now = Date.parse("2026-10-10T00:00:00Z");
-    const text = securityTxt(now, "https://gitray.example");
-    expect(text).toContain(`Contact: ${SECURITY_REPORT_URL}`);
+    const text = securityTxt("hello@gitray.example", now, "https://gitray.example") ?? "";
+    expect(text).toContain("Contact: mailto:hello@gitray.example");
     expect(text).toContain("Canonical: https://gitray.example/.well-known/security.txt");
+    expect(text).not.toContain("github.com");
     const expires = Date.parse(/^Expires: (.+)$/m.exec(text)?.[1] ?? "");
     expect(expires).toBeGreaterThan(now);
     expect(expires - now).toBeLessThan(365 * 24 * 60 * 60 * 1000);
+  });
+
+  it("is not served without a contact address", () => {
+    expect(securityTxt(null)).toBeNull();
   });
 });
 

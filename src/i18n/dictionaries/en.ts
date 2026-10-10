@@ -25,7 +25,7 @@ export const en = {
     label: "Site",
     privacy: "Privacy",
     terms: "Terms",
-    source: "Source on GitHub",
+    contact: "Contact",
   },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
   language: { label: "Language" },
@@ -448,8 +448,8 @@ export const en = {
     warning:
       "This list is produced automatically by heuristics, not by a person. Security tools and malware research " +
       "repositories can land here because they contain the very patterns GiTRay looks for. Open a repository to see " +
-      "every finding and why it counts. If a repository is listed by mistake, rescan it after a fix or {link}.",
-    report: "report a false positive",
+      "every finding and why it counts. If a repository is listed by mistake, rescan it after a fix.",
+    report: "To report a false positive, write to {contact}.",
     empty: "No dangerous repositories found yet. Repositories that score 70 or more appear here.",
   },
 
@@ -486,7 +486,7 @@ export const en = {
     title: "Privacy policy",
     updated: "Last updated: {date}",
     intro:
-      "GiTRay is a free, non-commercial, open-source project. It has no accounts, no analytics, no advertising and " +
+      "GiTRay is a free, non-commercial project. It has no accounts, no analytics, no advertising and " +
       "no tracking. This page lists everything the site keeps or passes on, and why.",
     sections: [
       {
@@ -543,9 +543,10 @@ export const en = {
       {
         title: "Questions and removal requests",
         paragraphs: [
-          "For a question about this policy, or if you own a repository and want its stored result deleted, open an " +
-            "issue on {issues}. A stored result can be deleted, but anyone can scan a public repository again later, " +
-            "which stores a new result.",
+          "For a question about this policy, or if you own a repository and want its stored result deleted, write " +
+            "to {contact}.",
+          "A stored result can be deleted, but anyone can scan a public repository again later, which stores a new " +
+            "result.",
           "If this policy changes, the date at the top changes with it.",
         ],
       },
@@ -564,8 +565,9 @@ export const en = {
       {
         title: "The service",
         paragraphs: [
-          "GiTRay is a free, non-commercial, open-source project, provided as it is and as long as it is available. " +
-            "It can change, slow down or stop at any time, without notice.",
+          "GiTRay is a free, non-commercial project, provided as it is and as long as it is available. It can " +
+            "change, slow down or stop at any time, without notice.",
+          "The site, its code and its design belong to its maintainer. All rights reserved.",
         ],
       },
       {
@@ -576,8 +578,8 @@ export const en = {
             "run the code it scans.",
           "A Dangerous verdict or a place on the Scammer list is an automated assessment of the files in one commit. " +
             "It is not a statement about the people behind a repository, and it can be wrong: security tools and " +
-            "malware research often contain the very patterns GiTRay looks for. Read the findings, and report a false " +
-            "positive on {issues}.",
+            "malware research often contain the very patterns GiTRay looks for. Read the findings before you decide.",
+          "To report a false positive, write to {contact}.",
           "You decide what you clone, install or run, and you are responsible for that decision.",
         ],
       },
@@ -594,8 +596,9 @@ export const en = {
           "GiTRay shares a limited GitHub and VirusTotal quota between all visitors, so scans are limited per visitor " +
             "and per hour. Do not scan in bulk with scripts, try to get around the limits, or attack, overload or " +
             "probe the service. The JSON API at /api/scan can be used for personal, non-commercial use within the " +
-            "same limits. Found a security problem in GiTRay itself? Please report it privately as described in " +
-            "{security}.",
+            "same limits.",
+          "Found a security problem in GiTRay itself? Please report it privately to {contact} before telling " +
+            "anyone else.",
         ],
       },
       {
@@ -607,10 +610,10 @@ export const en = {
         ],
       },
       {
-        title: "Source code and changes",
+        title: "Changes and questions",
         paragraphs: [
-          "The source code is available on {source} under the MIT license. These terms can change; the date at the " +
-            "top shows the latest version. Questions go to {issues}.",
+          "These terms can change; the date at the top shows the latest version.",
+          "Questions go to {contact}.",
         ],
       },
     ],

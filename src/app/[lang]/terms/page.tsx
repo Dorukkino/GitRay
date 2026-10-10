@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { LegalPage, legalLink } from "@/components/LegalPage";
+import { LegalPage, contactLink } from "@/components/LegalPage";
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { ISSUES_URL, REPO_URL, SECURITY_POLICY_URL, pageAlternates } from "@/lib/site";
+import { contactEmail, pageAlternates } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/terms">): Promise<Metadata> {
   const { lang } = await params;
@@ -20,11 +20,7 @@ export default async function TermsPage({ params }: PageProps<"/[lang]/terms">) 
     <LegalPage
       text={getDictionary(lang).terms}
       locale={lang}
-      nodes={{
-        issues: legalLink(ISSUES_URL, "GitHub Issues"),
-        security: legalLink(SECURITY_POLICY_URL, "SECURITY.md"),
-        source: legalLink(REPO_URL, "GitHub"),
-      }}
+      nodes={{ contact: contactLink(contactEmail()) }}
     />
   );
 }

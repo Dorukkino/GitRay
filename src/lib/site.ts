@@ -1,4 +1,4 @@
-/** The site's own addresses: its public URL, its repository and the pages search engines may list. */
+/** The site's own addresses and settings: its public URL, the contact address and the pages search engines may list. */
 
 import type { Metadata } from "next";
 
@@ -6,12 +6,17 @@ import { LOCALES, type Locale, localePath } from "@/i18n/config";
 
 export const SITE_NAME = "GiTRay";
 
-/** GitHub treats owner/repo case-insensitively, so this keeps working if the repository is renamed to match. */
-export const REPO_URL = "https://github.com/Dorukkino/GiTRay";
-export const ISSUES_URL = `${REPO_URL}/issues`;
-export const NEW_ISSUE_URL = `${REPO_URL}/issues/new`;
-export const SECURITY_POLICY_URL = `${REPO_URL}/blob/main/SECURITY.md`;
-export const SECURITY_REPORT_URL = `${REPO_URL}/security/advisories/new`;
+const EMAIL = /^[^\s@<>"'()]+@[^\s@<>"'()]+\.[A-Za-z]{2,}$/;
+
+/**
+ * The public contact address from CONTACT_EMAIL, or null when none is set. The
+ * repository is private, so this is the only contact; without it the contact
+ * lines, the footer link and security.txt are left out.
+ */
+export function contactEmail(env: Record<string, string | undefined> = process.env): string | null {
+  const value = env.CONTACT_EMAIL?.trim();
+  return value && value.length <= 254 && EMAIL.test(value) ? value : null;
+}
 
 /** localStorage key of the theme choice; public/theme.js reads the same key before the first paint. */
 export const THEME_KEY = "gitray-theme";

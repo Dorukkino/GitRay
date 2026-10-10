@@ -22,7 +22,7 @@ export const tr: Dictionary = {
     label: "Site",
     privacy: "Gizlilik",
     terms: "Kullanım şartları",
-    source: "GitHub'daki kaynak kodu",
+    contact: "İletişim",
   },
   theme: { label: "Tema", system: "Sistem", light: "Açık", dark: "Koyu" },
   language: { label: "Dil" },
@@ -454,8 +454,8 @@ export const tr: Dictionary = {
       "Bu liste bir kişi tarafından değil, sezgisel kurallarla otomatik olarak üretilir. Güvenlik araçları ve zararlı " +
       "yazılım araştırma repoları, GiTRay'in aradığı kalıpların ta kendisini içerdikleri için buraya düşebilir. Her " +
       "bulguyu ve neden sayıldığını görmek için repoyu açın. Bir repo yanlışlıkla listelendiyse düzeltmeden sonra " +
-      "yeniden tarayın ya da {link}.",
-    report: "yanlış alarmı bildirin",
+      "yeniden tarayın.",
+    report: "Yanlış alarmı bildirmek için {contact} adresine yazın.",
     empty: "Henüz tehlikeli repo bulunmadı. 70 ya da üstü puan alan repolar burada görünür.",
   },
 
@@ -491,7 +491,7 @@ export const tr: Dictionary = {
     title: "Gizlilik politikası",
     updated: "Son güncelleme: {date}",
     intro:
-      "GiTRay ücretsiz, ticari olmayan, açık kaynaklı bir projedir. Hesap, analitik, reklam ya da takip yoktur. Bu " +
+      "GiTRay ücretsiz ve ticari olmayan bir projedir. Hesap, analitik, reklam ya da takip yoktur. Bu " +
       "sayfa sitenin sakladığı ya da başkasına ilettiği her şeyi ve nedenini anlatır.",
     sections: [
       {
@@ -550,8 +550,9 @@ export const tr: Dictionary = {
         title: "Sorular ve silme istekleri",
         paragraphs: [
           "Bu politika hakkında bir sorunuz varsa ya da bir reponun sahibi olarak saklanan sonucunun silinmesini " +
-            "istiyorsanız {issues} üzerinden bir issue açın. Saklanan bir sonuç silinebilir, ama herkese açık bir " +
-            "repoyu daha sonra herkes yeniden tarayabilir ve bu yeni bir sonuç saklar.",
+            "istiyorsanız {contact} adresine yazın.",
+          "Saklanan bir sonuç silinebilir, ama herkese açık bir repoyu daha sonra herkes yeniden tarayabilir ve bu " +
+            "yeni bir sonuç saklar.",
           "Bu politika değişirse en üstteki tarih de değişir.",
         ],
       },
@@ -570,8 +571,9 @@ export const tr: Dictionary = {
       {
         title: "Hizmet",
         paragraphs: [
-          "GiTRay ücretsiz, ticari olmayan, açık kaynaklı bir projedir; olduğu gibi ve erişilebilir olduğu sürece " +
-            "sunulur. Haber verilmeden değişebilir, yavaşlayabilir ya da durabilir.",
+          "GiTRay ücretsiz ve ticari olmayan bir projedir; olduğu gibi ve erişilebilir olduğu sürece sunulur. Haber " +
+            "verilmeden değişebilir, yavaşlayabilir ya da durabilir.",
+          "Site, kodu ve tasarımı geliştiricisine aittir. Tüm hakları saklıdır.",
         ],
       },
       {
@@ -583,7 +585,8 @@ export const tr: Dictionary = {
           "Tehlikeli kararı ya da Dolandırıcılar listesinde yer almak, tek bir commit'teki dosyaların otomatik bir " +
             "değerlendirmesidir. Reponun arkasındaki kişiler hakkında bir ifade değildir ve yanlış olabilir: güvenlik " +
             "araçları ve zararlı yazılım araştırmaları çoğu zaman GiTRay'in aradığı kalıpları içerir. Bulguları " +
-            "okuyun ve yanlış alarmı {issues} üzerinden bildirin.",
+            "karar vermeden önce okuyun.",
+          "Yanlış alarmı bildirmek için {contact} adresine yazın.",
           "Neyi klonlayacağınıza, kuracağınıza ya da çalıştıracağınıza siz karar verirsiniz ve bu kararın " +
             "sorumluluğu size aittir.",
         ],
@@ -602,8 +605,9 @@ export const tr: Dictionary = {
           "GiTRay sınırlı bir GitHub ve VirusTotal kotasını tüm ziyaretçiler arasında paylaştırır; bu yüzden " +
             "taramalar ziyaretçi başına ve saatlik olarak sınırlıdır. Scriptlerle toplu tarama yapmayın, sınırları " +
             "aşmaya çalışmayın, hizmete saldırmayın, onu aşırı yüklemeyin ya da yoklamayın. /api/scan adresindeki " +
-            "JSON API'si aynı sınırlar içinde kişisel ve ticari olmayan kullanım için açıktır. GiTRay'in kendisinde " +
-            "bir güvenlik sorunu mu buldunuz? Lütfen {security} dosyasında anlatıldığı gibi gizlice bildirin.",
+            "JSON API'si aynı sınırlar içinde kişisel ve ticari olmayan kullanım için açıktır.",
+          "GiTRay'in kendisinde bir güvenlik sorunu mu buldunuz? Lütfen kimseye anlatmadan önce {contact} adresine " +
+            "gizlice bildirin.",
         ],
       },
       {
@@ -615,10 +619,10 @@ export const tr: Dictionary = {
         ],
       },
       {
-        title: "Kaynak kod ve değişiklikler",
+        title: "Değişiklikler ve sorular",
         paragraphs: [
-          "Kaynak kod MIT lisansıyla {source} üzerinde açıktır. Bu şartlar değişebilir; en üstteki tarih son sürümü " +
-            "gösterir. Sorular için {issues}.",
+          "Bu şartlar değişebilir; en üstteki tarih son sürümü gösterir.",
+          "Sorular için {contact}.",
         ],
       },
     ],
