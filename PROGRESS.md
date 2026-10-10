@@ -18,7 +18,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 25 dosya, 852 test |
+| Testler | 25 dosya, 853 test |
 | Vercel'e deploy | Canlıda: gitray.vercel.app; domain **gitray.com.tr** (Hayalhost, DNS kullanıcıda: Adım 6) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -556,6 +556,10 @@ Kullanıcı domaini Hayalhost'tan aldı: **gitray.com.tr**. Kullanıcı Gmail bi
 ### 10 Ekim 2026 (20. oturum): Vercel'de domain eklendi, asıl adres www
 
 Kullanıcı Vercel'de domaini ekledi: `www.gitray.com.tr` Production, `gitray.com.tr` → 308 → `www.gitray.com.tr` (Vercel'in önerdiği düzen). İkisi de "Invalid Configuration" (DNS kayıtları henüz Hayalhost'ta girilmedi). Kod buna uyduruldu: `PRODUCTION_URL` artık `https://www.gitray.com.tr` (kanonik adres yönlenen adres olmamalı). Kullanıcıya Hayalhost'ta girilecek iki kayıt adım adım anlatıldı (Vercel'deki "View DNS configuration" değerleriyle: `@` için A, `www` için CNAME).
+
+### 10 Ekim 2026 (21. oturum): GiTRay'in kendi taraması listelerden kaldırıldı
+
+Kullanıcı: son tarananlarda görünen `Dorukkino/GitRay` taraması (Şüpheli 69, repo public iken yapılmıştı) silinsin, ziyaretçiler "güvenilir değil" demesin. Bu ortamdan veritabanına erişim yok; bu yüzden kodla çözüldü: `scan-store.ts` `HIDDEN_REPOS` = `dorukkino/gitray`. Bu repo kaydedilmez ve önceden kaydedilmiş satırı her sunucu örneği tabloyu ilk kullandığında siler (son tarananlar, Son tarananlar sayfası ve haftalık sayaçtan düşer). Repo private olduğu için zaten yeniden taranamaz. Test: gizli repo kaydedilmiyor, önceden yazılmış satır yeni örnekte siliniyor (25 dosya, 853 test).
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 

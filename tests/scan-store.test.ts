@@ -162,6 +162,18 @@ describe("PostgresScanStore", () => {
     expect(await store.fresh("other/repo", new Date(0))).toBeNull();
   });
 
+  it("never stores or lists a hidden repository and deletes one stored before", async () => {
+    await store.save(report("Dorukkino/GitRay", "suspicious", "2026-10-01T00:00:00Z", 69));
+    expect(await store.list("all", 10)).toEqual([]);
+    // A row from before the repository was hidden disappears on the next instance's first use.
+    await store.save(report("a/clean", "clean", "2026-10-01T00:00:00Z"));
+    await pg.query("INSERT INTO scans SELECT 'dorukkino/gitray', 'Dorukkino/GitRay', head_sha, verdict, score, complete, description, stars, findings, top_rules, report, scanned_at FROM scans WHERE repo_key = 'a/clean'");
+    expect((await store.list("all", 10)).map((s) => s.fullName)).toContain("Dorukkino/GitRay");
+    const next = new PostgresScanStore(pgliteDb(pg));
+    expect((await next.list("all", 10)).map((s) => s.fullName)).toEqual(["a/clean"]);
+    expect(await next.countSince(new Date("2026-09-01T00:00:00Z"))).toBe(1);
+  });
+
   it("limits list length", async () => {
     for (let i = 0; i < 5; i++) await store.save(report(`o/r${i}`, "clean", `2026-10-0${i + 1}T00:00:00Z`));
     expect(await store.list("clean", 3)).toHaveLength(3);
