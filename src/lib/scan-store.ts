@@ -44,6 +44,13 @@ const PRUNE_EVERY = 50;
 /** Postgres codes raised when two instances create the same table at the same time. */
 const ALREADY_EXISTS = new Set(["23505", "42P07", "42710"]);
 
+/**
+ * Repositories never stored or listed: the site's own repository, which is now
+ * private, was scanned while it was public (owner's request, 10 October 2026).
+ * Rows already stored are deleted the first time an instance uses the table.
+ */
+export const HIDDEN_REPOS: ReadonlySet<string> = new Set(["dorukkino/gitray"]);
+
 export function repoKey(fullName: string): string {
   return fullName.toLowerCase();
 }
@@ -113,6 +120,7 @@ export class PostgresScanStore implements ScanStore {
           if (!ALREADY_EXISTS.has(code)) throw e;
         }
       }
+      for (const key of HIDDEN_REPOS) await this.db.query("DELETE FROM scans WHERE repo_key = $1", [key]);
     })().catch((e) => {
       this.schema = null;
       throw e;
@@ -122,7 +130,7 @@ export class PostgresScanStore implements ScanStore {
 
   async save(report: Report): Promise<void> {
     const t = report.target;
-    if (!t) return;
+    if (!t || HIDDEN_REPOS.has(repoKey(t.fullName))) return;
     await this.ensureSchema();
     const topRules = report.rules.slice(0, 3).map((r) => ({ id: r.id, title: r.title, points: r.points }));
     await this.db.query(
