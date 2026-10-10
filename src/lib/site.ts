@@ -6,8 +6,8 @@ import { LOCALES, type Locale, localePath } from "@/i18n/config";
 
 export const SITE_NAME = "GiTRay";
 
-/** The production address (domain bought on 10 October 2026). */
-export const PRODUCTION_URL = "https://gitray.com.tr";
+/** The production address (domain bought on 10 October 2026). Vercel serves www and redirects gitray.com.tr to it. */
+export const PRODUCTION_URL = "https://www.gitray.com.tr";
 
 /** localStorage key of the theme choice; public/theme.js reads the same key before the first paint. */
 export const THEME_KEY = "gitray-theme";

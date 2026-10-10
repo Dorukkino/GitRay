@@ -53,7 +53,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 5. Kontrol: release dosyası olan bir repo tara (örn. `BurntSushi/ripgrep`). Raporda "Antivirus engines (VirusTotal)" satırında "Looked up N files" yazmalı.
 Ücretsiz anahtar dakikada 4, günde 500 soru hakkı verir; site bunu tüm ziyaretçiler arasında paylaştırır ve her cevabı 1 gün hatırlar.
 
-**Adım 6: Domaini bağla: gitray.com.tr** (Hayalhost'tan alındı, 10 Ekim 2026). Kod tarafı hazır: Vercel'deki her deploy kanonik adres, sitemap ve robots.txt için `https://gitray.com.tr` kullanır (`src/lib/site.ts` `PRODUCTION_URL`). Hesaplara yalnızca kullanıcı girer; şifre ya da Gmail bilgisi kimseyle paylaşılmaz.
+**Adım 6: Domaini bağla: gitray.com.tr** (Hayalhost'tan alındı, 10 Ekim 2026). Vercel'de iki domain de eklendi (20. oturum): asıl adres `www.gitray.com.tr`, `gitray.com.tr` ona 308 ile yönleniyor. Kod tarafı hazır: Vercel'deki her deploy kanonik adres, sitemap ve robots.txt için `https://www.gitray.com.tr` kullanır (`src/lib/site.ts` `PRODUCTION_URL`). Hesaplara yalnızca kullanıcı girer; şifre ya da Gmail bilgisi kimseyle paylaşılmaz.
 1. **Vercel:** proje → Settings → **Domains** → `gitray.com.tr` yaz → Add. Vercel "www'yi de ekleyip ona yönlendir" seçeneği sunarsa **gitray.com.tr'ye yönlendir**'i seç (yani asıl adres www'siz olsun). Vercel iki kayıt gösterir ve "Invalid Configuration" der; bu normal, DNS yapılınca düzelir:
    - `gitray.com.tr` için bir **A** kaydı (Vercel'in ekranda gösterdiği IP; genelde `76.76.21.21` ya da `216.198.79.1` gibi bir değer)
    - `www.gitray.com.tr` için bir **CNAME** kaydı (Vercel'in gösterdiği değer; genelde `cname.vercel-dns.com` ya da `...vercel-dns-017.com` gibi)
@@ -64,8 +64,8 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
    - MX (e-posta) kayıtlarına dokunma.
    - DNS Yönetimi menüsü yoksa domainin nameserver'ları Hayalhost'un DNS'ini göstermiyordur. O zaman alternatif: Alan Adlarım → gitray.com.tr → **Nameserver (Ad Sunucusu) Değiştir** → `ns1.vercel-dns.com` ve `ns2.vercel-dns.com`. Böylece DNS'i Vercel yönetir, kayıtları Vercel kendisi ekler.
 3. Bekle: genelde 10 dakika ile birkaç saat; `.tr` domainlerinde 24 saate kadar sürebilir. Vercel'deki Domains ekranında iki domain de **Valid Configuration** olunca HTTPS sertifikası kendiliğinden gelir.
-4. İsteğe bağlı: Domains ekranında `gitray.vercel.app` → Edit → `gitray.com.tr`'ye yönlendir (eski link de yeni adrese gitsin).
-5. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://gitray.com.tr/sitemap.xml` adresini gönder.
+4. İsteğe bağlı: Domains ekranında `gitray.vercel.app` → Edit → `www.gitray.com.tr`'ye yönlendir (eski link de yeni adrese gitsin).
+5. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://www.gitray.com.tr/sitemap.xml` adresini gönder.
 
 **Adım 7: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
@@ -552,6 +552,10 @@ Kullanıcı: kart kalkarken "tık tık tık" yapıyor, açık temada efekt çok 
 ### 10 Ekim 2026 (19. oturum): gitray.com.tr
 
 Kullanıcı domaini Hayalhost'tan aldı: **gitray.com.tr**. Kullanıcı Gmail bilgisini vermeyi önerdi; alınmadı (hesap şifreleri paylaşılmaz, bu ortamdan Hayalhost ya da Vercel hesabına girilemez). Kod: `src/lib/site.ts` artık Vercel'de her zaman `https://gitray.com.tr` kullanıyor (`PRODUCTION_URL`; önceden Vercel'in production domainine bakıyordu, domain eklenip yeniden deploy edilene kadar gitray.vercel.app gösterirdi). DNS kurulumu kullanıcıda: yukarıdaki Adım 6. Bu ortamdan DNS sorgusu yapılamadı (ağ politikası), domainin şu anki kayıtları kontrol edilemedi.
+
+### 10 Ekim 2026 (20. oturum): Vercel'de domain eklendi, asıl adres www
+
+Kullanıcı Vercel'de domaini ekledi: `www.gitray.com.tr` Production, `gitray.com.tr` → 308 → `www.gitray.com.tr` (Vercel'in önerdiği düzen). İkisi de "Invalid Configuration" (DNS kayıtları henüz Hayalhost'ta girilmedi). Kod buna uyduruldu: `PRODUCTION_URL` artık `https://www.gitray.com.tr` (kanonik adres yönlenen adres olmamalı). Kullanıcıya Hayalhost'ta girilecek iki kayıt adım adım anlatıldı (Vercel'deki "View DNS configuration" değerleriyle: `@` için A, `www` için CNAME).
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
