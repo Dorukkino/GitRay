@@ -490,6 +490,14 @@ Kullanıcı sordu: GitRay'i GitRay'de taratınca neden Tehlikeli 100 çıkıyor?
 - `ENGINE_VERSION` 0.8.0 (veritabanındaki eski sonuçlar yeniden taranır).
 - Bilerek yapılmayan: repoya konan "beni tarama" listesi. Saldırgan zararlı dosyasını böyle gizlerdi.
 
+### 10 Ekim 2026 (13. oturum): Kaydırma durunca kartlar yerine oturuyor
+
+Kullanıcı canlıda gördü: "GitRay neye bakar" bölümünde kaydırmayı yarıda bırakınca kartlar basamaklı kalıyordu (sol kart yerinde, ortadaki aşağıda ve yarı saydam, sağdaki zor görünüyor). Sebep: kartlar kaydırma konumuna bağlı ve aynı satırdakiler biraz arayla başlıyor; kaydırma durunca o anki yarım hallerinde donuyorlardı.
+
+- Düzeltme: kaydırırken hareket aynen kaydırma hızına bağlı; kaydırma durunca (yaklaşık 0,15 sn sessizlik) ekranda görünen bütün kartlar kendiliğinden yerine oturuyor. Ekranın altındaki kartlar okuyucu oraya inene kadar gizli kalıyor. Bütün kartlar için tek bir kaydırma dinleyicisi var.
+- Doğrulama (Chromium, 1360×900 ve 2000×1150, koyu tema, Türkçe): sayfa açılınca kartlar gizli; birkaç adım kaydırıp durunca ekrandaki her kart tam görünür ve aynı hizada, aşağıdakiler gizli; en altta hepsi yerinde; yukarı dönünce kaybolmuyor; konsolda hata yok.
+- Akıcılık: aynı makinede değişiklikten önce ve sonra ölçüldü. Kaydırırken ortalama kare süresi önce 20,8–21,3 ms, sonra 20,3–20,8 ms; fark yok. Dünkü 18,5 ms'den yüksek olması sunucunun bugünkü yükünden.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
