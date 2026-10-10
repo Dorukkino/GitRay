@@ -19,7 +19,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
 | Testler | 25 dosya, 852 test |
-| Vercel'e deploy | Canlıda: gitray.vercel.app (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
+| Vercel'e deploy | Canlıda: gitray.vercel.app; domain **gitray.com.tr** (Hayalhost, DNS kullanıcıda: Adım 6) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
@@ -53,11 +53,19 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 5. Kontrol: release dosyası olan bir repo tara (örn. `BurntSushi/ripgrep`). Raporda "Antivirus engines (VirusTotal)" satırında "Looked up N files" yazmalı.
 Ücretsiz anahtar dakikada 4, günde 500 soru hakkı verir; site bunu tüm ziyaretçiler arasında paylaştırır ve her cevabı 1 gün hatırlar.
 
-**Adım 6: Domain bağla** (14. oturum; domain alınınca).
-1. Vercel → proje → Settings → **Domains** → domaini yaz → Add. Vercel'in gösterdiği DNS kaydını (genelde bir `A` ya da `CNAME`) domaini aldığın yerin DNS ayarlarına ekle. Doğrulanınca HTTPS sertifikası kendiliğinden gelir.
-2. Aynı ekranda yeni domaini **production** domaini yap (gitray.vercel.app ona yönlendirilsin). Kanonik linkler, sitemap, ve robots.txt Vercel'in production domainini kendiliğinden kullanır; `SITE_URL` yalnızca başka bir adres göstermek istersen gerekir.
-3. Deployments → Redeploy (sitemap build sırasında yazılır).
-4. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://<domain>/sitemap.xml` adresini gönder.
+**Adım 6: Domaini bağla: gitray.com.tr** (Hayalhost'tan alındı, 10 Ekim 2026). Kod tarafı hazır: Vercel'deki her deploy kanonik adres, sitemap ve robots.txt için `https://gitray.com.tr` kullanır (`src/lib/site.ts` `PRODUCTION_URL`). Hesaplara yalnızca kullanıcı girer; şifre ya da Gmail bilgisi kimseyle paylaşılmaz.
+1. **Vercel:** proje → Settings → **Domains** → `gitray.com.tr` yaz → Add. Vercel "www'yi de ekleyip ona yönlendir" seçeneği sunarsa **gitray.com.tr'ye yönlendir**'i seç (yani asıl adres www'siz olsun). Vercel iki kayıt gösterir ve "Invalid Configuration" der; bu normal, DNS yapılınca düzelir:
+   - `gitray.com.tr` için bir **A** kaydı (Vercel'in ekranda gösterdiği IP; genelde `76.76.21.21` ya da `216.198.79.1` gibi bir değer)
+   - `www.gitray.com.tr` için bir **CNAME** kaydı (Vercel'in gösterdiği değer; genelde `cname.vercel-dns.com` ya da `...vercel-dns-017.com` gibi)
+2. **Hayalhost:** müşteri paneline gir → Alan Adlarım → `gitray.com.tr` → **DNS Yönetimi** (bazı panellerde "DNS Kayıtları" ya da "Gelişmiş DNS"; domain bir hosting paketine bağlıysa cPanel → **Zone Editor**).
+   - Ad `@` (ya da boş / `gitray.com.tr`) olan eski **A** ve **AAAA** kayıtlarını sil (Hayalhost'un park sayfası).
+   - Yeni **A** kaydı: Ad `@`, Değer Vercel'in gösterdiği IP, TTL en düşük seçenek.
+   - Ad `www` olan eski kaydı sil, yeni **CNAME**: Ad `www`, Değer Vercel'in gösterdiği adres.
+   - MX (e-posta) kayıtlarına dokunma.
+   - DNS Yönetimi menüsü yoksa domainin nameserver'ları Hayalhost'un DNS'ini göstermiyordur. O zaman alternatif: Alan Adlarım → gitray.com.tr → **Nameserver (Ad Sunucusu) Değiştir** → `ns1.vercel-dns.com` ve `ns2.vercel-dns.com`. Böylece DNS'i Vercel yönetir, kayıtları Vercel kendisi ekler.
+3. Bekle: genelde 10 dakika ile birkaç saat; `.tr` domainlerinde 24 saate kadar sürebilir. Vercel'deki Domains ekranında iki domain de **Valid Configuration** olunca HTTPS sertifikası kendiliğinden gelir.
+4. İsteğe bağlı: Domains ekranında `gitray.vercel.app` → Edit → `gitray.com.tr`'ye yönlendir (eski link de yeni adrese gitsin).
+5. İsteğe bağlı: Google Search Console'a domaini ekleyip `https://gitray.com.tr/sitemap.xml` adresini gönder.
 
 **Adım 7: Dene.** Siteyi aç, birkaç repo tara (örn. `octocat/Hello-World`, `pallets/flask`). Temiz çıkanlar en geç 1 dakika içinde Safe Zone'da görünür.
 
@@ -541,9 +549,13 @@ Kullanıcı: üzerine gelinen kart arka plandan daha net ayrılsın (gölge ya d
 
 Kullanıcı: kart kalkarken "tık tık tık" yapıyor, açık temada efekt çok az görünüyor. Sebep: kart kendi üzerine gelinme durumuna bakıyordu; fare kartın alt kenarındayken kart 4 px kalkınca fareden kaçıyor, düşüyor, tekrar kalkıyordu. Düzeltme: fareyi yerinde duran dış kutu algılıyor, yalnızca içteki kart kalkıyor; hareket yaylı animasyon yerine 0,5 sn'lik yumuşak bir CSS geçişi (liste satırları 2 px). Açık temada gölge koyulaştırıldı, çerçeve güçlendirildi ve hafif mavi bir ışıma eklendi. Ölçüm (Chromium, fare kartın alt kenarından 1 px yukarıda): kart 0'dan 4 px'e kesintisiz çıkıp orada sabit kalıyor; iki temada ekran görüntüsüyle kontrol edildi.
 
+### 10 Ekim 2026 (19. oturum): gitray.com.tr
+
+Kullanıcı domaini Hayalhost'tan aldı: **gitray.com.tr**. Kullanıcı Gmail bilgisini vermeyi önerdi; alınmadı (hesap şifreleri paylaşılmaz, bu ortamdan Hayalhost ya da Vercel hesabına girilemez). Kod: `src/lib/site.ts` artık Vercel'de her zaman `https://gitray.com.tr` kullanıyor (`PRODUCTION_URL`; önceden Vercel'in production domainine bakıyordu, domain eklenip yeniden deploy edilene kadar gitray.vercel.app gösterirdi). DNS kurulumu kullanıcıda: yukarıdaki Adım 6. Bu ortamdan DNS sorgusu yapılamadı (ağ politikası), domainin şu anki kayıtları kontrol edilemedi.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Domain** (kullanıcı): yukarıdaki Adım 6.
+1. **Domain** (kullanıcı): gitray.com.tr için yukarıdaki Adım 6 (Vercel'e ekle, Hayalhost'ta DNS kayıtlarını gir).
 2. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
 3. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
    - Haftalık sayı şu an farklı repoları sayıyor (aynı repo iki kez taranırsa bir). Her taramayı ayrı saymak istenirse taramalar için ayrı bir sayaç gerekir.

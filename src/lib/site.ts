@@ -6,6 +6,9 @@ import { LOCALES, type Locale, localePath } from "@/i18n/config";
 
 export const SITE_NAME = "GiTRay";
 
+/** The production address (domain bought on 10 October 2026). */
+export const PRODUCTION_URL = "https://gitray.com.tr";
+
 /** localStorage key of the theme choice; public/theme.js reads the same key before the first paint. */
 export const THEME_KEY = "gitray-theme";
 
@@ -28,11 +31,11 @@ function origin(value: string | undefined): string | null {
 
 /**
  * The public address of the site, without a trailing slash. SITE_URL wins;
- * otherwise Vercel's production domain (it becomes the custom domain once one is
- * set as production), and localhost for development.
+ * every Vercel deployment (previews included) points to the production domain,
+ * and localhost is used for development.
  */
 export function siteUrl(env: Record<string, string | undefined> = process.env): string {
-  return origin(env.SITE_URL) ?? origin(env.VERCEL_PROJECT_PRODUCTION_URL) ?? "http://localhost:3000";
+  return origin(env.SITE_URL) ?? (env.VERCEL ? PRODUCTION_URL : "http://localhost:3000");
 }
 
 /** Canonical URL and the same page in every language, for a page's metadata. */

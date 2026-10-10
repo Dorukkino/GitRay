@@ -57,7 +57,7 @@ Optional settings in `.env.local` (see `.env.example`):
 1. Import the repository on vercel.com (framework: Next.js, no extra settings) and add `GITHUB_TOKEN` as an environment variable.
 2. In the project's Storage tab, create a Neon Postgres database (free plan) and connect it to the project; Vercel adds `DATABASE_URL`. The table is created on first use.
 3. Redeploy.
-4. Custom domain: add it in the project's Domains settings and make it the production domain. Canonical links, the sitemap and `robots.txt` follow Vercel's production domain automatically; set `SITE_URL` only to override it.
+4. Domain: the site lives at **gitray.com.tr**. Add it (and `www.gitray.com.tr`, redirecting to it) in the project's Domains settings and create the DNS records Vercel shows at the registrar. Canonical links, the sitemap and `robots.txt` use `https://gitray.com.tr` on Vercel (`src/lib/site.ts`); `SITE_URL` overrides it.
 
 ## API
 
