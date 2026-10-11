@@ -1,6 +1,6 @@
 # GiTRay ilerleme günlüğü
 
-Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
+Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
 
 ## Şu anki durum
 
@@ -19,7 +19,7 @@ Son güncelleme: **10 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
 | Testler | 25 dosya, 853 test |
-| Vercel'e deploy | Canlıda: gitray.vercel.app; domain **gitray.com.tr** (Hayalhost, DNS kullanıcıda: Adım 6) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
+| Vercel'e deploy | Canlıda: **https://www.gitray.com.tr** (11 Ekim; `gitray.com.tr` ona yönlenir, gitray.vercel.app de çalışır) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
@@ -561,9 +561,15 @@ Kullanıcı Vercel'de domaini ekledi: `www.gitray.com.tr` Production, `gitray.co
 
 Kullanıcı: son tarananlarda görünen `Dorukkino/GitRay` taraması (Şüpheli 69, repo public iken yapılmıştı) silinsin, ziyaretçiler "güvenilir değil" demesin. Bu ortamdan veritabanına erişim yok; bu yüzden kodla çözüldü: `scan-store.ts` `HIDDEN_REPOS` = `dorukkino/gitray`. Bu repo kaydedilmez ve önceden kaydedilmiş satırı her sunucu örneği tabloyu ilk kullandığında siler (son tarananlar, Son tarananlar sayfası ve haftalık sayaçtan düşer). Repo private olduğu için zaten yeniden taranamaz. Test: gizli repo kaydedilmiyor, önceden yazılmış satır yeni örnekte siliniyor (25 dosya, 853 test).
 
+### 11 Ekim 2026 (22. oturum): gitray.com.tr canlıda, çerez kararı
+
+- **Domain:** Hayalhost'ta isim sunucuları `ns1/ns2.vercel-dns.com` yapıldı ("Yeni DNS Adresi Ekle" seçilmeden kaydedilince Hayalhost'un kendi adresleri kalıyordu). İlk saatlerde Vercel'in isim sunucuları domain için REFUSED dönüyordu (verisign DNSSEC analizörü; DS kaydı yoktu, DNSSEC sorunu değildi); Vercel değişikliği fark edip hesap seviyesindeki Domains sayfasında "Nameservers: Vercel" gösterince düzeldi. Kullanıcı `gitray.com.tr/tr` adresinde siteyi açtı (Chrome'un yeni "ayar" simgesi güvenli bağlantıyı gösteriyor). Bu ortamdan siteye erişilemedi (ağ politikası `gitray.com.tr`'yi engelliyor); kontrol kullanıcının ekran görüntüsüyle yapıldı.
+- **Çerez:** Kullanıcı onay kutusu gerekip gerekmediğini sordu. Tek çerez `gitray-lang`, yalnızca dil değiştirince oluşan arayüz tercihi; ePrivacy yorumlarında ve KVKK çerez rehberinde zorunlu/tercih çerezi olarak onaydan muaf sayılıyor (hukuki görüş değil). Gizlilik sayfasında açıklanıyor. Kullanıcı kararı: **şimdiki hali kalsın, çerez uyarısı yok** (çerezi tamamen kaldırma seçeneği sunuldu, istenmedi).
+- Kullanıcı başka bir projesinin domainini (kinocoach.com.tr, hosting.com.tr) de Vercel'e bağladı; bu repoyu ilgilendirmiyor.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
-1. **Domain** (kullanıcı): gitray.com.tr için yukarıdaki Adım 6 (Vercel'e ekle, Hayalhost'ta DNS kayıtlarını gir).
+1. ~~**Domain**~~ (11 Ekim'de canlıya çıktı). İsteğe bağlı: Google Search Console'a domaini ekleyip sitemap'i gönder (TXT kaydı Vercel'in hesap seviyesindeki Domains → gitray.com.tr → DNS Records'a eklenir).
 2. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).
 3. ~~**Tasarım**~~ (10. ve 11. oturumda yapıldı; motor sürümü 0.8.0, 12. oturum). Kullanıcının canlıdaki görüşüne göre ince ayar (renk tonları, ışının bekleme süresi).
    - Haftalık sayı şu an farklı repoları sayıyor (aynı repo iki kez taranırsa bir). Her taramayı ayrı saymak istenirse taramalar için ayrı bir sayaç gerekir.
