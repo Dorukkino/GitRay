@@ -569,7 +569,7 @@ Kullanıcı: son tarananlarda görünen `Dorukkino/GitRay` taraması (Şüpheli 
 
 ### 12 Ekim 2026 (23. oturum): Google Analytics, izin kutusuyla
 
-Kullanıcı: siteyi Google Analytics panelinden takip etmek istiyor (ölçüm kimliği `G-MZQTYNJGCB`). Analytics takip çerezi koyup Google'a veri gönderdiği için KVKK/AB kurallarına göre izin şart; kullanıcıya Vercel Analytics (çerezsiz) seçeneği de sunuldu, kullanıcı "Google Analytics'ten görmek istiyorum, ne gerekiyorsa yap" dedi. 11 Ekim'deki "çerez uyarısı yok" kararı bu yüzden değişti.
+Kullanıcı: siteyi Google Analytics panelinden takip etmek istiyor (ölçüm kimliği: önce `G-MZQTYNJGCB` verildi, aynı gün GiTRay mülkünün gerçek kimliği `G-NFBDBGY2JH` ile değiştirildi). Analytics takip çerezi koyup Google'a veri gönderdiği için KVKK/AB kurallarına göre izin şart; kullanıcıya Vercel Analytics (çerezsiz) seçeneği de sunuldu, kullanıcı "Google Analytics'ten görmek istiyorum, ne gerekiyorsa yap" dedi. 11 Ekim'deki "çerez uyarısı yok" kararı bu yüzden değişti.
 
 - Sitenin altında ilk ziyarette "Kabul et / Reddet" kutusu (Türkçe/İngilizce, iki tema, telefonda tam genişlik). İki düğme eşit görünüyor. Kutu yalnızca gerçek sitede (`www.gitray.com.tr`, `gitray.com.tr`) çıkıyor; Vercel önizlemelerinde ve localhost'ta GA hiç yüklenmiyor.
 - Cevap verilmeden ve "Reddet"te Google'a hiçbir istek gitmiyor. "Kabul et"te gtag.js yükleniyor (sayfa geçişlerini GA4 kendisi sayıyor). Cevap tarayıcıda `gitray-consent` olarak duruyor.
@@ -577,6 +577,7 @@ Kullanıcı: siteyi Google Analytics panelinden takip etmek istiyor (ölçüm ki
 - Gizlilik politikası güncellendi (tarih 12 Ekim): giriş metni, çerezler bölümü (`gitray-consent` eklendi), yeni "Google Analytics, yalnızca izninizle" bölümü (çerezler, toplanan veriler, Türkiye/AB dışına aktarım, Google'ın politikasına link, izni geri alma), barındırma bölümündeki "üçüncü taraf script yok" cümlesi.
 - Doğrulama: Chromium'da tarayıcı `www.gitray.com.tr`'yi yerel sunucuya yönlendirerek denendi: ilk ziyarette kutu var ve Google'a 0 istek; Reddet → kutu gider, istek yok, yenileyince kutu çıkmıyor; Accept → gtag.js isteği ve dataLayer dolu; Cookie settings kutuyu açıyor, Reject → `_ga` çerezleri silindi, sayfa yenilendi, gtag yok; localhost'ta kutu ve footer linki yok. 26 dosya, 858 test.
 - Kullanıcının yapacağı: bir şey yok; Google Analytics panelinde (Raporlar → Gerçek zamanlı) yalnızca "Kabul et" diyen ziyaretçiler görünür. Reddedenler sayılmaz, bu yüzden GA'daki sayılar gerçek ziyaretçi sayısından düşük olur.
+- Düzeltme (aynı gün): Chrome'da `collect` istekleri 204 dönmesine rağmen Gerçek zamanlı rapor boş kaldı. Sebep: kullanıcının ilk verdiği etiket kodundaki `G-MZQTYNJGCB` başka bir akışa aitti; GA'daki GiTRay mülkünün web akışının ölçüm kimliği `G-NFBDBGY2JH`. `GA_MEASUREMENT_ID` güncellendi. Kimlik değişirse yalnızca `src/lib/site.ts` değişir.
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
