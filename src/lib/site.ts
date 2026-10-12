@@ -9,11 +9,22 @@ export const SITE_NAME = "GiTRay";
 /** The production address (domain bought on 10 October 2026). Vercel serves www and redirects gitray.com.tr to it. */
 export const PRODUCTION_URL = "https://www.gitray.com.tr";
 
+/** Google Analytics 4 property of the site; it loads only after the visitor accepts it (src/components/Analytics.tsx). */
+export const GA_MEASUREMENT_ID = "G-MZQTYNJGCB";
+
+/** localStorage key of the visitor's answer to the analytics question. */
+export const CONSENT_KEY = "gitray-consent";
+
+/** Only the real site counts visits: previews and local development never ask or load analytics. */
+export function analyticsHost(hostname: string): boolean {
+  return hostname === new URL(PRODUCTION_URL).hostname || `www.${hostname}` === new URL(PRODUCTION_URL).hostname;
+}
+
 /** localStorage key of the theme choice; public/theme.js reads the same key before the first paint. */
 export const THEME_KEY = "gitray-theme";
 
 /** Shown on the privacy and terms pages; change it whenever either text changes. */
-export const LEGAL_UPDATED = "2026-10-10";
+export const LEGAL_UPDATED = "2026-10-12";
 
 /** Pages without parameters, as paths inside a locale. Scan pages are not listed. */
 export const STATIC_PAGES = ["/", "/how-it-works", "/safe-zone", "/scammer", "/recent", "/rules", "/privacy", "/terms"] as const;
