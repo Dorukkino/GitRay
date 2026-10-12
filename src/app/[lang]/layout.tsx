@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Analytics, ConsentSettingsButton } from "@/components/Analytics";
 import { Providers } from "@/components/Providers";
 import { SiteHeader } from "@/components/SiteHeader";
 import { INTL_LOCALE, LOCALES, isLocale, localePath } from "@/i18n/config";
@@ -66,9 +67,11 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                 <Link href={localePath(lang, "/terms")} className="text-muted transition-colors hover:text-fg">
                   {dict.footer.terms}
                 </Link>
+                <ConsentSettingsButton />
               </nav>
             </div>
           </footer>
+          <Analytics />
         </Providers>
       </body>
     </html>

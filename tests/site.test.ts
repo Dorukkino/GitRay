@@ -8,7 +8,7 @@ import robots from "../src/app/robots";
 import sitemap from "../src/app/sitemap";
 import { LOCALES } from "../src/i18n/config";
 import { loadRecent } from "../src/lib/lists";
-import { STATIC_PAGES, THEME_KEY, pageAlternates, siteUrl } from "../src/lib/site";
+import { STATIC_PAGES, THEME_KEY, analyticsHost, pageAlternates, siteUrl } from "../src/lib/site";
 import { config } from "../src/proxy";
 
 describe("siteUrl", () => {
@@ -22,6 +22,16 @@ describe("siteUrl", () => {
     expect(siteUrl({ SITE_URL: "javascript:alert(1)" })).toBe("http://localhost:3000");
     expect(siteUrl({ SITE_URL: "ftp://gitray.example", VERCEL: "1" })).toBe("https://www.gitray.com.tr");
     expect(siteUrl({ SITE_URL: "not a url" })).toBe("http://localhost:3000");
+  });
+});
+
+describe("analytics", () => {
+  it("runs only on the production domain", () => {
+    expect(analyticsHost("www.gitray.com.tr")).toBe(true);
+    expect(analyticsHost("gitray.com.tr")).toBe(true);
+    for (const host of ["localhost", "gitray.vercel.app", "gitray-git-branch.vercel.app", "evil-gitray.com.tr", "www.gitray.com.tr.evil.example"]) {
+      expect(analyticsHost(host), host).toBe(false);
+    }
   });
 });
 

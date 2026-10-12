@@ -26,6 +26,17 @@ export const en = {
     privacy: "Privacy",
     terms: "Terms",
   },
+  consent: {
+    title: "Analytics cookies",
+    text:
+      "With your permission GiTRay uses Google Analytics to see how the site is used. If you accept, Google sets " +
+      "cookies and receives usage data, which it may process outside Türkiye and the EU. If you reject, nothing " +
+      "is loaded and the site works the same.",
+    more: "Privacy policy",
+    accept: "Accept",
+    reject: "Reject",
+    settings: "Cookie settings",
+  },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
   language: { label: "Language" },
   logo: "GiTRay home",
@@ -484,8 +495,8 @@ export const en = {
     title: "Privacy policy",
     updated: "Last updated: {date}",
     intro:
-      "GiTRay is a free, non-commercial project. It has no accounts, no analytics, no advertising and " +
-      "no tracking. This page lists everything the site keeps or passes on, and why.",
+      "GiTRay is a free, non-commercial project. It has no accounts and no advertising, and it uses Google " +
+      "Analytics only if you allow it. This page lists everything the site keeps or passes on, and why.",
     sections: [
       {
         title: "What you send us",
@@ -511,11 +522,27 @@ export const en = {
       {
         title: "Cookies and browser storage",
         paragraphs: [
-          "GiTRay sets no tracking or advertising cookies, so there is no cookie banner. There are two small " +
-            "preferences, and both are only saved when you change them yourself:",
+          "GiTRay sets no advertising cookies, and analytics cookies only with your permission (see the next " +
+            "section). Besides that there are small preferences, saved only when you choose them yourself:",
           "{lang}: the language you picked in the language menu, so the site opens in it next time (one year).",
           "{theme}: the theme you picked (light or dark). It stays in your browser's local storage and is never " +
             "sent to the server. Choosing System removes it.",
+          "{consent}: your answer to the analytics question, kept in your browser's local storage so the question " +
+            "is not asked again. It is never sent to the server.",
+        ],
+      },
+      {
+        title: "Google Analytics, only with your permission",
+        paragraphs: [
+          "On your first visit the site asks whether it may use Google Analytics. Until you answer, and if you " +
+            "reject, nothing from Google is loaded and nothing is sent to Google.",
+          "If you accept, the site loads Google Analytics, provided by Google, to count visits and see which pages " +
+            "are used. Google sets its cookies ({ga}) and receives your IP address, your browser and device " +
+            "details, the pages you view (including which scan pages) and the site that sent you. Google may " +
+            "process this data outside Türkiye and the EU, including in the United States, under its own policy " +
+            "({google}). GiTRay only sees totals in the Google Analytics dashboard, not who you are.",
+          "You can change your answer at any time with Cookie settings at the bottom of every page. Withdrawing " +
+            "it deletes the Google cookies on this site and stops Google Analytics.",
         ],
       },
       {
@@ -535,7 +562,8 @@ export const en = {
         paragraphs: [
           "The site runs on {vercel}, and scan results and the rate-limit counters are kept in a Postgres database " +
             "at {neon}. Vercel may keep standard request logs, which include IP addresses, under its own policy. " +
-            "Fonts and scripts are served from this site; no third-party scripts are loaded in your browser.",
+            "Fonts are served from this site. The only third-party script is Google Analytics, and only after you " +
+            "accept it.",
         ],
       },
       {

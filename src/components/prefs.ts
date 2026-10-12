@@ -1,12 +1,12 @@
 /**
- * Small per-visitor preferences kept in localStorage (the theme).
+ * Small per-visitor preferences kept in localStorage (the theme, the analytics answer).
  * Read with usePref, which renders the default on the server and the saved
  * value in the browser without a hydration error.
  */
 
 import { useSyncExternalStore } from "react";
 
-import { THEME_KEY } from "@/lib/site";
+import { CONSENT_KEY, THEME_KEY } from "@/lib/site";
 
 export interface Pref<T extends string> {
   get(): T;
@@ -55,6 +55,11 @@ export type Theme = "system" | "light" | "dark";
 
 // public/theme.js reads the same key before the first paint.
 export const themePref = createPref<Theme>(THEME_KEY, "system", ["system", "light", "dark"]);
+
+/** "unset" until the visitor answers the analytics question; Google Analytics loads only when "granted". */
+export type Consent = "unset" | "granted" | "denied";
+
+export const consentPref = createPref<Consent>(CONSENT_KEY, "unset", ["unset", "granted", "denied"]);
 
 export function usePref<T extends string>(pref: Pref<T>): T {
   return useSyncExternalStore(pref.subscribe, pref.get, pref.getServer);

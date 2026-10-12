@@ -4,7 +4,7 @@ Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Şu anki durum
 
-**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt ve sitemap hazır: site bir domaine bağlanmaya hazır. Sitede iletişim bölümü yok (kullanıcı kararı). Repo private, kod açık kaynak değil.
+**Çalışan bir MVP var.** Bir GitHub reposunun adresi yazılıyor, site repoyu klonlamadan ve hiçbir kodu çalıştırmadan tarıyor, 0–100 arası bir risk puanı ve dört karardan birini (Temiz, Şüpheli, Tehlikeli, Eksik) veriyor. Her bulgu dosya, satır, ilgili kod parçası ve "neden tehlikeli" açıklamasıyla gösteriliyor. Taramalar veritabanına kaydediliyor: Temiz çıkanlar **Safe Zone**, Tehlikeli çıkanlar **Scammer** sayfasında, hepsi **Son tarananlar** sayfasında listeleniyor; ana sayfa son 7 taramayı ve son haftada taranan repo sayısını gösteriyor. Gizlilik politikası, kullanım şartları, robots.txt ve sitemap hazır: site bir domaine bağlanmaya hazır. Sitede iletişim bölümü yok (kullanıcı kararı). Google Analytics yalnızca ziyaretçi "Kabul et" derse yükleniyor (12 Ekim). Repo private, kod açık kaynak değil.
 
 | Parça | Durum |
 | --- | --- |
@@ -18,7 +18,7 @@ Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 25 dosya, 853 test |
+| Testler | 26 dosya, 858 test |
 | Vercel'e deploy | Canlıda: **https://www.gitray.com.tr** (11 Ekim; `gitray.com.tr` ona yönlenir, gitray.vercel.app de çalışır) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -566,6 +566,17 @@ Kullanıcı: son tarananlarda görünen `Dorukkino/GitRay` taraması (Şüpheli 
 - **Domain:** Hayalhost'ta isim sunucuları `ns1/ns2.vercel-dns.com` yapıldı ("Yeni DNS Adresi Ekle" seçilmeden kaydedilince Hayalhost'un kendi adresleri kalıyordu). İlk saatlerde Vercel'in isim sunucuları domain için REFUSED dönüyordu (verisign DNSSEC analizörü; DS kaydı yoktu, DNSSEC sorunu değildi); Vercel değişikliği fark edip hesap seviyesindeki Domains sayfasında "Nameservers: Vercel" gösterince düzeldi. Kullanıcı `gitray.com.tr/tr` adresinde siteyi açtı (Chrome'un yeni "ayar" simgesi güvenli bağlantıyı gösteriyor). Bu ortamdan siteye erişilemedi (ağ politikası `gitray.com.tr`'yi engelliyor); kontrol kullanıcının ekran görüntüsüyle yapıldı.
 - **Çerez:** Kullanıcı onay kutusu gerekip gerekmediğini sordu. Tek çerez `gitray-lang`, yalnızca dil değiştirince oluşan arayüz tercihi; ePrivacy yorumlarında ve KVKK çerez rehberinde zorunlu/tercih çerezi olarak onaydan muaf sayılıyor (hukuki görüş değil). Gizlilik sayfasında açıklanıyor. Kullanıcı kararı: **şimdiki hali kalsın, çerez uyarısı yok** (çerezi tamamen kaldırma seçeneği sunuldu, istenmedi).
 - Kullanıcı başka bir projesinin domainini (kinocoach.com.tr, hosting.com.tr) de Vercel'e bağladı; bu repoyu ilgilendirmiyor.
+
+### 12 Ekim 2026 (23. oturum): Google Analytics, izin kutusuyla
+
+Kullanıcı: siteyi Google Analytics panelinden takip etmek istiyor (ölçüm kimliği `G-MZQTYNJGCB`). Analytics takip çerezi koyup Google'a veri gönderdiği için KVKK/AB kurallarına göre izin şart; kullanıcıya Vercel Analytics (çerezsiz) seçeneği de sunuldu, kullanıcı "Google Analytics'ten görmek istiyorum, ne gerekiyorsa yap" dedi. 11 Ekim'deki "çerez uyarısı yok" kararı bu yüzden değişti.
+
+- Sitenin altında ilk ziyarette "Kabul et / Reddet" kutusu (Türkçe/İngilizce, iki tema, telefonda tam genişlik). İki düğme eşit görünüyor. Kutu yalnızca gerçek sitede (`www.gitray.com.tr`, `gitray.com.tr`) çıkıyor; Vercel önizlemelerinde ve localhost'ta GA hiç yüklenmiyor.
+- Cevap verilmeden ve "Reddet"te Google'a hiçbir istek gitmiyor. "Kabul et"te gtag.js yükleniyor (sayfa geçişlerini GA4 kendisi sayıyor). Cevap tarayıcıda `gitray-consent` olarak duruyor.
+- Footer'a "Çerez tercihleri" eklendi: soruyu yeniden sorar; izni geri almak `_ga` çerezlerini siler ve sayfayı yeniler.
+- Gizlilik politikası güncellendi (tarih 12 Ekim): giriş metni, çerezler bölümü (`gitray-consent` eklendi), yeni "Google Analytics, yalnızca izninizle" bölümü (çerezler, toplanan veriler, Türkiye/AB dışına aktarım, Google'ın politikasına link, izni geri alma), barındırma bölümündeki "üçüncü taraf script yok" cümlesi.
+- Doğrulama: Chromium'da tarayıcı `www.gitray.com.tr`'yi yerel sunucuya yönlendirerek denendi: ilk ziyarette kutu var ve Google'a 0 istek; Reddet → kutu gider, istek yok, yenileyince kutu çıkmıyor; Accept → gtag.js isteği ve dataLayer dolu; Cookie settings kutuyu açıyor, Reject → `_ga` çerezleri silindi, sayfa yenilendi, gtag yok; localhost'ta kutu ve footer linki yok. 26 dosya, 858 test.
+- Kullanıcının yapacağı: bir şey yok; Google Analytics panelinde (Raporlar → Gerçek zamanlı) yalnızca "Kabul et" diyen ziyaretçiler görünür. Reddedenler sayılmaz, bu yüzden GA'daki sayılar gerçek ziyaretçi sayısından düşük olur.
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 

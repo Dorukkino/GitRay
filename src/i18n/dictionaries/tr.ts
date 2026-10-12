@@ -23,6 +23,17 @@ export const tr: Dictionary = {
     privacy: "Gizlilik",
     terms: "Kullanım şartları",
   },
+  consent: {
+    title: "Analitik çerezleri",
+    text:
+      "GiTRay, izninizle sitenin nasıl kullanıldığını görmek için Google Analytics kullanır. Kabul ederseniz " +
+      "Google çerez yerleştirir ve kullanım verilerini alır; bu veriler Türkiye ve AB dışında da işlenebilir. " +
+      "Reddederseniz hiçbir şey yüklenmez, site aynen çalışır.",
+    more: "Gizlilik politikası",
+    accept: "Kabul et",
+    reject: "Reddet",
+    settings: "Çerez tercihleri",
+  },
   theme: { label: "Tema", system: "Sistem", light: "Açık", dark: "Koyu" },
   language: { label: "Dil" },
   logo: "GiTRay ana sayfa",
@@ -489,8 +500,8 @@ export const tr: Dictionary = {
     title: "Gizlilik politikası",
     updated: "Son güncelleme: {date}",
     intro:
-      "GiTRay ücretsiz ve ticari olmayan bir projedir. Hesap, analitik, reklam ya da takip yoktur. Bu " +
-      "sayfa sitenin sakladığı ya da başkasına ilettiği her şeyi ve nedenini anlatır.",
+      "GiTRay ücretsiz ve ticari olmayan bir projedir. Hesap ve reklam yoktur; Google Analytics yalnızca izin " +
+      "verirseniz kullanılır. Bu sayfa sitenin sakladığı ya da başkasına ilettiği her şeyi ve nedenini anlatır.",
     sections: [
       {
         title: "Bize gönderdikleriniz",
@@ -516,11 +527,27 @@ export const tr: Dictionary = {
       {
         title: "Çerezler ve tarayıcı depolaması",
         paragraphs: [
-          "GiTRay takip ya da reklam çerezi kullanmaz, bu yüzden çerez uyarısı da yoktur. İki küçük tercih vardır ve " +
-            "ikisi de yalnızca siz değiştirdiğinizde kaydedilir:",
+          "GiTRay reklam çerezi kullanmaz; analitik çerezleri yalnızca izninizle kullanılır (sonraki bölüme bakın). " +
+            "Bunun dışında yalnızca siz seçtiğinizde kaydedilen küçük tercihler vardır:",
           "{lang}: dil menüsünden seçtiğiniz dil; site bir dahaki sefere o dilde açılsın diye (bir yıl).",
           "{theme}: seçtiğiniz tema (açık ya da koyu). Tarayıcınızın yerel depolamasında kalır, sunucuya asla " +
             "gönderilmez. Sistem'i seçince silinir.",
+          "{consent}: analitik sorusuna verdiğiniz cevap; soru tekrar sorulmasın diye tarayıcınızın yerel " +
+            "depolamasında kalır. Sunucuya asla gönderilmez.",
+        ],
+      },
+      {
+        title: "Google Analytics, yalnızca izninizle",
+        paragraphs: [
+          "İlk ziyaretinizde site Google Analytics kullanıp kullanamayacağını sorar. Cevap verene kadar ve " +
+            "reddederseniz Google'dan hiçbir şey yüklenmez, Google'a hiçbir şey gönderilmez.",
+          "Kabul ederseniz site, ziyaretleri saymak ve hangi sayfaların kullanıldığını görmek için Google'ın sunduğu " +
+            "Google Analytics'i yükler. Google kendi çerezlerini ({ga}) yerleştirir ve IP adresinizi, tarayıcı ve " +
+            "cihaz bilgilerinizi, gezdiğiniz sayfaları (hangi tarama sayfaları olduğu dahil) ve sizi yönlendiren " +
+            "siteyi alır. Google bu verileri kendi politikası ({google}) çerçevesinde Türkiye ve AB dışında, ABD " +
+            "dahil işleyebilir. GiTRay, Google Analytics panelinde yalnızca toplamları görür, kim olduğunuzu görmez.",
+          "Cevabınızı her sayfanın altındaki Çerez tercihleri ile istediğiniz zaman değiştirebilirsiniz. İzni geri " +
+            "almak bu sitedeki Google çerezlerini siler ve Google Analytics'i durdurur.",
         ],
       },
       {
@@ -540,8 +567,8 @@ export const tr: Dictionary = {
         paragraphs: [
           "Site {vercel} üzerinde çalışır; tarama sonuçları ve hız sınırı sayaçları {neon} üzerindeki bir Postgres " +
             "veritabanında tutulur. Vercel, kendi politikası çerçevesinde IP adreslerini de içeren standart istek " +
-            "loglarını tutabilir. Yazı tipleri ve scriptler bu siteden gelir; tarayıcınızda üçüncü taraf script " +
-            "yüklenmez.",
+            "loglarını tutabilir. Yazı tipleri bu siteden gelir. Tek üçüncü taraf script Google Analytics'tir ve " +
+            "yalnızca kabul ettikten sonra yüklenir.",
         ],
       },
       {
