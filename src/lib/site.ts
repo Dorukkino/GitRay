@@ -10,7 +10,7 @@ export const SITE_NAME = "GiTRay";
 export const PRODUCTION_URL = "https://www.gitray.com.tr";
 
 /** Google Analytics 4 property of the site; it loads only after the visitor accepts it (src/components/Analytics.tsx). */
-export const GA_MEASUREMENT_ID = "G-MZQTYNJGCB";
+export const GA_MEASUREMENT_ID = "G-NFBDBGY2JH";
 
 /** localStorage key of the visitor's answer to the analytics question. */
 export const CONSENT_KEY = "gitray-consent";
