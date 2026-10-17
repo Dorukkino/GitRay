@@ -84,7 +84,7 @@ describe("toReport", () => {
   it("links to VirusTotal only for valid sha256 digests", () => {
     const r = toReport(result([]));
     expect(r.releaseAssets.map((a) => a.virusTotalUrl)).toEqual([
-      `https://www.virustotal.com/gui/file/${"ab".repeat(32)}`,
+      `https://www.virustotal.com/gui/search/${"ab".repeat(32)}`,
       null,
       null,
     ]);

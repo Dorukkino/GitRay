@@ -9,7 +9,6 @@ import type { Hit, Rule } from "./base";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const NEW_ACCOUNT_DAYS = 30;
-export const NEW_REPO_DAYS = 14;
 
 function ageDays(iso: string | null, now: Date): number | null {
   if (!iso) return null;
@@ -36,23 +35,6 @@ const NEW_ACCOUNT: Rule = {
   },
 };
 
-const NEW_REPO: Rule = {
-  id: "GR-REPO-002",
-  title: "Repository was created very recently",
-  category: "repo",
-  weight: 5,
-  why:
-    "Malware campaigns create fresh repositories (often copies of popular projects) and " +
-    "promote them before anyone looks closely. A weak signal that only matters together " +
-    "with other findings.",
-  *scanRepo(info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
-    const days = ageDays(info.createdAt, ctx.now);
-    if (days !== null && days < NEW_REPO_DAYS) {
-      yield { line: 0, text: "", note: `repository was created ${plural(days, "day")} ago` };
-    }
-  },
-};
-
 const ARCHIVE_GAP: Rule = {
   id: "GR-REPO-003",
   title: "Files are left out of GitHub's download archive",
@@ -75,4 +57,4 @@ const ARCHIVE_GAP: Rule = {
   },
 };
 
-export const RULES: readonly Rule[] = [NEW_ACCOUNT, NEW_REPO, ARCHIVE_GAP];
+export const RULES: readonly Rule[] = [NEW_ACCOUNT, ARCHIVE_GAP];
