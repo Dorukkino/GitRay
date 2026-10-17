@@ -16,7 +16,7 @@ export interface RuleText {
 
 export const en = {
   meta: {
-    title: "GiTRay: scan a GitHub repo before you clone it",
+    title: "GiTRay — GitHub repo malware scanner",
     description:
       "GiTRay checks public GitHub repositories for malware tricks (install hooks, hidden payloads, " +
       "credential stealers, fake download links) without cloning or running anything.",
