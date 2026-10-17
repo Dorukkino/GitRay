@@ -21,7 +21,7 @@ export const en = {
       "GiTRay checks public GitHub repositories for malware tricks (install hooks, hidden payloads, " +
       "credential stealers, fake download links) without cloning or running anything.",
   },
-  nav: { label: "Main", scan: "Scan", how: "How it works", safeZone: "Safe Zone", scammer: "Scammer", rules: "Rules" },
+  nav: { label: "Main", scan: "Scan", how: "How it works", safeZone: "Safe Zone", scammer: "Dangerous", rules: "Rules" },
   footer: {
     note: "GiTRay never clones, builds or runs the code it scans. Results are heuristics, not a guarantee.",
     label: "Site",
@@ -488,9 +488,9 @@ export const en = {
   },
 
   scammer: {
-    metaTitle: "Scammer list",
+    metaTitle: "Dangerous repositories",
     metaDescription: "Recently scanned GitHub repositories that GiTRay rated dangerous.",
-    eyebrow: "Scammer list",
+    eyebrow: "Dangerous",
     title: "Repositories rated dangerous",
     intro:
       "The latest {n} repositories whose most recent scan scored {score}: several strong signs of malware, such as " +
@@ -498,9 +498,10 @@ export const en = {
       "open them.",
     score: "70 or more",
     warning:
-      "This list is produced automatically by heuristics, not by a person. Security tools and malware research " +
-      "repositories can land here because they contain the very patterns GiTRay looks for. Open a repository to see " +
-      "every finding and why it counts. If a repository is listed by mistake, rescan it after a fix.",
+      "This is an automated score from pattern matching, not an accusation against anyone and not a human judgement. " +
+      "It can be wrong: a well-known or legitimate project can be rated dangerous by mistake, and security tools and " +
+      "malware-research repositories often land here because they contain the very patterns GiTRay looks for. Open a " +
+      "repository to see every finding and why it counts, and if it is listed by mistake, rescan it after a fix.",
     empty: "No dangerous repositories found yet. Repositories that score 70 or more appear here.",
   },
 
@@ -557,7 +558,7 @@ export const en = {
         paragraphs: [
           "The latest scan of each repository is stored: the repository's name, description, star count, commit, " +
             "verdict, score and the findings, with short excerpts of the repository's files. Anyone can see these " +
-            "results on the scan page and in the public lists (Recent scans, Safe Zone, Scammer). Nothing about who " +
+            "results on the scan page and in the public lists (Recent scans, Safe Zone, Dangerous). Nothing about who " +
             "started a scan is stored with it. At most 5,000 results are kept; the oldest are deleted first.",
         ],
       },
@@ -638,7 +639,7 @@ export const en = {
           "Results are produced automatically by rules that look for known malware tricks. They are not a security " +
             "audit and not a guarantee. A Clean verdict does not prove that a repository is safe, and GiTRay does not " +
             "run the code it scans.",
-          "A Dangerous verdict or a place on the Scammer list is an automated assessment of the files in one commit. " +
+          "A Dangerous verdict or a place on the Dangerous list is an automated assessment of the files in one commit. " +
             "It is not a statement about the people behind a repository, and it can be wrong: security tools and " +
             "malware research often contain the very patterns GiTRay looks for. Read the findings before you decide.",
           "You decide what you clone, install or run, and you are responsible for that decision.",

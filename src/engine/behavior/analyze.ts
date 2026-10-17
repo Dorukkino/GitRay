@@ -11,7 +11,7 @@
  * (statement level, no types) and never runs anything.
  */
 
-import { basename, extension, splitLines } from "../text";
+import { basename, extension, isMinified, splitLines } from "../text";
 import type { TextFile } from "../types";
 import { type Lang, type Token, langOf, tokenize } from "./lexer";
 
@@ -710,18 +710,13 @@ class Scopes {
   }
 }
 
-/** Above this size (or with very long lines) a file is generated or minified, not analyzed. */
+/** Above this size a file is generated or minified, not analyzed. */
 const MAX_ANALYZED_BYTES = 1_000_000;
-
-function minified(content: string): boolean {
-  const lines = content.length / (content.split("\n", 2000).length || 1);
-  return content.length > 20_000 && lines > 400;
-}
 
 export function analyzeFile(file: TextFile): Chain[] {
   const lang = langOf(file.path);
   if (!lang || file.content.length > MAX_ANALYZED_BYTES) return [];
-  if (/\.min\.[cm]?js$/i.test(basename(file.path)) || (extension(file.path) !== ".py" && minified(file.content))) return [];
+  if (/\.min\.[cm]?js$/i.test(basename(file.path)) || (extension(file.path) !== ".py" && isMinified(file.content))) return [];
   const tokens = tokenize(file.content, lang);
   if (!tokens) return [];
   frameIds = 0;

@@ -452,10 +452,12 @@ export const tr: Dictionary = {
       evalUrlDecoded: "bir değişkendeki URL-çözülmüş veriyi çalıştırıyor",
       inContainer: "doğrudan bilgisayarınızda değil, bir konteyner imajı derlenirken çalışıyor",
       browserCleaner: "burada tarayıcı verisini yalnızca siliyor; bu dosyada onu açan, kopyalayan, çözen ya da gönderen bir şey yok (gizlilik temizleyicileri böyle yapar)",
+      browserName: "bir tarayıcı şifre ya da çerez dosyasının adını anıyor ama onu açmıyor, okumuyor, çözmüyor ya da göndermiyor (etiketler ve ayarlar da bu adları anar)",
       dpapiBrowser: "tarayıcı şifre dosyalarının yanında Windows DPAPI ile şifre çözüyor",
       dpapiAlone: "Windows DPAPI ile şifre çözüyor; tarayıcı dosyasına değinilmiyor",
       sshSends: "aynı dosya ağ üzerinden veri gönderebiliyor",
       sshNoNet: "aynı dosyada ağ kullanımı yok (SSH araçları da anahtar okur)",
+      sshCi: "bir CI yapılandırmasında: bilgisayarınızda değil, bir derleme sunucusunda çalışır (dağıtım anahtarları böyle kurulur)",
       installerScript: "kurulum scripti: yalnızca biri kurulumu derleyip çalıştırınca çalışır",
       runKeyWrite: "bir Run anahtarına yazıyor: her açılışta bir program başlatır",
       runKeyName: "bir Run anahtarının adı geçiyor ama ona yazmıyor (başlangıç yöneticileri ve temizlik araçları bu kayıtları listeler, karşılaştırır, siler)",
@@ -568,10 +570,11 @@ export const tr: Dictionary = {
       "indirme linkleri gibi birkaç güçlü zararlı yazılım işareti. Bunları klonlamayın, kurmayın, açmayın.",
     score: "70 ya da üstü",
     warning:
-      "Bu liste bir kişi tarafından değil, sezgisel kurallarla otomatik olarak üretilir. Güvenlik araçları ve zararlı " +
-      "yazılım araştırma repoları, GiTRay'in aradığı kalıpların ta kendisini içerdikleri için buraya düşebilir. Her " +
-      "bulguyu ve neden sayıldığını görmek için repoyu açın. Bir repo yanlışlıkla listelendiyse düzeltmeden sonra " +
-      "yeniden tarayın.",
+      "Bu, kalıp eşleştirmeden gelen otomatik bir puandır; kimseye yönelik bir suçlama ya da bir insanın kararı " +
+      "değildir. Yanlış da olabilir: tanınmış ya da meşru bir proje yanlışlıkla tehlikeli bulunabilir; güvenlik " +
+      "araçları ve zararlı yazılım araştırma repoları da GiTRay'in aradığı kalıpların ta kendisini içerdikleri için " +
+      "sık sık buraya düşer. Her bulguyu ve neden sayıldığını görmek için repoyu açın; yanlışlıkla listelendiyse " +
+      "düzeltmeden sonra yeniden tarayın.",
     empty: "Henüz tehlikeli repo bulunmadı. 70 ya da üstü puan alan repolar burada görünür.",
   },
 
