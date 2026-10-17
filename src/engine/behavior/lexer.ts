@@ -50,6 +50,8 @@ export function langOf(path: string): Lang | null {
 
 /** Above this, a file is not analyzed (bundles and generated code). */
 export const MAX_TOKENS = 250_000;
+/** Deepest template-interpolation nesting lexed; beyond it the file is skipped (stack-overflow guard). */
+const MAX_INTERP_DEPTH = 50;
 
 const OPERATORS = [
   ">>>=", "===", "!==", "**=", "<<=", ">>=", "...", "??=", "||=", "&&=", "?.",
@@ -72,6 +74,7 @@ class Lexer {
   constructor(
     private readonly src: string,
     private readonly lang: Lang,
+    private readonly depth = 0,
   ) {}
 
   private push(kind: Token["kind"], value: string, start: number, line = this.line, lineStart = this.lineStart): void {
@@ -244,8 +247,11 @@ class Lexer {
   private interpolation(text: string[], start: number, line: number, lineStart: number, from: number, close: string): number {
     this.push("str", text.join(""), start, line, lineStart);
     text.length = 0;
+    // Deeply nested `${`${…}`}` would recurse without bound (stack overflow);
+    // treat past the cap as too complex to analyze, like a token overflow.
+    if (this.depth >= MAX_INTERP_DEPTH) throw new TooManyTokens();
     const end = matchingBrace(this.src, from, close);
-    const inner = new Lexer(this.src.slice(from, end), this.lang);
+    const inner = new Lexer(this.src.slice(from, end), this.lang, this.depth + 1);
     inner.line = this.line;
     for (const t of inner.run()) {
       if (t.kind === "nl") continue;

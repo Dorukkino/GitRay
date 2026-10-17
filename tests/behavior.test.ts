@@ -123,3 +123,29 @@ describe("limits", () => {
     expect(analyzeFile({ path: "x.rb", content: "eval(Base64.decode64(blob))", truncated: false })).toEqual([]);
   });
 });
+
+describe("denial-of-service guards", () => {
+  it("bounds taint fan-out on a crafted file instead of hanging", () => {
+    // A tainted value, the same function name defined thousands of times, and
+    // thousands of tainted calls: without the fan-out cap this is ~O(n²) and
+    // runs for minutes. With it, the analysis stops early and returns quickly.
+    const n = 4000;
+    const lines = ["const x = atob(input);"];
+    for (let i = 0; i < n; i++) lines.push("function f(a){ return a; }");
+    for (let i = 0; i < n; i++) lines.push("f(x);");
+    const started = Date.now();
+    const result = analyzeFile({ path: "evil.js", content: lines.join("\n"), truncated: false });
+    expect(Array.isArray(result)).toBe(true);
+    expect(Date.now() - started).toBeLessThan(4000);
+  });
+
+  it("skips deeply nested template interpolation instead of overflowing the stack", () => {
+    // Spread across lines so it is not treated as minified and really lexed.
+    let s = "x";
+    for (let i = 0; i < 2000; i++) s = "`${\n" + s + "\n}`";
+    const content = "const y =\n" + s + ";\n";
+    expect(tokenize(content, "js")).toBeNull();
+    expect(() => analyzeFile({ path: "deep.js", content, truncated: false })).not.toThrow();
+    expect(analyzeFile({ path: "deep.js", content, truncated: false })).toEqual([]);
+  });
+});

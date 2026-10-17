@@ -21,6 +21,8 @@ export const runtime = "nodejs";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_PER_WINDOW = 5;
+/** The body is tiny (a short note + scan context); reject anything larger before parsing. */
+const MAX_BODY_BYTES = 16 * 1024;
 const VERDICTS = new Set(["clean", "suspicious", "dangerous", "incomplete"]);
 const headers = { "Cache-Control": "no-store" };
 
@@ -32,6 +34,10 @@ export async function POST(request: NextRequest) {
   const store = getReportStore();
   if (!store.configured || !signingSecret()) {
     return fail(503, "storage_unavailable", "Reporting is not available right now.");
+  }
+
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) {
+    return fail(413, "bad_request", "Request too large.");
   }
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
