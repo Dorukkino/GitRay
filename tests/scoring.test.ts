@@ -31,17 +31,25 @@ describe("scoring", () => {
     expect(score([finding("A", 80)], false).verdict).toBe("dangerous");
   });
 
-  it("holds a score made dangerous only by test files at suspicious", () => {
-    const r = score([finding("A", 35, "tests/views/pane.test.ts"), finding("B", 15, "tests/x.ts"), finding("C", 20, "README.md")]);
-    expect(r).toMatchObject({ score: DANGEROUS_AT - 1, verdict: "suspicious", testFilesCapped: true });
-    // The rule scores still show every finding at full weight.
-    expect(r.ruleScores).toEqual({ A: 35, B: 15, C: 20 });
+  it("test-file findings never raise the verdict band on their own", () => {
+    // Non-test findings are suspicious-level: held at the top of suspicious.
+    const held = score([finding("A", 60, "tests/views/pane.test.ts"), finding("C", 35, "README.md")]);
+    expect(held).toMatchObject({ score: DANGEROUS_AT - 1, verdict: "suspicious", testFilesCapped: true });
+    expect(held.ruleScores).toEqual({ A: 60, C: 35 });
+
+    // Non-test findings are clean-level: test findings cannot even make it suspicious.
+    const clean = score([finding("A", 35, "tests/pane.test.ts"), finding("B", 15, "tests/x.ts"), finding("C", 20, "README.md")]);
+    expect(clean).toMatchObject({ score: SUSPICIOUS_AT - 1, verdict: "clean", testFilesCapped: true });
+    expect(clean.ruleScores).toEqual({ A: 35, B: 15, C: 20 });
   });
 
-  it("does not hold it when something runs by itself or the rest is dangerous too", () => {
+  it("does not hold it when something auto-runs or the non-test findings stand on their own", () => {
     const tests = [finding("A", 45, "tests/setup.js"), finding("B", 15, "tests/setup.js")];
     const autorun = score([...tests, finding("AUTO", 10, "package.json", "autorun")]);
     expect(autorun).toMatchObject({ score: 70, verdict: "dangerous", testFilesCapped: false });
+    // GR-AUTO-008 (MCP servers / AI hooks) is opt-in and does not count as auto-run here.
+    const mcp = score([finding("A", 35, "tests/a.test.ts"), { ...finding("GR-AUTO-008", 10, ".mcp.json", "autorun") }]);
+    expect(mcp).toMatchObject({ verdict: "clean", testFilesCapped: true });
     const outside = score([finding("A", 40, "spec/a.js"), finding("B", 35, "src/a.js"), finding("C", 35, "src/b.js")]);
     expect(outside).toMatchObject({ verdict: "dangerous", testFilesCapped: false });
   });

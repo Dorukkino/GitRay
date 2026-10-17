@@ -387,12 +387,13 @@ export const en = {
       "{title} The {limit} limit stopped the scan ({reason}) after {files} files. Attackers can hide a payload behind " +
       "large files, so a partial scan is never reported as clean.",
     partialTitle: "Partial scan.",
-    heldTitle: "Held at Suspicious.",
+    heldTitle: "Test files set aside.",
     heldText:
       "Most of the score comes from test files (tests/, spec/, fixtures/). Test code does not run when you clone or " +
-      "install a repository, and security tools keep attack samples there, so on their own these findings make a " +
-      "repository at most Suspicious. Nothing in this repository runs by itself on install or when opened; if " +
-      'something did, the full score would count. Check the findings marked "in a test file" before running the tests.',
+      "install a repository, and security tools keep attack samples there, so on their own these findings do not " +
+      "change the verdict — the result reflects the files outside the tests. Nothing in this repository runs by " +
+      'itself on install or when opened; if something did, the full score would count. Check the findings marked "in a ' +
+      'test file" before running the tests.',
     scanResult: "Scan result",
     metadata: "Repository metadata",
     inDocs: "in documentation, weight reduced",

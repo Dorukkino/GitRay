@@ -598,6 +598,17 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (31. oturum): Resmî plugin reposu yanlış alarmı (test cap + GitHub kaynak arşivi)
+
+Kullanıcı `anthropics/claude-plugins-official`'i taradı: Şüpheli 60, "çok saçma". Dökümü: GR-LINK-001 (20) + GR-OBF-002 (15, test) + GR-CODE-004 (15, test) + GR-AUTO-008 (10). İki kök sorun:
+- **İki test dosyası bulgusu** (bidi `verification.test.ts`, SSH yolu `test_secret_shaped_paths.py`) — tam da "güvenlik aracı testte saldırı örneği tutar" durumu, GiTRay'in kendi testleri gibi. Eski test cap'i yalnızca Tehlikeli'yi engelliyordu, Şüpheli'yi değil.
+- **İndirme linki** aslında bir GitHub **kaynak** arşivi (`curl | tar`), paketlenmiş .exe değil.
+
+Düzeltmeler:
+- `scoring.ts`: test bulguları artık **kararı hiç yükseltmiyor** (test dışı Temiz ise 29'da, Şüpheli ise 69'da tutulur). İstisna: test dışı, klonlayınca/kurunca gerçekten çalışan bir `autorun` bulgusu. `GR-AUTO-008` (MCP sunucuları/AI hook'ları) bu istisnaya girmiyor: opt-in, klonlayınca çalışmaz.
+- `GR-LINK-001`: herhangi bir reponun GitHub kaynak arşivi (`github.com/.../archive/...`, `codeload...`) artık 5 (incelenebilir kaynak, klonlamak gibi). Release `.exe` ve dosya paylaşım linkleri yine 20.
+- Değişiklikler yalnızca puanı düşürüyor; yeni yanlış alarm imkânsız. Resmî repo artık **Temiz (29)**, UClear hâlâ Temiz, kalibrasyon ve zararlı-şekil testleri geçiyor.
+- `heldTitle`/`heldText` metni bant-bağımsız yapıldı ("Test dosyaları ayrı tutuldu"). Yeni fixture (GitHub kaynak arşivi, 5). `ENGINE_VERSION` 0.9.6. 27 dosya, 937 test.
 ### 17 Ekim 2026 (30. oturum): Kaçan not + raporu sadeleştirme
 
 - **Kaçan İngilizce not:** `GR-LINK-001` indirme notunun üç varyantı (`downloadHost`, `downloadGithub`, `downloadOtherArchive`) çevrilmemişti; not kataloğuna eklendi ve Türkçeleştirildi. Artık motorda İngilizce not literali kalmadı.

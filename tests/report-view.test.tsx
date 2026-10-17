@@ -68,7 +68,7 @@ describe("ReportView test files", () => {
     const html = renderToStaticMarkup(
       <ReportView report={{ ...r, verdict: "suspicious", score: 69, testFilesCapped: true, findings: [finding] }} />,
     );
-    expect(html).toContain("Held at Suspicious");
+    expect(html).toContain("Test files set aside");
     expect(html).toContain("in a test file");
   });
 });
@@ -186,7 +186,7 @@ describe("ReportView in Turkish", () => {
         />
       </I18nProvider>,
     );
-    expect(html).toContain("Şüpheli&#x27;de tutuldu");
+    expect(html).toContain("Test dosyaları ayrı tutuldu");
     expect(html).toContain("test dosyasında");
     expect(html).toContain("Antivirüsünüzü kapatmanızı istiyor");
     expect(html).toContain("sahte hile, crack ve araç repolarının imzasıdır");

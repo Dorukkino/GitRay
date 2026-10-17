@@ -1,0 +1,7 @@
+# path: README.md
+# lines: 2, 3
+# weight: 5
+# ---
+Download the source instead of cloning:
+https://github.com/moremas/build-with-claude/archive/refs/heads/main.zip
+https://codeload.github.com/other/tool/zip/refs/tags/v1.0.zip

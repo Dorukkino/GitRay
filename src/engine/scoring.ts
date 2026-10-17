@@ -43,15 +43,20 @@ export function score(findings: Iterable<Finding>, complete = true): Scored {
   const perRule = ruleScores(list);
   let points = total(perRule);
   let testFilesCapped = false;
-  if (points >= DANGEROUS_AT) {
-    // Test code does not run on clone or install, and security tools keep attack
-    // samples in their tests. Findings there still count in full, but on their own
-    // they make a repository at most suspicious. Not when something runs by itself
-    // (an install script, a folder-open task): that could start the test file.
-    const outside = list.filter((f) => !isTestPath(f.path));
-    const autorun = outside.some((f) => f.category === "autorun");
-    if (!autorun && total(ruleScores(outside)) < DANGEROUS_AT) {
-      points = DANGEROUS_AT - 1;
+  // Test code does not run on clone or install, and security tools keep attack
+  // samples in their tests (bidi strings, secret-shaped paths). Findings there
+  // still count in full, but on their own they never raise the verdict band: a
+  // repository whose only strong findings are in tests stays whatever the files
+  // outside its tests say. The exception is a non-test autorun finding that runs
+  // on clone, install or folder-open (an install script, a folder-open task) and
+  // could start the test file. GR-AUTO-008 (AI-assistant hooks and MCP servers)
+  // is opt-in — the user configures the assistant — so it does not count here.
+  const outside = list.filter((f) => !isTestPath(f.path));
+  if (!outside.some((f) => f.category === "autorun" && f.ruleId !== "GR-AUTO-008")) {
+    const outsideScore = total(ruleScores(outside));
+    const cap = outsideScore >= DANGEROUS_AT ? MAX_SCORE : outsideScore >= SUSPICIOUS_AT ? DANGEROUS_AT - 1 : SUSPICIOUS_AT - 1;
+    if (points > cap) {
+      points = cap;
       testFilesCapped = true;
     }
   }
