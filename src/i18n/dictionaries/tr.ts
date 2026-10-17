@@ -491,11 +491,13 @@ export const tr: Dictionary = {
       hostLink: "{host} bağlantısı",
       sellsMalware: "{kinds} satışa sunuyor",
       hexEscapes: "uzun bir \\xNN kaçış dizisi dizisi",
+      unicodeEscapes: "uzun bir \\uXXXX kaçış dizisi dizisi",
       entropyString: "{len} karakterlik dizge, entropi {e} bit/karakter",
       entropyHex: "{len} karakterlik hex dizgesi, entropi {e} bit/karakter",
       offscreen: "kod {n} boşluktan sonra başlıyor",
       invisibleRun: "arka arkaya {n} görünmez karakter",
       hangulFiller: "kodda boş görünen Hangul dolgu karakteri kullanılmış",
+      stringArrayObfuscation: "{n} adet _0x… hex tanımlayıcı (makineyle gizlenmiş kod)",
       accountNew: "sahip hesabı {days} gün önce açılmış",
       archiveHidden: "indirme arşivinde olmayan {count} dosya ({sample})",
     } as Record<string, string>,
@@ -954,6 +956,13 @@ export const tr: Dictionary = {
         "Uzun varyasyon seçici, etiket ya da sıfır genişlikli karakter dizileri hiçbir şey göstermez ama koca bir " +
         "programı taşıyabilir; son tedarik zinciri solucanları yükleyicilerini böyle sakladı. Boş görünen Hangul dolgu " +
         "karakterleri de görünmez değişken adı olarak kullanılabilir.",
+    },
+    "GR-OBF-005": {
+      title: "Makineyle gizlenmiş kod (string-array / hex tanımlayıcılar)",
+      why:
+        "Bir JavaScript obfuscator'ından (obfuscator.io ve benzerleri) geçmiş kod: bir string dizisinden okuyan çok " +
+        "sayıda _0x… adlı tanımlayıcı. Meşru küçültülmüş kod kısa, okunur adlar kullanır, hex tanımlayıcı değil. Tek " +
+        "başına yalnızca kodun inceleyenlerden gizlendiğini gösterir, bu yüzden zayıf bir işarettir.",
     },
     "GR-LINK-001": {
       title: "Program ya da arşiv indirme linki",

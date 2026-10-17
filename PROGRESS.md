@@ -82,6 +82,16 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 17 Ekim 2026 (41. oturum): Obfuscation tespitini güçlendirme (temkinli)
+
+- r10 forumunda bir kullanıcı "obfuscate edilmiş kodlara karşı işe yaramıyor" dedi (elde somut repo yok). Keşif, **düşük yanlış-alarm riskli** üç somut boşluk buldu; kullanıcı **temkinli** yaklaşımı seçti (sinyal ekle ama tek başına Tehlikeli yapma).
+- **Packer imzası** → `GR-CODE-001`'e `eval(function(p,a,c,k,e,d){...})` (Dean-Edwards packer, 6 parametre) eklendi. Near-unique, meşru kullanımı yok; mevcut ağırlık 45 (belirleyici).
+- **`_0x` string-array obfuscator** → yeni `GR-OBF-005` (ağırlık 15, katkı): ≥5 farklı `_0x[0-9a-f]{4,}` tanımlayıcı (obfuscator.io şekli). Meşru minified kod kısa adlar kullanır → ayırt edici. `isMinified` atlaması YOK (tek-satır blob'u yakalar), ama desen spesifik olduğu için bundle'larda sessiz.
+- **`\u` kaçış dizileri** → `GR-OBF-001`'e `(?:\uXXXX){50,}` ardışık koşu eklendi (eskiden yalnızca `\x`). Yüksek eşik + ardışıklık şartı → i18n tablolarında yanlış alarm yapmaz (değerler arası virgül koşuyu böler).
+- **Bilinçli kapsam dışı:** davranış motorunun tek-satır minified dosyaları atlaması (`analyze.ts`) — en büyük boşluk ama `isMinified` kapısını gevşetmek her meşru KaTeX/webpack/yarn bundle'ını yakar; temkinli kalındı (ayrı iş).
+- Fixture notu: `\u` fixture'ları Write tool'un JSON taşıması `\uXXXX`'i gerçek karaktere çevirdiği için (CLAUDE.md kural 6) node ile backslash char-code'dan üretildi.
+- `ENGINE_VERSION` 0.11.0 → **0.12.0**. Kural sayısı 38 → 39. Yeni fixture'lar (GR-OBF-005 ±, GR-OBF-001 `\u` ±, GR-CODE-001 packer). Kalibrasyon yeşil (meşru minified/bundle sessiz kaldı). 1006 test geçti; lint/typecheck/build temiz.
+
 ### 17 Ekim 2026 (40. oturum): README güvenlik rozeti (badge)
 
 - Kullanıcı istedi: kullanıcılar tarama sonucunu README'lerine ekleyebilsin (shields.io tarzı). Karar: rozet **yalnızca kayıtlı sonucu** gösterir, **tarama tetiklemez**; hiç taranmamışsa "not scanned".

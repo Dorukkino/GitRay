@@ -1,0 +1,5 @@
+# path: bundle.js
+# lines: 1
+# weight: 45
+# ---
+eval(function(p,a,c,k,e,d){return p;}('0 1',2,2,'console|log'.split('|'),0,{}));

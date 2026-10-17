@@ -29,6 +29,11 @@ const DECODE_EXEC_PATTERNS = regexRule({
     /\beval\s*\(\s*Buffer\.from\s*\(.{0,200}?['"](?:base64|hex)['"]/,
     /\b(?:new\s+)?Function\s*\(\s*(?:atob\s*\(|Buffer\.from\s*\()/,
     /\beval\s*\(\s*String\.fromCharCode\s*\(/,
+    // JavaScript packer signature eval(function(p,a,c,k,e,d){...}): the Dean-Edwards
+    // packer that malware uses to ship an unreadable payload. Six comma-separated
+    // params after eval(function( is near-unique to packed code; legit code does not
+    // eval a six-argument function literal.
+    /\beval\s*\(\s*function\s*\(\s*[\w$]+\s*(?:,\s*[\w$]+\s*){5}\)/,
     // Shell: base64 -d piped into a shell.
     new RegExp(String.raw`\bbase64\s+(?:-d|--decode|-D)\b[^|\n]{0,80}` + PIPE + String.raw`\s*` + SHELL),
     // PowerShell: encoded command or IEX of a base64 payload.

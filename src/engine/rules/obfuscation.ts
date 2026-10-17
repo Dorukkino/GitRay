@@ -21,6 +21,10 @@ const LINK = /\bhttps?:\/\/[^\s"'<>()`]+|\]\([^()\s]+\)/gi;
 const TOKEN = new RegExp(`[A-Za-z0-9+/=_-]{${MIN_TOKEN},}`, "g");
 const HEX_RUN = new RegExp(`[0-9a-fA-F]{${MIN_TOKEN},}`, "g");
 const HEX_ESCAPES = new RegExp(`(?:\\\\x[0-9a-fA-F]{2}){${MIN_HEX_ESCAPES},}`);
+// A long run of back-to-back \uXXXX escapes is a hidden string: obfuscators write
+// code this way. Legitimate \u use (translation tables, a stray char) has commas or
+// other text between values, which breaks the run, so a solid run stays specific.
+const UNICODE_ESCAPES = new RegExp(`(?:\\\\u[0-9a-fA-F]{4}){${MIN_HEX_ESCAPES},}`);
 
 /** A short pattern repeated over and over ("ABCDEF0123456789ABCDEF...") is not random. */
 function isPeriodic(s: string): boolean {
@@ -104,6 +108,8 @@ function base64Candidates(token: string): string[] {
 function entropyNote(segment: string, continued = false): { noteKey: NoteKey; noteArgs?: NoteArgs; column: number } | null {
   const hex = HEX_ESCAPES.exec(segment);
   if (hex) return { noteKey: "hexEscapes", column: hex.index };
+  const uni = UNICODE_ESCAPES.exec(segment);
+  if (uni) return { noteKey: "unicodeEscapes", column: uni.index };
   for (const m of segment.matchAll(TOKEN)) {
     // The previous, overlapping window already judged this token from its real start.
     if (continued && m.index === 0) continue;
@@ -294,4 +300,37 @@ const INVISIBLE_PAYLOAD: Rule = {
   },
 };
 
-export const RULES: readonly Rule[] = [HIGH_ENTROPY, TROJAN_SOURCE, PADDED_CODE, INVISIBLE_PAYLOAD];
+// obfuscator.io-style identifiers: _0x followed by hex. Legitimate minified code
+// mangles names to short readable tokens (a, b, _e, t$), never _0x hex, so a file
+// with several distinct _0x… names is machine-obfuscated. Not gated on isMinified:
+// the whole point is to catch a packed one-liner that the behavior engine skips.
+const OBFUSCATOR_ID = /\b_0x[0-9a-f]{4,}\b/g;
+const MIN_OBFUSCATOR_IDS = 5;
+
+const STRING_ARRAY_OBF: Rule = {
+  id: "GR-OBF-005",
+  title: "Machine-obfuscated code (string-array / hex identifiers)",
+  category: "obfuscation",
+  weight: 15,
+  why:
+    "Code run through a JavaScript obfuscator (obfuscator.io and similar): many _0x… named " +
+    "identifiers reading from a string array. Legitimate minified code uses short readable " +
+    "mangled names, not hex identifiers. On its own this only means the code is hidden from " +
+    "reviewers, so it is a weak signal.",
+  *scanText(file: TextFile): Iterable<Hit> {
+    if (!isSourcePath(file.path)) return;
+    const seen = new Set<string>();
+    let first: { line: number; text: string; column: number } | null = null;
+    for (const { line, text } of iterScanLines(file.content)) {
+      for (const m of text.matchAll(OBFUSCATOR_ID)) {
+        seen.add(m[0]);
+        first ??= { line, text, column: m.index };
+      }
+    }
+    if (first && seen.size >= MIN_OBFUSCATOR_IDS) {
+      yield { line: first.line, text: first.text, column: first.column, ...note("stringArrayObfuscation", { n: seen.size }) };
+    }
+  },
+};
+
+export const RULES: readonly Rule[] = [HIGH_ENTROPY, TROJAN_SOURCE, PADDED_CODE, INVISIBLE_PAYLOAD, STRING_ARRAY_OBF];
