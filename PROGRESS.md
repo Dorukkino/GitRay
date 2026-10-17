@@ -82,6 +82,17 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 17 Ekim 2026 (35. oturum): Geniş kalibrasyon turu (popüler repolardaki yanlış alarmlar)
+
+Kullanıcı: "kalibre edelim, her şeyin doğru düzgün olması temel amaç; gerçek rapor vermezse sitenin anlamı kalmaz." 52 popüler temiz repoyu yerelde (kod çalıştırmadan) tarayıp Temiz olmayanları inceledik. Çıkan kök sebepler ve düzeltmeler:
+- **GR-BIN-001 (repoya konmuş program) 20 → 10, `.lnk` 30 → 15.** Tekrar tekrar meşru vendored/test binary'lerini yakalıyordu (uv trampoline `.exe`, bleachbit NSIS plugin DLL'leri, electron test `.lnk`, WebView2 kurulumu). Tek başına zayıf sinyal; asıl zararlı binary kontrolü VirusTotal (`GR-BIN-003`, +70).
+- **GR-CODE-003 veri-dosyası seti genişledi** (`.xml`, `.json`, `.yaml`/`.yml`, `.toml`, `.plist`, `.csv`/`.tsv`, `.cfg`/`.conf`/`.config` eklendi; `.reg` hariç): bleachbit'in `cleaners/*.xml` temizleyici tanımları artık etiket (10). **Profil klasörü ↔ kimlik dosyası ayrımı**: yalnızca `...\Chrome\User Data` yolunu anan (PWA/ayar/eklenti kodu) dosyada kimlik dosyası yoksa 10; `Login Data`/`os_crypt` vb. varsa 40 (PowerToys PwaHelper düzeldi).
+- **GR-CODE-004** veri/ayar dosyalarında da 10 (CI'ye ek).
+- **Test-cap istisnası daraltıldı**: autorun bulgusu sınırı ancak **komutu gerçekten bir test yolunu çalıştırıyorsa** kaldırır (`text.referencesTestPath`). axios: `docs/package.json`'daki `postinstall: patch-package`, `tests/`'teki güvenlik testini (vm.runInContext) Tehlikeli yapıyordu → artık Temiz. Test dosyası tanıma `test_*.sh/.ps1/...`'i de kapsıyor (bleachbit `test_freebsd.sh`).
+- **GR-SOC-001** sürüm-notu atlaması `changelogs/`, `release-notes/`, `releases/` klasörlerini de kapsıyor (uv `changelogs/0.12.x.md`: "antivirüs yanlış alarmlarını azaltır" cümlesi).
+- **Sonuçlar:** opencart 45→**Temiz 15**, axios 63→**Temiz 13**, terminal 35→**Temiz 20**; joomla 100→**Şüpheli 45**, uv 80→**Şüpheli 45**, bleachbit 95→**Şüpheli 30**, lighthouse **Şüpheli 55**, electron 90→**Şüpheli 60**. Hiçbiri artık Tehlikeli değil (powertoys hariç, aşağıda). `ENGINE_VERSION` 0.9.8 → 0.9.9. 941 test geçti; kalibrasyon kilidi (zararlı yakalama) sağlam; lint/typecheck/build temiz.
+- **Açık mesele — zayıf sinyal birikimi (kullanıcıya soruldu):** PowerToys hâlâ Tehlikeli 100. Ama artık açık FP'lerden değil, **gerçek desenlerin birikiminden**: installer'da gizli `pwsh -WindowStyle Hidden -ExecutionPolicy Unrestricted` (`GR-CODE-007` 35), dev dokümanlarında GitHub indirme linkleri (`GR-LINK-001` 20 — tuzak-README'yi yakalayan mekanizmanın aynısı, düşürülemez), vendored Monaco bundle (`GR-OBF-001` 15), build olayları. En yüksek tek sinyal 35; Tehlikeli yalnızca toplamadan geliyor. Olası çözüm: **Tehlikeli (≥70) için en az bir güçlü tek bulgu (≥40–50) ya da birikim için azalan getiri** istemek. Bu, puanlama modeli değişikliği olduğu için önce kullanıcıya soruldu.
+
 ### 17 Ekim 2026 (34. oturum): Büyük meşru projelerdeki yanlış alarmlar (Joomla, OpenCart) + WordPress taranamıyordu
 
 Dış geri bildirim (bir arkadaş/forum): tanınmış projeleri "Tehlikeli" etiketlemek hukuki risk ("joomla veya opencart dava açabilir") ve WordPress reposu "her seferinde yarım bitti". Yerelde (kod çalıştırmadan, sadece dosya okuyarak) tarayıp kök sebepleri bulduk; hepsi yanlış alarmdı:

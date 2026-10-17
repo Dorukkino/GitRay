@@ -81,7 +81,8 @@ const PIPE_TO_SHELL: Rule = {
   },
 };
 
-const BROWSER_STORES: readonly RegExp[] = [
+/** Specific credential artifacts: only an info-stealer names these exact files or keys. */
+const CREDENTIAL_FILES: readonly RegExp[] = [
   /["'\\/]Login Data\b/,
   /\blogins\.json\b/,
   /\bkey[34]\.db\b/,
@@ -89,9 +90,17 @@ const BROWSER_STORES: readonly RegExp[] = [
   // "encrypted_key" alone is a standard JWE field; Chrome's os_crypt key is the indicator.
   /Local State.{0,200}?os_crypt/i,
   /os_crypt.{0,40}?encrypted_key/i,
+];
+/**
+ * The browser's profile folder. Ordinary code reads it too (settings, installed
+ * PWAs, extensions), so on its own — with no credential file named in the file —
+ * it is a weak signal, not credential theft.
+ */
+const PROFILE_DIRS: readonly RegExp[] = [
   /(?:Google[\\/]+Chrome|BraveSoftware[\\/]+Brave-Browser|Microsoft[\\/]+Edge|Opera Software[\\/]+Opera (?:Stable|GX Stable)|Yandex[\\/]+YandexBrowser)[\\/]+(?:User Data|Default)/i,
   /Mozilla[\\/]+Firefox[\\/]+Profiles/i,
 ];
+const BROWSER_STORES: readonly RegExp[] = [...CREDENTIAL_FILES, ...PROFILE_DIRS];
 /** Windows DPAPI: browsers encrypt saved passwords with it, but so do many ordinary programs. */
 const DPAPI = /\bCryptUnprotectData\b/;
 /** Chrome's key for saved passwords: only a stealer needs it, whatever else the file does. */
@@ -108,11 +117,30 @@ const STEALS =
   /(?<![.\w])sqlite3?\b|\brusqlite\b|\bData\.Sqlite\b|\bSQLite(?:Connection|Command|DataReader)\b|\bpassword_value\b|\bencrypted_value\b|\bCryptUnprotectData\b|\bReadAll(?:Bytes|Text|Lines)\b|\bFile\.Copy\b|\bshutil\.copy|\bcopyfile\b|\bcopyFile(?:Sync)?\b|\bCopy-Item\b|\breadFile(?:Sync)?\b|\bopen\s*\([^)\n]{0,200}["']rb["']|\bread_bytes\b/i;
 
 /**
- * String tables and settings files (translations, INI): UI labels and config
- * values, never executable code. A browser-store name here is a label, and words
- * like "SQLite" or "curl" in a label are not the code that reads or sends a store.
+ * Data, settings and string-table files (translations, INI, XML/JSON/YAML config):
+ * labels and values, never executable code. A sensitive name here is a label or a
+ * path in config, and words like "SQLite" or "curl" in it are not code that runs.
+ * (.reg is left out: it is applied as a whole and handled by GR-CODE-007.)
  */
-const STRING_TABLE_EXTENSIONS = new Set([".ini", ".po", ".pot", ".properties", ".strings", ".resx"]);
+const DATA_FILE_EXTENSIONS = new Set([
+  ".ini",
+  ".po",
+  ".pot",
+  ".properties",
+  ".strings",
+  ".resx",
+  ".xml",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".plist",
+  ".csv",
+  ".tsv",
+  ".cfg",
+  ".conf",
+  ".config",
+]);
 
 const BROWSER_CREDENTIALS: Rule = {
   id: "GR-CODE-003",
@@ -126,16 +154,23 @@ const BROWSER_CREDENTIALS: Rule = {
   *scanText(file: TextFile): Iterable<Hit> {
     // DPAPI next to a browser store is a stealer; DPAPI alone is ordinary Windows code.
     const browserStore = BROWSER_STORES.some((p) => p.test(file.content));
-    // A string table or settings file (translations, INI) holds labels and values, not
-    // code: a store name there is only a label, so it never reads, decrypts or sends anything.
-    const dataFile = STRING_TABLE_EXTENSIONS.has(extension(file.path));
+    // A data or settings file (translations, INI, XML/JSON/YAML config) holds labels and
+    // values, not code: a store name there is only a label, so it reads or sends nothing.
+    const dataFile = DATA_FILE_EXTENSIONS.has(extension(file.path));
+    // Does the whole file name a specific credential file? Then even a profile-folder
+    // reference is part of credential access. Without one, a profile folder is benign.
+    const namesCredentialFile = CREDENTIAL_FILES.some((p) => p.test(file.content));
     // A file that deletes browser data and never opens, copies, decrypts or sends it is a cleaner.
     const cleaner = browserStore && DELETES.test(file.content) && !STEALS.test(file.content) && !NETWORK_SEND.test(file.content);
     for (const { line, text } of iterScanLines(file.content)) {
       const store = BROWSER_STORES.map((p) => p.exec(text)).find((m) => m !== null);
       if (store) {
+        const credentialOnLine = CREDENTIAL_FILES.some((p) => p.test(text));
         if (dataFile) {
           yield { line, text, column: store.index, weight: 10, ...note("browserName") };
+        } else if (!credentialOnLine && !namesCredentialFile) {
+          // Only the browser's profile folder, no credential file anywhere: settings/PWA/extension code.
+          yield { line, text, column: store.index, weight: 10, ...note("browserProfileDir") };
         } else {
           yield cleaner && !BROWSER_KEY.test(text)
             ? { line, text, column: store.index, weight: 10, ...note("browserCleaner") }
@@ -180,10 +215,12 @@ const SSH_KEYS: Rule = {
     // CI configurations run on a build server, not on the cloner's machine, and set up
     // their own deploy keys there (echo "$key" > ~/.ssh/id_rsa). Low signal, like GR-CI-001.
     const ci = pathMatches(file.path, CI_PATHS);
+    // A path in a data or settings file is configuration, not code that reads a key.
+    const dataFile = DATA_FILE_EXTENSIONS.has(extension(file.path));
     const sends = NETWORK_SEND.test(file.content);
     for (const hit of SSH_KEY_PATTERNS.scanText!(file, ctx)) {
-      if (ci) {
-        yield { ...hit, weight: 10, ...note("sshCi") };
+      if (ci || dataFile) {
+        yield { ...hit, weight: 10, ...note(ci ? "sshCi" : "sshData") };
         continue;
       }
       if (AUTHORIZED_KEYS.test(hit.text)) {

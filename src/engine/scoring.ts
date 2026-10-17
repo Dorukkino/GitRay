@@ -1,6 +1,6 @@
 /** Turn findings into a 0-100 score and a verdict. */
 
-import { isTestPath } from "./text";
+import { isTestPath, referencesTestPath } from "./text";
 import type { Finding, Verdict } from "./types";
 
 export const MAX_SCORE = 100;
@@ -49,10 +49,16 @@ export function score(findings: Iterable<Finding>, complete = true): Scored {
   // repository whose only strong findings are in tests stays whatever the files
   // outside its tests say. The exception is a non-test autorun finding that runs
   // on clone, install or folder-open (an install script, a folder-open task) and
-  // could start the test file. GR-AUTO-008 (AI-assistant hooks and MCP servers)
-  // is opt-in — the user configures the assistant — so it does not count here.
+  // that actually starts a test-folder file (`postinstall: node tests/setup.js`).
+  // A non-test autorun whose command does not reference the tests (patch-package,
+  // tsc) cannot launch the payload, so it does not disable the cap. GR-AUTO-008
+  // (AI-assistant hooks and MCP servers) is opt-in — the user configures the
+  // assistant — so it never counts here.
   const outside = list.filter((f) => !isTestPath(f.path));
-  if (!outside.some((f) => f.category === "autorun" && f.ruleId !== "GR-AUTO-008")) {
+  const launchesTest = outside.some(
+    (f) => f.category === "autorun" && f.ruleId !== "GR-AUTO-008" && referencesTestPath(f.snippet),
+  );
+  if (!launchesTest) {
     const outsideScore = total(ruleScores(outside));
     // The score becomes the non-test score itself, so the gauge matches the
     // findings that actually counted. Not when the non-test findings are already

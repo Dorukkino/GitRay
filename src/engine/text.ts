@@ -115,7 +115,7 @@ const TEST_DIRS = new Set([
   "test_data",
   "e2e",
 ]);
-const TEST_FILE = /(?:\.(?:test|spec)\.[a-z0-9]+|_test\.[a-z0-9]+|^test_[^/]*\.py|Tests?\.(?:cs|java|kt))$/;
+const TEST_FILE = /(?:\.(?:test|spec)\.[a-z0-9]+|_test\.[a-z0-9]+|^test_[^/]*\.(?:py|sh|ps1|rb|pl|js|ts|bat|cmd)|Tests?\.(?:cs|java|kt))$/;
 
 /**
  * Test code and test data ("tests/", "spec/", "fixtures/", "*.test.ts", "test_x.py").
@@ -126,6 +126,20 @@ export function isTestPath(path: string): boolean {
   const parts = path.split("/");
   const name = parts.pop() ?? "";
   return parts.some((part) => TEST_DIRS.has(part.toLowerCase())) || TEST_FILE.test(name);
+}
+
+/**
+ * A command (e.g. an install script) that runs a file in a test path, as in
+ * `postinstall: node tests/setup.js`. Used by scoring.ts: an autorun that starts
+ * a test-folder file is why test findings can still raise the verdict. A plain
+ * `patch-package` or `tsc -b` does not reference the tests, so it must not.
+ */
+export function referencesTestPath(command: string): boolean {
+  for (const token of command.split(/[\s"'`=(),;|&<>]+/)) {
+    const p = token.replace(/\\/g, "/").replace(/^\.?\//, "");
+    if (p && (isTestPath(p) || TEST_DIRS.has(p.toLowerCase()))) return true;
+  }
+  return false;
 }
 
 // "#" starts a comment in shell, Python, Ruby, YAML, Dockerfiles and PowerShell,
