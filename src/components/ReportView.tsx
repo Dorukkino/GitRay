@@ -486,7 +486,7 @@ export function ReportView({ report }: { report: Report }) {
               {target && (
                 <button
                   type="button"
-                  onClick={() => setReporting((v) => !v)}
+                  onClick={() => setReporting(true)}
                   aria-expanded={reporting}
                   className="rounded-full border border-line bg-surface/70 px-2.5 py-1 text-xs text-muted transition hover:border-accent/40 hover:text-accent"
                 >
@@ -531,9 +531,7 @@ export function ReportView({ report }: { report: Report }) {
         {(report.submodules?.length ?? 0) > 0 && <Submodules list={report.submodules} />}
       </motion.section>
 
-      <AnimatePresence>
-        {reporting && target && <ReportFalseFinding key="report-form" report={report} onClose={() => setReporting(false)} />}
-      </AnimatePresence>
+      {reporting && target && <ReportFalseFinding report={report} onClose={() => setReporting(false)} />}
 
       {report.partial && (
         <Reveal>

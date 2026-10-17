@@ -82,6 +82,14 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 17 Ekim 2026 (38. oturum): "Yanlış mı? Bildir" formu artık ekran ortasında modal
+
+- **Sorun:** Kullanıcı canlıda butona basınca "hiçbir şey olmuyor" dedi. Tanı: sayfa etkileşimi sağlam, Console temiz, form aslında açılıyordu ama uzun özet kartının altında, satır içinde, ekranın görünür kısmının (fold) altında kalıyordu; viewport değişmediği için fark edilmiyordu.
+- **Çözüm (salt UI, motor değişmedi → `ENGINE_VERSION` aynı):** `ReportFalseFinding` artık `createPortal` ile `document.body`'ye basılan, ekran ortasında açılan bir **modal (dialog)**. Arka plan kararır (`bg-black/50`, `backdrop-blur` yok — performans kuralı), Escape/✕/arka plan tıklama kapatır, body scroll kilitlenir, ilk alan odaklanır. Giriş/çıkış animasyonu bileşenin içinde `AnimatePresence onExitComplete` ile yönetilir; buton yalnızca açar (`setReporting(true)`).
+- **İçerik sırası kullanıcı isteğine göre:** önce robot doğrulaması (captcha), sonra sebep metni, en altta gönder. Portal tüm `overflow-hidden`/`transform` bağlamlarından (`.animate-enter`, özet `motion.section`) kurtarır; panel her zaman viewport ortasında.
+- **Admin tarafı zaten hazırdı:** `/dorukadm` tablosunda her bildirim için tarih, repo (`ad @ sha`), karar (`verdict (puan)`), motor sürümü ve "Why it is wrong" (kişinin yazdığı sebep) görünüyor — değişiklik gerekmedi.
+- 983 test (32 dosya) geçti; lint/typecheck/build temiz.
+
 ### 17 Ekim 2026 (37. oturum): Yanlış sonucu bildirme + özel admin paneli + kendi captcha'mız
 
 Kullanıcı istedi: tarama raporuna "yanlış bildir" butonu; gelen bildirimleri yalnızca kendisinin okuyacağı, **sadece-okuma** bir admin paneli (`/dorukadm`, `/admin` değil); giriş için kullanıcı adı+şifre ve **tek seferlik token korumalı** ilk kurulum; brute-force'a IP sınırı; cevabı incele/devconsole'da görünmeyen, base64 PNG, **kendi yaptığımız** robot kontrolü; SQL injection güvenliği teyidi. (Bu, 10 Ekim'deki "yanlış alarm bildirme yolu yok" kararını tersine çevirir — kullanıcının kendi kararı.)
