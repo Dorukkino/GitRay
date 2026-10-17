@@ -1,0 +1,7 @@
+# path: demo/save_icon.py
+# ---
+import base64
+
+blob = "iVBORw0KGgo="
+data = base64.b64decode(blob)
+open("icon.png", "wb").write(data)

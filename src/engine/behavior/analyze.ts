@@ -22,7 +22,6 @@ export type StepKind =
   | "reads-ssh"
   | "reads-messenger"
   | "reads-app"
-  | "reads-env"
   | "downloads"
   | "decrypts"
   | "decodes"
@@ -36,7 +35,6 @@ export const STEP_KINDS: readonly StepKind[] = [
   "reads-ssh",
   "reads-messenger",
   "reads-app",
-  "reads-env",
   "downloads",
   "decrypts",
   "decodes",
@@ -49,7 +47,7 @@ export interface ChainStep {
   line: number;
 }
 
-export type Behavior = "steals-credentials" | "leaks-env" | "downloads-and-runs" | "decodes-and-runs";
+export type Behavior = "steals-credentials" | "downloads-and-runs" | "decodes-and-runs";
 
 export interface Chain {
   behavior: Behavior;
@@ -57,7 +55,26 @@ export interface Chain {
   steps: ChainStep[];
 }
 
-type Label = "browser" | "wallet" | "discord" | "ssh" | "messenger" | "app" | "env" | "download" | "decoded" | "browserdir";
+const STEP_PHRASE: Record<StepKind, string> = {
+  "reads-browser": "reads a browser password or cookie store",
+  "reads-wallet": "reads a cryptocurrency wallet",
+  "reads-discord": "reads Discord tokens",
+  "reads-ssh": "reads an SSH private key",
+  "reads-messenger": "reads messenger session files",
+  "reads-app": "reads saved application credentials",
+  downloads: "downloads code from the network",
+  decrypts: "decrypts it",
+  decodes: "decodes a hidden blob",
+  sends: "sends it over the network",
+  runs: "runs it",
+};
+
+/** One English sentence describing a chain, for the finding note (the engine stays English). */
+export function describeChain(chain: Chain): string {
+  return chain.steps.map((s, i) => `${i === 0 ? "" : "then "}${STEP_PHRASE[s.kind]} (line ${s.line})`).join(", ");
+}
+
+type Label = "browser" | "wallet" | "discord" | "ssh" | "messenger" | "app" | "download" | "decoded" | "browserdir";
 type Taint = Map<Label, ChainStep[]>;
 
 const CREDENTIAL_LABELS: readonly Label[] = ["browser", "wallet", "discord", "ssh", "messenger", "app"];
@@ -69,7 +86,6 @@ const SOURCE_STEP: Record<Exclude<Label, "browserdir">, StepKind> = {
   ssh: "reads-ssh",
   messenger: "reads-messenger",
   app: "reads-app",
-  env: "reads-env",
   download: "downloads",
   decoded: "decodes",
 };
@@ -101,6 +117,8 @@ const EVAL: Record<Lang, RegExp> = {
   clike: /\bAssembly\.Load(?:From|File)?\(|\bCompileAssemblyFromSource\(|\bCSharpScript\.\w+\(|\bScriptEngine\w*\.eval\(/,
   powershell: /\b(?:invoke-expression|iex)\b|\[scriptblock\]::create\(|\.invokescript\(/,
 };
+/** The CommonJS/AMD module factory (a Function constructor given 'module','exports','require' and the source): how loaders run module code, not an exec sink. */
+const MODULE_FACTORY = /\b(?:module|exports|require|__webpack|define)\b/;
 
 const NETWORK: Record<Lang, RegExp> = {
   js: /(?<![\w$.])fetch\(|\baxios(?:\.\w+)?\(|(?<![\w$.])got(?:\.\w+)?\(|\bneedle(?:\.\w+)?\(|\bsuperagent\b|(?<![\w$.])request(?:\.(?:get|post|put|patch))?\(|\bhttps?\.(?:get|request)\(|\bXMLHttpRequest\b|\bsendBeacon\(|\bnet\.(?:connect|createConnection)\(|\btls\.connect\(|\bnew WebSocket\(|\$\.(?:ajax|get|post|getJSON)\(/,
@@ -130,12 +148,6 @@ const ENCODING_NAME = /^(?:base64|base64url|hex)$/i;
 
 const DECRYPT = /\bCryptUnprotectData\b|\bProtectedData\.Unprotect\(|\bwin32crypt\b|\bAESGCM\(|\bcreateDecipheriv\(|\bAES\.new\(|\.decrypt\(|\bunprotectdata\b/i;
 
-const ENV_DUMP: Record<Lang, RegExp> = {
-  js: /\bprocess\.env(?![\w.[?])/,
-  python: /\bos\.environ(?![\w[]|\.(?:get|setdefault|pop|__getitem__)\b)/,
-  clike: /\bEnvironment\.GetEnvironmentVariables\(\)/,
-  powershell: /\b(?:get-childitem|gci|dir|ls) env:(?!\w)|\[environment\]::getenvironmentvariables\(\)/,
-};
 
 const KEYWORDS = new Set(
   (
@@ -620,7 +632,6 @@ function factsOf(s: Stmt, lang: Lang, netObjects: ReadonlySet<string>, browserDi
     add("app", stringLine(s, APP_SECRETS));
   }
   if (lang !== "powershell" && /\bos_crypt\b/.test(s.code)) add("browser", find(s, /\bos_crypt\b/));
-  add("env", find(s, ENV_DUMP[lang]));
 
   let network = find(s, NETWORK[lang]);
   if (network === null && NET_OBJECT_SEND.test(s.code) && netObjects.has(s.toks[0].value)) network = s.line;
@@ -632,7 +643,9 @@ function factsOf(s: Stmt, lang: Lang, netObjects: ReadonlySet<string>, browserDi
 
   let decode = find(s, DECODE[lang]);
   if (decode === null && lang === "js" && JS_BUFFER_DECODE.test(s.code) && s.strs.some((x) => ENCODING_NAME.test(x))) decode = find(s, JS_BUFFER_DECODE);
-  return { sources, decode, decrypt: find(s, DECRYPT), network, evalSink: find(s, EVAL[lang]) };
+  // A module factory (a Function constructor given 'module','exports','require') runs module code; it is how loaders work, not a hidden-payload sink.
+  const evalSink = lang === "js" && s.strs.some((x) => MODULE_FACTORY.test(x)) ? null : find(s, EVAL[lang]);
+  return { sources, decode, decrypt: find(s, DECRYPT), network, evalSink };
 }
 
 // --- Taint ---
@@ -751,18 +764,14 @@ export function analyzeFile(file: TextFile): Chain[] {
       for (const u of uses[i]) {
         const t = scopes.get(u.name, s.frame);
         if (!t) continue;
-        for (const [label, steps] of t) {
-          if (label === "env" && !u.whole) continue;
-          merge(incoming, new Map([[label, steps]]));
-        }
+        for (const [label, steps] of t) merge(incoming, new Map([[label, steps]]));
       }
+      // A decode produces tainted data on its own (an opaque blob becomes code), like a source.
+      if (f.decode !== null && !incoming.has("decoded")) incoming.set("decoded", [{ kind: "decodes", line: f.decode }]);
       if (!incoming.size) return;
 
       if (f.decrypt !== null) for (const [label, steps] of incoming) incoming.set(label, withStep(steps, { kind: "decrypts", line: f.decrypt }));
-      if (f.decode !== null) {
-        for (const [label, steps] of incoming) if (label !== "decoded") incoming.set(label, withStep(steps, { kind: "decodes", line: f.decode }));
-        if (!incoming.has("decoded")) incoming.set("decoded", [{ kind: "decodes", line: f.decode }]);
-      }
+      if (f.decode !== null) for (const [label, steps] of incoming) if (label !== "decoded") incoming.set(label, withStep(steps, { kind: "decodes", line: f.decode }));
 
       if (f.network !== null) {
         for (const label of CREDENTIAL_LABELS) {
@@ -772,8 +781,6 @@ export function analyzeFile(file: TextFile): Chain[] {
             break;
           }
         }
-        const env = incoming.get("env");
-        if (env?.length) report("leaks-env", withStep(env, { kind: "sends", line: f.network }));
       }
       if (f.evalSink !== null) {
         const download = incoming.get("download");

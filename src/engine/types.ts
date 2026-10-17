@@ -1,11 +1,13 @@
 /** Plain data types shared by the engine, the CLI and the web app. */
 
+import type { ChainStep } from "./behavior/analyze";
 import type { Submodule } from "./submodules";
 import type { Reputation } from "./virustotal";
 
 export type Verdict = "clean" | "suspicious" | "dangerous" | "incomplete";
 
 export type Category =
+  | "behavior"
   | "autorun"
   | "code"
   | "obfuscation"
@@ -143,6 +145,8 @@ export interface Finding {
    */
   patternContext?: boolean;
   note: string | null;
+  /** Data-flow steps for a behavior finding (GR-BEH-*). */
+  chain?: ChainStep[];
 }
 
 export interface ScanStats {

@@ -15,6 +15,7 @@ export {
   type Report,
   type ReportAsset,
   type ReportCheckedFile,
+  type ReportChainStep,
   type ReportFinding,
   type ReportRule,
   type ReportSubmodule,

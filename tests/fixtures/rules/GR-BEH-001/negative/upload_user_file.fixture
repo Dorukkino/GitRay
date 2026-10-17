@@ -1,0 +1,7 @@
+# path: demo/upload.js
+# ---
+const fs = require("fs");
+const https = require("https");
+const chosen = process.argv[2];
+const content = fs.readFileSync(chosen);
+https.request({ host: "api.example.invalid" }).end(content);

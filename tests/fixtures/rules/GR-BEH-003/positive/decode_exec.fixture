@@ -1,0 +1,9 @@
+# path: demo/boot.py
+# lines: 5
+# weight: 60
+# ---
+import base64, zlib
+
+blob = "eJwrSS0uAQAEXQHB"
+payload = zlib.decompress(base64.b64decode(blob))
+exec(payload)

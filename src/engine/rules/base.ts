@@ -1,6 +1,7 @@
 /** Rule definitions and the code that turns rule hits into findings. */
 
 import { inSearchPattern, isCommentLine, isDocPath, isSourcePath, iterScanLines, snippet } from "../text";
+import type { ChainStep } from "../behavior/analyze";
 import type { BinaryFile, Category, Finding, RepoInfo, ScanContext, TextFile } from "../types";
 
 export interface Hit {
@@ -13,6 +14,8 @@ export interface Hit {
   /** Overrides the rule weight for this hit (e.g. an escalated install script). */
   weight?: number;
   note?: string;
+  /** Data-flow steps for a behavior finding (GR-BEH-*), in order. */
+  chain?: ChainStep[];
 }
 
 export interface RuleMeta {
@@ -81,6 +84,7 @@ function toFinding(rule: RuleMeta, path: string, hit: Hit, docContext: boolean, 
     docContext,
     ...(patternContext ? { patternContext } : {}),
     note: hit.note ?? null,
+    ...(hit.chain ? { chain: hit.chain } : {}),
   };
 }
 

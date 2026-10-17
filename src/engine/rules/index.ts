@@ -2,6 +2,7 @@
 
 import { RULES as AUTORUN } from "./autorun";
 import type { Rule } from "./base";
+import { RULES as BEHAVIOR } from "./behavior";
 import { RULES as BINARY } from "./binary";
 import { RULES as CODE } from "./code";
 import { RULES as DEPS } from "./deps";
@@ -12,7 +13,7 @@ import { RULES as REPO } from "./repo";
 
 export type { Hit, Rule, RuleMeta } from "./base";
 
-const ALL: readonly Rule[] = [...AUTORUN, ...DEVTOOLS, ...CODE, ...OBFUSCATION, ...LINKS, ...BINARY, ...DEPS, ...REPO];
+const ALL: readonly Rule[] = [...BEHAVIOR, ...AUTORUN, ...DEVTOOLS, ...CODE, ...OBFUSCATION, ...LINKS, ...BINARY, ...DEPS, ...REPO];
 
 export function allRules(): readonly Rule[] {
   return ALL;

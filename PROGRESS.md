@@ -598,6 +598,16 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (25. oturum): Kod akışı analizi (davranış zincirleri)
+
+Kullanıcı: "sadece koda değil kod bloğuna da baksın, okuyup ne yaptığını anlasın, yoksa yanlış sonuçlar çıkıyor." Üç yol sunuldu (LLM; kuralları bağlama duyarlı yapmak; AST/veri akışı). Kullanıcı **veri akışı** yolunu seçti. LLM bilerek kullanılmadı: ücretli ve prompt injection ile kandırılabilir.
+
+- Yeni paket `src/engine/behavior/`: `lexer.ts` dört dil için küçük tokenizer (JS/TS, C-benzeri, Python, PowerShell; yorum/dizge/regex/şablon/here-string/interpolasyon ayrımı, token limiti). `analyze.ts` ifadelere böler, tanım/kullanım çıkarır, fonksiyon çerçeveleri ve parametreleri izler, veriyi kaynaktan (tarayıcı deposu, cüzdan, SSH, Discord/Telegram, uygulama sırları; indirme; çözülen blob) hedefe (ağ; yorumlayıcı) taşır (taint). Motor saf kalır (`fs` yok, çalıştırma yok).
+- Üç kural (`src/engine/rules/behavior.ts`), yeni `behavior` kategorisi (raporda ve `/rules`'ta en üstte): `GR-BEH-001` kimlik bilgisi çalma (70, tek başına Tehlikeli), `GR-BEH-002` indirip çalıştırma (50), `GR-BEH-003` çözüp çalıştırma (60). Rapora `chain` eklendi: adım adım "şunu okuyor → çözüyor → gönderiyor", her adım GitHub satırına link (`ReportView` `ChainView`). Sözlüklere kategori, kural ve adım metinleri (en/tr).
+- Yanlış alarm ölçümü: 52 popüler + güvenlik reposu, 88.353 kaynak dosya. Test dışı dosyada **0 yanlış alarm**. Kalan 2 bulgu test dosyasında (axios, powershell), puanlama zaten test-only Tehlikeli'yi Şüpheli'de tutuyor. Ortam değişkeni sızdırma kuralı denendi (5 yanlış alarm: tip ek açıklaması, `assign({}, process.env)` yapılandırması, config), şimdilik kaldırıldı. İndirip-çalıştırmaya modül yükleyici muafiyeti eklendi (vscode worker). UClear ve diğer geri bildirim repoları hâlâ Temiz.
+- Testler: `tests/behavior.test.ts` (14; şifre yöneticisi sessiz, çalma yakalanıyor, "bu dosya güvenli" yorumu kandırmıyor, modül yükleyici muaf), her `GR-BEH` için pozitif/negatif fixture (hepsi zararsız: `.invalid`, yer tutucu). `tests/security.test.ts` için yorumlardaki `new Function(` yazımı değiştirildi. `ENGINE_VERSION` 0.9.0. 27 dosya, 937 test.
+- Sınır: analiz ifade düzeyinde ve tiplersiz; çok dolaylı akışlar (veri bir sınıf alanında dolaşıp başka dosyada gönderilirse) kaçabilir. Sadece dört dil. Bir sonraki tur: daha fazla dil, kaçırılan/yanlış alarm repolarıyla genişletme.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 0. **Tarama kalitesi programı** (kullanıcı, 17 Ekim: "aciliyet yok, sistemi en güzel haline getirelim"). Sırayla:

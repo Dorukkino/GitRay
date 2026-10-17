@@ -157,6 +157,12 @@ export const tr: Dictionary = {
   },
 
   categories: {
+    behavior: {
+      label: "Zararlı davranış",
+      text:
+        "Kod, kod olarak okunur ve veri izlenir: kayıtlı kimlik bilgilerini okuyup dışarı gönderme, " +
+        "kod indirip çalıştırma, gizli bir bloğu çözüp çalıştırma.",
+    },
     dependencies: {
       label: "Zararlı bağımlılıklar",
       text: "package.json, kilit dosyaları ve Python gereksinimlerinde OSV'nin doğrulanmış zararlı yazılım olarak listelediği paketler.",
@@ -396,6 +402,21 @@ export const tr: Dictionary = {
     inTest: "test dosyasında",
     viewOnGitHub: "GitHub'da gör",
     whyMatters: "Bu neden önemli",
+    chainTitle: "Kod ne yapıyor",
+    chainSteps: {
+      "reads-browser": "Tarayıcı şifre ya da çerez deposunu okuyor",
+      "reads-wallet": "Kripto cüzdanını okuyor",
+      "reads-discord": "Discord tokenlarını okuyor",
+      "reads-ssh": "SSH özel anahtarını okuyor",
+      "reads-messenger": "Mesajlaşma oturum dosyalarını okuyor",
+      "reads-app": "Kayıtlı uygulama kimlik bilgilerini okuyor",
+      downloads: "Ağdan kod indiriyor",
+      decrypts: "Şifresini çözüyor",
+      decodes: "Gizli bir bloğu çözüyor",
+      sends: "Ağ üzerinden gönderiyor",
+      runs: "Çalıştırıyor",
+    } as Record<string, string>,
+    chainLine: "satır {n}",
     breakdownTitle: "Puanın dökümü",
     noRule: "Hiçbir kural eşleşmedi. Puan 0.",
     findingCount: { one: "{n} bulgu", other: "{n} bulgu" },
@@ -837,6 +858,25 @@ export const tr: Dictionary = {
         "README bir zararlı yazılım dükkânı: RAT ve fidye yazılımı oluşturucular, crypter'lar, stealer'lar; ödeme WhatsApp, " +
         "Telegram ya da bir mağaza linki üzerinden. Bunları başkalarına karşı kullanmak suçtur, satılan kopyalar da çoğu zaman " +
         "kendisi virüslüdür ya da hiç teslim edilmez.",
+    },
+    "GR-BEH-001": {
+      title: "Kayıtlı kimlik bilgilerini okuyup dışarı gönderiyor",
+      why:
+        "Kod bir tarayıcı şifre deposunu, kripto cüzdanını, SSH anahtarını ya da başka kayıtlı kimlik bilgilerini " +
+        "okuyup bu veriyi ağ üzerinden gönderiyor. Veriyi okuduğu dosyadan gönderdiği isteğe kadar izlemek, bir bilgi " +
+        "hırsızını, sırlarınızı hiçbir yere göndermeyen bir şifre yöneticisinden ayıran şeydir.",
+    },
+    "GR-BEH-002": {
+      title: "Kod indirip çalıştırıyor",
+      why:
+        "Kod ağdan içerik çekip doğrudan bir yorumlayıcıya veriyor (eval, Function, Invoke-Expression, Assembly.Load). " +
+        "O adresi kontrol eden, bilgisayarı kontrol eder ve repoyu inceleyen kimse gerçekte ne çalıştığını göremez.",
+    },
+    "GR-BEH-003": {
+      title: "Gizli bir bloğu çözüp çalıştırıyor",
+      why:
+        "Kod base64 ya da sıkıştırılmış bir bloğu çözüp sonucu çalıştırıyor. Meşru projeler çalıştırdıkları kodu nadiren " +
+        "gizler; bu, yalnızca anlaşılmaz bir dizge gören bir inceleyiciyi atlatmanın yoludur.",
     },
     "GR-BIN-001": {
       title: "Repoya program dosyası eklenmiş",

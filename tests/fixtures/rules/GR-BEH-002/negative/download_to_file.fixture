@@ -1,0 +1,4 @@
+# path: demo/get.ps1
+# ---
+$text = (New-Object Net.WebClient).DownloadString("https://example.invalid/notes.txt")
+Set-Content -Path "notes.txt" -Value $text

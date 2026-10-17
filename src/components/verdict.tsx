@@ -33,6 +33,7 @@ export const SEVERITY_STYLE: Record<Severity, string> = {
 };
 
 export const CATEGORY_ORDER: Category[] = [
+  "behavior",
   "dependencies",
   "autorun",
   "code",

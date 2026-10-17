@@ -158,6 +158,12 @@ export const en = {
   },
 
   categories: {
+    behavior: {
+      label: "Malicious behavior",
+      text:
+        "The code is read as code and the data is followed: reading saved credentials and sending them out, " +
+        "downloading code and running it, decoding a hidden blob and running it.",
+    },
     dependencies: {
       label: "Malicious dependencies",
       text: "Packages in package.json, lockfiles and Python requirements that OSV lists as confirmed malware.",
@@ -391,6 +397,21 @@ export const en = {
     inTest: "in a test file",
     viewOnGitHub: "view on GitHub",
     whyMatters: "Why this matters",
+    chainTitle: "What the code does",
+    chainSteps: {
+      "reads-browser": "Reads a browser password or cookie store",
+      "reads-wallet": "Reads a cryptocurrency wallet",
+      "reads-discord": "Reads Discord tokens",
+      "reads-ssh": "Reads an SSH private key",
+      "reads-messenger": "Reads messenger session files",
+      "reads-app": "Reads saved application credentials",
+      downloads: "Downloads code from the network",
+      decrypts: "Decrypts it",
+      decodes: "Decodes a hidden blob",
+      sends: "Sends it over the network",
+      runs: "Runs it",
+    } as Record<string, string>,
+    chainLine: "line {n}",
     breakdownTitle: "Score breakdown",
     noRule: "No rule matched. Score 0.",
     findingCount: { one: "{n} finding", other: "{n} findings" } as PluralText,

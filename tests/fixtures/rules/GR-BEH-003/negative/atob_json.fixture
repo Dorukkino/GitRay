@@ -1,0 +1,5 @@
+# path: demo/decode.js
+# ---
+const text = atob("eyJhIjoxfQ==");
+const value = JSON.parse(text);
+console.log(value);

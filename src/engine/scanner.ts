@@ -70,7 +70,7 @@ function contextFor(info: RepoInfo | null, now: Date): ScanContext {
  * install and no README is shown to visitors, so install-hook, link and
  * social-engineering rules apply only to the repository's own files.
  */
-export const ARCHIVE_MEMBER_CATEGORIES: ReadonlySet<Category> = new Set(["code", "obfuscation", "binary"]);
+export const ARCHIVE_MEMBER_CATEGORIES: ReadonlySet<Category> = new Set(["behavior", "code", "obfuscation", "binary"]);
 
 export function scanEntry(entry: ArchiveEntry, rules: readonly Rule[], ctx: ScanContext): Finding[] {
   const findings: Finding[] = [];
