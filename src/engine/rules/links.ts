@@ -369,7 +369,7 @@ const SELLS_MALWARE: Rule = {
   id: "GR-SOC-002",
   title: "Sells malware tools",
   category: "social",
-  weight: 45,
+  weight: 80,
   appliesTo: DOC_PATTERNS,
   why:
     "The README is a storefront for malware: RAT and ransomware builders, crypters, stealers, " +
