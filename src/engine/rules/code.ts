@@ -2,6 +2,7 @@
 
 import { extension, iterScanLines, splitLines } from "../text";
 import type { TextFile } from "../types";
+import { note } from "../notes";
 import { type Hit, type Rule, pathMatches, regexRule } from "./base";
 import { CI_PATHS, CONTAINER_BUILD_PATHS, pipeToShellHits } from "./autorun";
 
@@ -55,7 +56,7 @@ const DECODE_EXEC: Rule = {
     for (const { line, text } of iterScanLines(file.content)) {
       if (strong.has(line)) continue;
       const m = EVAL_URL_DECODED.exec(text);
-      if (m) yield { line, text, column: m.index, weight: 10, note: "evaluates URL-decoded data from a variable" };
+      if (m) yield { line, text, column: m.index, weight: 10, ...note("evalUrlDecoded") };
     }
   },
 };
@@ -75,7 +76,7 @@ const PIPE_TO_SHELL: Rule = {
   *scanText(file: TextFile): Iterable<Hit> {
     const container = pathMatches(file.path, CONTAINER_BUILD_PATHS);
     for (const hit of pipeToShellHits(file)) {
-      yield container ? { ...hit, weight: 5, note: "runs inside a container image build, not directly on your computer" } : hit;
+      yield container ? { ...hit, weight: 5, ...note("inContainer") } : hit;
     }
   },
 };
@@ -124,15 +125,15 @@ const BROWSER_CREDENTIALS: Rule = {
       const store = BROWSER_STORES.map((p) => p.exec(text)).find((m) => m !== null);
       if (store) {
         yield cleaner && !BROWSER_KEY.test(text)
-          ? { line, text, column: store.index, weight: 10, note: "only deletes browser data here; nothing in this file opens, copies, decrypts or sends it (privacy cleaners do this)" }
+          ? { line, text, column: store.index, weight: 10, ...note("browserCleaner") }
           : { line, text, column: store.index };
         continue;
       }
       const dpapi = DPAPI.exec(text);
       if (dpapi) {
         yield browserStore
-          ? { line, text, column: dpapi.index, note: "decrypts with Windows DPAPI next to browser password files" }
-          : { line, text, column: dpapi.index, weight: 10, note: "decrypts with Windows DPAPI; no browser files referenced" };
+          ? { line, text, column: dpapi.index, ...note("dpapiBrowser") }
+          : { line, text, column: dpapi.index, weight: 10, ...note("dpapiAlone") };
       }
     }
   },
@@ -169,8 +170,8 @@ const SSH_KEYS: Rule = {
         continue;
       }
       yield sends
-        ? { ...hit, note: "the same file can send data over the network" }
-        : { ...hit, weight: 15, note: "no network use in the same file (SSH tools read keys too)" };
+        ? { ...hit, ...note("sshSends") }
+        : { ...hit, weight: 15, ...note("sshNoNet") };
     }
   },
 };
@@ -270,11 +271,11 @@ const WINDOWS_LOLBINS: Rule = {
   ...LOLBIN_PATTERNS,
   *scanText(file: TextFile, ctx): Iterable<Hit> {
     const installer = pathMatches(file.path, INSTALLER_PATHS);
-    const installerNote = "installer script: runs only when someone builds and runs the installer";
+    const installerNote = note("installerScript");
     const seen = new Set<number>();
     for (const hit of LOLBIN_PATTERNS.scanText!(file, ctx)) {
       seen.add(hit.line);
-      yield installer ? { ...hit, weight: 5, note: installerNote } : hit;
+      yield installer ? { ...hit, weight: 5, ...installerNote } : hit;
     }
     // A .reg file is applied as a whole when someone imports it.
     const regFile = extension(file.path) === ".reg";
@@ -285,13 +286,13 @@ const WINDOWS_LOLBINS: Rule = {
       if (!m) continue;
       seen.add(line);
       if (installer) {
-        yield { line, text, column: m.index, weight: 5, note: installerNote };
+        yield { line, text, column: m.index, weight: 5, ...installerNote };
         continue;
       }
       lines ??= splitLines(file.content);
       yield regFile || writesRunKey(lines, line - 1)
-        ? { line, text, column: m.index, note: "writes to a Run key: starts a program at every logon" }
-        : { line, text, column: m.index, weight: 10, note: "names a Run key but does not write to it (startup managers and cleaners list, compare and delete these entries)" };
+        ? { line, text, column: m.index, ...note("runKeyWrite") }
+        : { line, text, column: m.index, weight: 10, ...note("runKeyName") };
     }
   },
 };
@@ -332,7 +333,7 @@ const EXEC_FILE: Rule = {
           text,
           column: m.index,
           weight: hidden ? 40 : undefined,
-          note: hidden ? `runs code stored in a data file (${extension(target)})` : "runs code read from a file",
+          ...(hidden ? note("execFileData", { ext: extension(target) }) : note("execFile")),
         };
         break;
       }

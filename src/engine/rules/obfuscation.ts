@@ -2,6 +2,7 @@
 
 import { STEGO_CLASS, ZERO_WIDTH_CLASS, closingQuote, isSourcePath, iterScanLines, openQuoteAt, shannonEntropy } from "../text";
 import type { TextFile } from "../types";
+import { type NoteArgs, type NoteKey, note } from "../notes";
 import type { Hit, Rule } from "./base";
 
 const MIN_TOKEN = 200;
@@ -100,15 +101,15 @@ function base64Candidates(token: string): string[] {
 }
 
 /** `continued`: the segment is a later window of a long line, so a token at its start began earlier. */
-function entropyNote(segment: string, continued = false): { note: string; column: number } | null {
+function entropyNote(segment: string, continued = false): { noteKey: NoteKey; noteArgs?: NoteArgs; column: number } | null {
   const hex = HEX_ESCAPES.exec(segment);
-  if (hex) return { note: "long run of \\xNN escape sequences", column: hex.index };
+  if (hex) return { noteKey: "hexEscapes", column: hex.index };
   for (const m of segment.matchAll(TOKEN)) {
     // The previous, overlapping window already judged this token from its real start.
     if (continued && m.index === 0) continue;
     const e = shannonEntropy(m[0]);
     if (e > BASE64_ENTROPY && !isBenignBase64(m[0])) {
-      return { note: `${m[0].length}-char string with entropy ${e.toFixed(2)} bits/char`, column: m.index };
+      return { noteKey: "entropyString", noteArgs: { len: m[0].length, e: e.toFixed(2) }, column: m.index };
     }
   }
   // Hex can never exceed 4.0 bits/char, so it needs its own threshold.
@@ -116,7 +117,7 @@ function entropyNote(segment: string, continued = false): { note: string; column
     if (continued && m.index === 0) continue;
     const e = shannonEntropy(m[0]);
     if (e > HEX_ENTROPY && !isBenignHex(m[0])) {
-      return { note: `${m[0].length}-char hex string with entropy ${e.toFixed(2)} bits/char`, column: m.index };
+      return { noteKey: "entropyHex", noteArgs: { len: m[0].length, e: e.toFixed(2) }, column: m.index };
     }
   }
   return null;
@@ -171,7 +172,7 @@ const HIGH_ENTROPY: Rule = {
       const found = entropyNote(text, offset > 0);
       if (found) {
         last = line;
-        yield { line, text: original, column: found.column, note: found.note };
+        yield { line, text: original, column: found.column, ...note(found.noteKey, found.noteArgs) };
       }
     }
   },
@@ -244,7 +245,7 @@ const PADDED_CODE: Rule = {
         }
         if (!CODE_TOKEN.test(hidden)) continue;
         last = line;
-        yield { line, text, column: start, note: `code starts after ${m[0].replace(/[^ \t]/, "").length} spaces` };
+        yield { line, text, column: start, ...note("offscreen", { n: m[0].replace(/[^ \t]/, "").length }) };
         break;
       }
     }
@@ -275,11 +276,11 @@ const INVISIBLE_PAYLOAD: Rule = {
     for (const { line, text } of iterScanLines(file.content)) {
       const run = STEGO_RUN.exec(text);
       if (run) {
-        yield { line, text, column: run.index, note: `${Array.from(run[0]).length} invisible characters in a row` };
+        yield { line, text, column: run.index, ...note("invisibleRun", { n: Array.from(run[0]).length }) };
         continue;
       }
       const filler = source ? INVISIBLE_IDENTIFIER.exec(text) : null;
-      if (filler) yield { line, text, column: filler.index, note: "blank-looking Hangul filler used in code" };
+      if (filler) yield { line, text, column: filler.index, ...note("hangulFiller") };
     }
   },
 };

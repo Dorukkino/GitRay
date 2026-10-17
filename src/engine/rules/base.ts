@@ -2,6 +2,7 @@
 
 import { inSearchPattern, isCommentLine, isDocPath, isSourcePath, iterScanLines, snippet } from "../text";
 import type { ChainStep } from "../behavior/analyze";
+import type { NoteArgs, NoteKey } from "../notes";
 import type { BinaryFile, Category, Finding, RepoInfo, ScanContext, TextFile } from "../types";
 
 export interface Hit {
@@ -14,6 +15,9 @@ export interface Hit {
   /** Overrides the rule weight for this hit (e.g. an escalated install script). */
   weight?: number;
   note?: string;
+  /** Translatable note: a key in src/engine/notes.ts and its arguments. */
+  noteKey?: NoteKey;
+  noteArgs?: NoteArgs;
   /** Data-flow steps for a behavior finding (GR-BEH-*), in order. */
   chain?: ChainStep[];
 }
@@ -84,6 +88,7 @@ function toFinding(rule: RuleMeta, path: string, hit: Hit, docContext: boolean, 
     docContext,
     ...(patternContext ? { patternContext } : {}),
     note: hit.note ?? null,
+    ...(hit.noteKey ? { noteKey: hit.noteKey, ...(hit.noteArgs ? { noteArgs: hit.noteArgs } : {}) } : {}),
     ...(hit.chain ? { chain: hit.chain } : {}),
   };
 }

@@ -7,6 +7,7 @@
 
 import { basename, iterScanLines, splitLines } from "../text";
 import type { RepoInfo, ScanContext, TextFile } from "../types";
+import { note } from "../notes";
 import type { Hit, Rule } from "./base";
 
 export const DOC_PATTERNS = ["*.md", "*.markdown", "*.mdown", "*.rst", "*.adoc", "*.asciidoc", "*.txt", "README*"];
@@ -190,7 +191,7 @@ const SHORTENED_LINK: Rule = {
         if (gate ? segments.length === 0 : segments.length !== 1) continue;
         // Short links to surveys and articles are everywhere; a short *download* link is the lure.
         if (!gate && !DOWNLOAD_CONTEXT.test(text)) continue;
-        yield { line, text, column: index, note: `${url.hostname} link` };
+        yield { line, text, column: index, ...note("hostLink", { host: url.hostname }) };
         break;
       }
     }
@@ -232,7 +233,7 @@ const FILE_HOST_LINK: Rule = {
         const docsDownload = host === "docs.google.com" && url.pathname.startsWith("/uc");
         if (!docsDownload && !hostMatches(host, FILE_HOSTS)) continue;
         if (!looksLikeSharedFile(url)) continue;
-        yield { line, text, column: index, note: `${host} link` };
+        yield { line, text, column: index, ...note("hostLink", { host }) };
         break;
       }
     }
@@ -383,7 +384,7 @@ const SELLS_MALWARE: Rule = {
     for (const { line, text } of iterScanLines(file.content)) {
       const m = STOREFRONT.exec(text);
       if (m) {
-        yield { line, text, column: m.index, note: `offers ${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ", ..." : ""} for sale` };
+        yield { line, text, column: m.index, ...note("sellsMalware", { kinds: `${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ", ..." : ""}` }) };
         return;
       }
     }

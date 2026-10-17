@@ -1,6 +1,7 @@
 /** GR-DEP-*: dependencies that are known malware, from OSV's malicious-package records. */
 
 import type { RepoInfo, ScanContext } from "../types";
+import { note } from "../notes";
 import type { Hit, Rule } from "./base";
 
 const MALICIOUS_DEPENDENCY: Rule = {
@@ -15,12 +16,14 @@ const MALICIOUS_DEPENDENCY: Rule = {
     "projects and typosquatted packages deliver stealers.",
   *scanRepo(_info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
     for (const d of ctx.maliciousDependencies ?? []) {
-      const which = d.version ? `${d.name} ${d.version} is` : `every version of ${d.name} is`;
+      const ids = d.ids.slice(0, 3).join(", ");
       yield {
         path: d.path,
         line: d.line,
         text: d.text,
-        note: `${which} a known malicious ${d.ecosystem} package (${d.ids.slice(0, 3).join(", ")})`,
+        ...(d.version
+          ? note("depVersion", { name: d.name, version: d.version, ecosystem: d.ecosystem, ids })
+          : note("depAllVersions", { name: d.name, ecosystem: d.ecosystem, ids })),
       };
     }
   },

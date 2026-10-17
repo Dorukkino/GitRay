@@ -5,6 +5,7 @@
 
 import { isCommentLine, iterScanLines, splitLines } from "../text";
 import type { TextFile } from "../types";
+import { note } from "../notes";
 import { DOWNLOAD_TOOL, type Hit, type Rule, URL_PATTERN, lineAt, lineText, regexRule } from "./base";
 
 /** npm runs these automatically ("prepublish" still runs on a local "npm install"). */
@@ -90,7 +91,7 @@ const NPM_LIFECYCLE: Rule = {
         line,
         text,
         weight: risky ? 35 : undefined,
-        note: `"${name}" runs automatically on npm install${risky ? " and uses network or shell commands" : ""}`,
+        ...note(risky ? "npmScriptNet" : "npmScript", { name }),
       };
     }
   },
@@ -135,16 +136,16 @@ const SETUP_PY: Rule = {
       if (IMPORT_ONLY.test(text)) continue;
       let hit: Hit | null = null;
       if (SETUP_NETWORK.test(text)) {
-        hit = { line, text, weight: 35, note: "uses the network during install" };
+        hit = { line, text, weight: 35, ...note("installNet") };
       } else if (SETUP_PROCESS.test(text)) {
         hit =
           URL_PATTERN.test(text) || DOWNLOAD_TOOL.test(text)
-            ? { line, text, weight: 35, note: "runs a process that downloads during install" }
-            : { line, text, note: "runs a process during install" };
+            ? { line, text, weight: 35, ...note("installDownloads") }
+            : { line, text, ...note("installProcess") };
       } else if (SETUP_DYNAMIC.test(text)) {
         hit = decodes
-          ? { line, text, weight: 35, note: "executes decoded data during install" }
-          : { line, text, note: "executes dynamic code during install" };
+          ? { line, text, weight: 35, ...note("installDecodeExec") }
+          : { line, text, ...note("installDynExec") };
       }
       if (hit) {
         escalated ||= hit.weight === 35;
@@ -158,7 +159,7 @@ const SETUP_PY: Rule = {
       const m = TOOL_AS_COMMAND.exec(file.content);
       if (m) {
         const line = lineAt(file.content, m.index);
-        yield { line, text: lineText(file.content, line), weight: 35, note: "can run processes and names a download tool" };
+        yield { line, text: lineText(file.content, line), weight: 35, ...note("installProcAndDownload") };
       }
     }
   },
@@ -203,7 +204,7 @@ const MSBUILD_EVENTS: Rule = {
         line,
         text: lineText(file.content, line),
         weight: risky ? 40 : undefined,
-        note: risky ? "build command downloads, decodes or hides what it runs" : "build command runs on every build",
+        ...note(risky ? "buildRisky" : "build"),
       };
     }
   },
@@ -227,20 +228,20 @@ const BUILD_RS: Rule = {
     for (const { line, text } of iterScanLines(file.content)) {
       if (RUST_NETWORK.test(text) && !/^\s*(?:use|extern crate)\b/.test(text)) {
         escalated = true;
-        yield { line, text, weight: 35, note: "uses the network at build time" };
+        yield { line, text, weight: 35, ...note("buildNet") };
       } else if (RUST_COMMAND.test(text)) {
         const downloads = URL_PATTERN.test(text) || DOWNLOAD_TOOL.test(text);
         escalated ||= downloads;
         yield downloads
-          ? { line, text, weight: 35, note: "runs a download tool at build time" }
-          : { line, text, note: "runs a command at build time" };
+          ? { line, text, weight: 35, ...note("buildDownload") }
+          : { line, text, ...note("buildCmd") };
       }
     }
     if (!escalated && RUST_COMMAND.test(file.content)) {
       const m = DOWNLOAD_TOOL.exec(file.content);
       if (m) {
         const line = lineAt(file.content, m.index);
-        yield { line, text: lineText(file.content, line), weight: 35, note: "runs commands and names a download tool" };
+        yield { line, text: lineText(file.content, line), weight: 35, ...note("buildCmdAndDownload") };
       }
     }
   },

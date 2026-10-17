@@ -598,6 +598,15 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (28. oturum): Bulgu notları Türkçe (çeviri altyapısı)
+
+Kullanıcı: raporda bulgu açıklamaları (örn. "2 of 64 antivirus engines detect this release file") TR'de bile İngilizceydi; Türkçe ve sade olsun.
+
+- `src/engine/notes.ts`: tüm bulgu notlarının anahtarları ve İngilizce şablonları (`NOTE_TEMPLATES`, ~65 anahtar). Kurallar artık bitmiş cümle yerine `note(key, args)` üretiyor; `Hit`/`Finding`/`ReportFinding`'e `noteKey` + `noteArgs` eklendi (`note` İngilizce metin olarak CLI/JSON için kalıyor). `executableKind` artık not anahtarı döndürüyor.
+- Sözlükler: `en.ts` İngilizce katalogu doğrudan kullanıyor (`notes: NOTE_TEMPLATES`), `tr.ts` tüm anahtarların Türkçe karşılığını içeriyor. `tests/i18n.test.ts` placeholder eşliğini zaten denetliyor, yani eksik ya da bozuk çeviri testten geçmez. `ReportView` `noteKey` varsa çeviriyi gösteriyor.
+- Tüm kural dosyaları dönüştürüldü (autorun, binary, code, deps, devtools, links, obfuscation, repo). Davranış zincirleri zaten `ChainView` ile çevriliydi; not fallback olarak duruyor. `ENGINE_VERSION` 0.9.4 (eski raporlar yeniden taranınca anahtarlı notlarla gelir). 27 dosya, 934 test.
+- Sırada (kullanıcı isteği): ham JSON raporu teknik olmayan biri için anlaşılmaz; raporu/puanlamayı görsel ve sade biçimde herkesin anlayacağı hale getirmek.
+
 ### 17 Ekim 2026 (27. oturum): TR liste adı, yeni-repo puanı, dürüst VirusTotal linki
 
 Üç kullanıcı isteği:

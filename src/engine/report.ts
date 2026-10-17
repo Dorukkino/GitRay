@@ -7,6 +7,7 @@
 import { allRules } from "./rules";
 import { isTestPath, sanitize } from "./text";
 import type { ChainStep, StepKind } from "./behavior/analyze";
+import type { NoteArgs, NoteKey } from "./notes";
 import type { ArchiveCheck, Category, CheckedFile, DependencyCheck, Finding, ReputationCheck, ScanResult, Verdict } from "./types";
 import type { Reputation } from "./virustotal";
 import { ENGINE_VERSION } from "./version";
@@ -38,6 +39,9 @@ export interface ReportFinding {
   snippet: string;
   why: string;
   note: string | null;
+  /** Translatable note key and arguments; the UI shows these in the visitor's language. */
+  noteKey?: NoteKey;
+  noteArgs?: NoteArgs;
   docContext: boolean;
   /** In a search pattern or comment in source code, down-weighted (missing in reports before engine 0.8). */
   patternContext?: boolean;
@@ -165,6 +169,13 @@ function byImportance(a: Finding, b: Finding): number {
   return b.weight - a.weight || a.path.localeCompare(b.path) || a.line - b.line;
 }
 
+/** Sanitizes the string values of a note's arguments (numbers pass through). */
+function sanitizeArgs(args: NoteArgs): NoteArgs {
+  const out: NoteArgs = {};
+  for (const [k, v] of Object.entries(args)) out[k] = typeof v === "string" ? sanitize(v, 120) : v;
+  return out;
+}
+
 export function toReport(result: ScanResult): Report {
   const repo = result.repo;
   const titles = new Map(allRules().map((r) => [r.id, r]));
@@ -263,6 +274,7 @@ export function toReport(result: ScanResult): Report {
       snippet: sanitize(f.snippet, 260),
       why: f.why,
       note: f.note ? sanitize(f.note, 300) : null,
+      ...(f.noteKey ? { noteKey: f.noteKey, ...(f.noteArgs ? { noteArgs: sanitizeArgs(f.noteArgs) } : {}) } : {}),
       docContext: f.docContext,
       patternContext: f.patternContext ?? false,
       githubUrl: fullName && repo ? githubLine(fullName, repo.headSha, f) : null,
