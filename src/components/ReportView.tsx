@@ -244,6 +244,80 @@ function ChainView({ chain }: { chain: ReportChainStep[] }) {
   );
 }
 
+/** A 0-100 scale with the clean/suspicious/dangerous zones and a marker where this repo landed. */
+function ScoreScale({ score, color }: { score: number; color: string }) {
+  const { dict } = useI18n();
+  const t = dict.report.how;
+  const at = Math.min(100, Math.max(0, score));
+  return (
+    <div className="mt-4">
+      <div className="relative h-7">
+        <div className="absolute inset-x-0 top-3 flex h-2 overflow-hidden rounded-full">
+          <div className="bg-clean/35" style={{ width: "30%" }} />
+          <div className="bg-suspicious/35" style={{ width: "40%" }} />
+          <div className="bg-dangerous/35" style={{ width: "30%" }} />
+        </div>
+        <motion.div
+          className="absolute top-0"
+          style={{ left: `${at}%` }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="-translate-x-1/2">
+            <div className="mx-auto h-3.5 w-3.5 rounded-full border-2 border-bg shadow" style={{ background: color }} />
+          </div>
+        </motion.div>
+      </div>
+      <div className="flex justify-between text-[11px] text-subtle">
+        <span>0 · {t.zoneClean}</span>
+        <span>30 · {t.zoneSuspicious}</span>
+        <span>70 · {t.zoneDangerous}</span>
+        <span>100</span>
+      </div>
+      <p className="mt-2 text-sm font-medium text-fg">{fmt(t.thisRepo, { score })}</p>
+    </div>
+  );
+}
+
+/** Plain-language account of what the scan did and how the score was reached. */
+function HowScanned({ report, color }: { report: Report; color: string }) {
+  const { dict } = useI18n();
+  const t = dict.report.how;
+  const files = report.stats.textFiles + report.stats.binaryFiles;
+  const kb = Math.max(1, Math.round(report.stats.decompressedBytes / 1024));
+  const steps = [
+    { icon: "M4 7a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z", text: fmt(t.read, { files, kb }) },
+    { icon: "M11 4a7 7 0 1 0 4.9 12l4 4M9 11h4m-2-2v4", text: fmt(t.rules, { rules: report.rulesRun }) },
+    { icon: "M9 12l2 2 4-4M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z", text: t.checks },
+    { icon: "M4 16a8 8 0 1 1 16 0M12 16l4-5", text: t.scored },
+  ];
+  return (
+    <Reveal as="section" className="rounded-2xl border border-line bg-surface/80 p-5 shadow-sm sm:p-6">
+      <h2 className="text-lg font-semibold text-fg">{t.title}</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{t.intro}</p>
+      <ol className="mt-4 space-y-3">
+        {steps.map((s, i) => (
+          <li key={i} className="flex items-start gap-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-accent ring-1 ring-accent/20">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={s.icon} />
+              </svg>
+            </span>
+            <span className="pt-1 text-sm leading-relaxed text-muted">{s.text}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-5 border-t border-line/70 pt-4">
+        <h3 className="text-sm font-semibold text-fg">{t.scaleTitle}</h3>
+        <ScoreScale score={report.score} color={color} />
+        <p className="mt-2 text-xs text-subtle">{t.scaleNote}</p>
+      </div>
+    </Reveal>
+  );
+}
+
 function FindingCard({ f }: { f: ReportFinding }) {
   const { dict } = useI18n();
   const t = dict.report;
@@ -597,6 +671,9 @@ export function ReportView({ report }: { report: Report }) {
           </div>
         </Reveal>
       )}
+
+      {/* How the scan worked, in plain language */}
+      <HowScanned report={report} color={style.color} />
 
       {/* Raw JSON */}
       <section>
