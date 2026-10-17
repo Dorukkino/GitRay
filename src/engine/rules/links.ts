@@ -156,13 +156,13 @@ const DOWNLOAD_LINK: Rule = {
         if (!hasRiskyExtension(url)) continue;
         const own = ownDownload(url, ctx.info);
         if (own === "release" || own === "archive") continue;
-        const note =
+        const hit =
           own === "other-archive"
-            ? "downloads a version of this repository that was not scanned (another branch or tag)"
+            ? note("downloadOtherArchive")
             : url.hostname.endsWith("github.com") || url.hostname.endsWith("githubusercontent.com")
-              ? "download hosted on GitHub, but not from this repository's releases"
-              : `downloads an executable or archive from ${url.hostname}`;
-        yield { line, text, column: index, note };
+              ? note("downloadGithub")
+              : note("downloadHost", { host: url.hostname });
+        yield { line, text, column: index, ...hit };
         break;
       }
     }

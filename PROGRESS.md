@@ -598,6 +598,10 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (30. oturum): Kaçan not + raporu sadeleştirme
+
+- **Kaçan İngilizce not:** `GR-LINK-001` indirme notunun üç varyantı (`downloadHost`, `downloadGithub`, `downloadOtherArchive`) çevrilmemişti; not kataloğuna eklendi ve Türkçeleştirildi. Artık motorda İngilizce not literali kalmadı.
+- **Raporu herkesin anlayacağı hale getirme** (kullanıcı: ham JSON'u kimse anlamıyor; amacı sistemin nasıl çalıştığını ve nasıl puanladığını göstermek). Rapora **"Bu tarama nasıl yapıldı"** bölümü eklendi (ReportView `HowScanned`): 4 adım (dosyaları bellekte okudu/çalıştırmadı, N kural çalıştırdı, OSV+VirusTotal kontrolü, puanladı) gerçek sayılarla; ve bir **puan cetveli** (`ScoreScale`) — 0-100, Temiz/Şüpheli/Tehlikeli bölgeleri ve bu reponun puanının işaretçisi. Ham JSON kaldı ama "geliştiriciler için" diye etiketlendi. Sözlükte `report.how` (en/tr). `ENGINE_VERSION` 0.9.5. 27 dosya, 934 test.
 ### 17 Ekim 2026 (29. oturum): Ana sayfada geliştirme uyarısı
 
 Kullanıcı: hero röntgen animasyonunun üstüne, sitenin geliştirme aşamasında olduğu ve hata yapabileceği uyarısı. `home.beta` metni eklendi (en/tr), `page.tsx`'te animasyonun üstüne sarı tonlu bir uyarı kutusu (üçgen ikon) konuldu. Animasyon `hidden sm:block` kaldı ama uyarı her ekranda görünüyor (sarmaldan çıkarıldı). 27 dosya, 934 test.

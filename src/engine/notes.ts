@@ -71,6 +71,9 @@ export const NOTE_TEMPLATES = {
   envrcRemote: "runs when you enter the folder and fetches remote content",
 
   // links
+  downloadHost: "downloads an executable or archive from {host}",
+  downloadGithub: "download hosted on GitHub, but not from this repository's releases",
+  downloadOtherArchive: "downloads a version of this repository that was not scanned (another branch or tag)",
   hostLink: "{host} link",
   sellsMalware: "offers {kinds} for sale",
 
