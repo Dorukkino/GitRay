@@ -540,6 +540,14 @@ export function ReportView({ report }: { report: Report }) {
         </Reveal>
       )}
 
+      {report.weakSignalsCapped && (
+        <Reveal>
+          <section className="rounded-2xl border border-suspicious/30 bg-suspicious/8 p-4 text-sm text-fg">
+            <strong className="font-semibold text-suspicious">{t.weakHeldTitle}</strong> {t.weakHeldText}
+          </section>
+        </Reveal>
+      )}
+
       {/* Score breakdown */}
       <Reveal as="section">
         <h2 className="mb-3 text-lg font-semibold text-fg">{t.breakdownTitle}</h2>

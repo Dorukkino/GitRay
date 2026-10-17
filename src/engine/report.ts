@@ -119,6 +119,8 @@ export interface Report {
   dependencyCheck: DependencyCheck;
   /** Findings in test files alone would have made it dangerous; the verdict was held at suspicious. */
   testFilesCapped: boolean;
+  /** The score reached dangerous only by accumulation (no decisive signal); held at suspicious. */
+  weakSignalsCapped: boolean;
   /** Repositories "git clone --recursive" adds (.gitmodules). Not scanned; `github` can be scanned separately. */
   submodules: ReportSubmodule[];
   /** Committed programs and release assets looked up on VirusTotal. */
@@ -235,6 +237,7 @@ export function toReport(result: ScanResult): Report {
     archiveCheck: { ...result.archiveCheck },
     dependencyCheck: { ...result.dependencyCheck },
     testFilesCapped: result.testFilesCapped,
+    weakSignalsCapped: result.weakSignalsCapped,
     submodules: result.submodules.map((s) => ({
       path: sanitize(s.path, PATH_MAX),
       url: sanitize(s.url, PATH_MAX),

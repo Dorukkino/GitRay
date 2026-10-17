@@ -394,6 +394,13 @@ export const en = {
       "change the verdict — the result reflects the files outside the tests. Nothing in this repository runs by " +
       'itself on install or when opened; if something did, the full score would count. Check the findings marked "in a ' +
       'test file" before running the tests.',
+    weakHeldTitle: "Held at Suspicious.",
+    weakHeldText:
+      "The score is high, but it comes from several medium findings adding up, not from one decisive one. " +
+      "Large legitimate projects collect such signals — an installer step, download links in their docs, a bundled " +
+      "library. Dangerous is reserved for a repository with a single strong indicator (a credential-stealing data " +
+      "flow, a malicious dependency, a file antivirus engines detect) or two strong ones together. Read the findings " +
+      "below and judge for yourself.",
     scanResult: "Scan result",
     metadata: "Repository metadata",
     inDocs: "in documentation, weight reduced",

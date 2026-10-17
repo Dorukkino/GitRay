@@ -159,6 +159,7 @@ function finish(
     verdict: scored.verdict,
     ruleScores: scored.ruleScores,
     testFilesCapped: scored.testFilesCapped,
+    weakSignalsCapped: scored.weakSignalsCapped,
     stats,
     partial,
     ...checks,

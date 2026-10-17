@@ -37,6 +37,7 @@ function report(dependencyCheck: DependencyCheck) {
     archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     dependencyCheck,
     testFilesCapped: false,
+    weakSignalsCapped: false,
     submodules: [],
     reputationCheck: { status: "none", files: [], notLookedUp: 0 },
     rulesRun: [],

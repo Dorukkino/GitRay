@@ -206,6 +206,8 @@ export interface ScanResult {
   dependencyCheck: DependencyCheck;
   /** Test files alone would have made the repository dangerous; the verdict was held at suspicious. */
   testFilesCapped: boolean;
+  /** The score reached dangerous only by accumulation (no decisive signal); held at suspicious. */
+  weakSignalsCapped: boolean;
   /** Git submodules from .gitmodules: other repositories "git clone --recursive" adds, not scanned. */
   submodules: Submodule[];
   /** Committed programs and release assets looked up on VirusTotal by fingerprint. */

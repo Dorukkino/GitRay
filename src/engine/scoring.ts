@@ -6,6 +6,41 @@ import type { Finding, Verdict } from "./types";
 export const MAX_SCORE = 100;
 export const SUSPICIOUS_AT = 30;
 export const DANGEROUS_AT = 70;
+/** Dangerous needs one finding at least this strong, or two at HIGH_SIGNAL. */
+export const STRONG_SIGNAL = 40;
+export const HIGH_SIGNAL = 35;
+
+/**
+ * Social-engineering and off-platform-distribution red flags. When any of these
+ * is present, a high score is a real lure (a fake "free tool": disable your
+ * antivirus, download from a file host, the archive is password-protected), so
+ * accumulation to dangerous is kept. They are the opposite of a big legitimate
+ * project's benign code/build signals.
+ */
+const LURE_RULES: ReadonlySet<string> = new Set([
+  // GR-SOC-001 (disable your antivirus) is deliberately left out: legitimate
+  // troubleshooting FAQs say "disable the antivirus and try again" too, so it is
+  // too ambiguous to force dangerous on its own.
+  "GR-SOC-002", // README sells malware tools
+  "GR-LINK-003", // download from a file-sharing site
+  "GR-LINK-004", // password-protected archive to download
+  "GR-BIN-002", // password-protected archive committed
+]);
+
+/**
+ * A "dangerous" score may come from one decisive finding or from a pile of
+ * weak/medium ones. Only the first is really dangerous on its own: a large
+ * legitimate project can gather an installer action, download links in its docs
+ * and a vendored bundle. Require one strong finding (>= STRONG_SIGNAL), or two
+ * independent high ones (>= HIGH_SIGNAL), or a social-engineering / off-platform
+ * distribution red flag (LURE_RULES) — the known malware shapes all have one.
+ */
+function hasDecisiveSignal(perRule: Record<string, number>): boolean {
+  const weights = Object.values(perRule);
+  if (weights.some((w) => w >= STRONG_SIGNAL)) return true;
+  if (weights.filter((w) => w >= HIGH_SIGNAL).length >= 2) return true;
+  return Object.keys(perRule).some((id) => LURE_RULES.has(id));
+}
 
 /** Each rule counts once, with the highest weight among its findings. */
 export function ruleScores(findings: Iterable<Finding>): Record<string, number> {
@@ -36,6 +71,8 @@ export interface Scored {
    * held at "suspicious": see score().
    */
   testFilesCapped: boolean;
+  /** The score reached dangerous only by accumulation (no decisive signal); held at suspicious. */
+  weakSignalsCapped: boolean;
 }
 
 export function score(findings: Iterable<Finding>, complete = true): Scored {
@@ -69,7 +106,15 @@ export function score(findings: Iterable<Finding>, complete = true): Scored {
     }
   }
   let verdict = verdictFor(points);
+  // Dangerous only with a decisive signal; otherwise hold at suspicious and show
+  // the score at the top of that band, so the gauge matches the verdict.
+  let weakSignalsCapped = false;
+  if (verdict === "dangerous" && !hasDecisiveSignal(perRule)) {
+    points = Math.min(points, DANGEROUS_AT - 1);
+    verdict = "suspicious";
+    weakSignalsCapped = true;
+  }
   // A partial scan is never called clean: the unread part may hold the payload.
   if (!complete && verdict === "clean") verdict = "incomplete";
-  return { score: points, verdict, ruleScores: perRule, testFilesCapped };
+  return { score: points, verdict, ruleScores: perRule, testFilesCapped, weakSignalsCapped };
 }
