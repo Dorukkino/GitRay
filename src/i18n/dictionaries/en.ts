@@ -49,6 +49,7 @@ export const en = {
       other: "repositories scanned in the last week",
     } as PluralText,
     badge: "{rules} rules · nothing is cloned or executed",
+    beta: "GiTRay is still in development and can get it wrong. Treat its result as a hint, not a verdict, and check anything important yourself.",
     titleBefore: "Is this GitHub repo ",
     titleHighlight: "safe to clone",
     titleAfter: "?",

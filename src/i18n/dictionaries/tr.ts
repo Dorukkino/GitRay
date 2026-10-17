@@ -44,6 +44,7 @@ export const tr: Dictionary = {
       other: "repo son haftada tarandı",
     },
     badge: "{rules} kural · hiçbir şey klonlanmaz ya da çalıştırılmaz",
+    beta: "GiTRay hâlâ geliştirme aşamasında ve yanılabilir. Sonucu kesin bir karar değil, bir ipucu olarak görün; önemli bir şeyi kendiniz de kontrol edin.",
     titleBefore: "Bu GitHub reposunu ",
     titleHighlight: "klonlamak güvenli",
     titleAfter: " mi?",

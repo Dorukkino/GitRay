@@ -598,6 +598,10 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (29. oturum): Ana sayfada geliştirme uyarısı
+
+Kullanıcı: hero röntgen animasyonunun üstüne, sitenin geliştirme aşamasında olduğu ve hata yapabileceği uyarısı. `home.beta` metni eklendi (en/tr), `page.tsx`'te animasyonun üstüne sarı tonlu bir uyarı kutusu (üçgen ikon) konuldu. Animasyon `hidden sm:block` kaldı ama uyarı her ekranda görünüyor (sarmaldan çıkarıldı). 27 dosya, 934 test.
+
 ### 17 Ekim 2026 (28. oturum): Bulgu notları Türkçe (çeviri altyapısı)
 
 Kullanıcı: raporda bulgu açıklamaları (örn. "2 of 64 antivirus engines detect this release file") TR'de bile İngilizceydi; Türkçe ve sade olsun.
