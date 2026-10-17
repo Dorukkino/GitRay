@@ -4,7 +4,7 @@ import type { Dictionary } from "./en";
 
 export const tr: Dictionary = {
   meta: {
-    title: "GiTRay: GitHub reposunu klonlamadan önce tara",
+    title: "GiTRay — GitHub repo zararlı yazılım taraması",
     description:
       "GiTRay herkese açık GitHub repolarını hiçbir şeyi klonlamadan ya da çalıştırmadan zararlı yazılım hilelerine " +
       "(kurulumda çalışan scriptler, saklı yükler, şifre hırsızları, sahte indirme linkleri) karşı tarar.",
