@@ -598,6 +598,10 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (26. oturum): GR-SOC-002 Tehlikeli'ye yükseltildi
+
+Kullanıcı `me-hacker001/Hacking-Tools-Pack`'i (yalnızca README'den ibaret bir zararlı yazılım dükkânı) gösterdi: "buna %100 demesi gerekmiyor mu?" 25. oturumda temkinli davranıp Şüpheli (45) bırakmıştım; kullanıcı Tehlikeli olmasını istedi. Doğru: açıkça RAT/fidye/stealer satan, kripto/WhatsApp ile ödeme isteyen bir repo Scammer listesine girmelidir. `GR-SOC-002` ağırlığı 45 → 80 (tek başına Tehlikeli). Kural zaten dar (3+ tür, 1 saldırı aracı, fiyat, satış çağrısı; 164 güvenlik Markdown'ında 0 yanlış alarm), bu yüzden Tehlikeli seviyesi güvenli. Fixture ağırlıkları ve `ENGINE_VERSION` 0.9.1 güncellendi.
+
 ### 17 Ekim 2026 (25. oturum): Kod akışı analizi (davranış zincirleri)
 
 Kullanıcı: "sadece koda değil kod bloğuna da baksın, okuyup ne yaptığını anlasın, yoksa yanlış sonuçlar çıkıyor." Üç yol sunuldu (LLM; kuralları bağlama duyarlı yapmak; AST/veri akışı). Kullanıcı **veri akışı** yolunu seçti. LLM bilerek kullanılmadı: ücretli ve prompt injection ile kandırılabilir.
