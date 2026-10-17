@@ -5,6 +5,7 @@
  */
 
 import type { RepoInfo, ScanContext } from "../types";
+import { note } from "../notes";
 import type { Hit, Rule } from "./base";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -16,7 +17,6 @@ function ageDays(iso: string | null, now: Date): number | null {
   return Number.isNaN(t) ? null : Math.max(0, Math.floor((now.getTime() - t) / DAY_MS));
 }
 
-const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const NEW_ACCOUNT: Rule = {
   id: "GR-REPO-001",
@@ -30,7 +30,7 @@ const NEW_ACCOUNT: Rule = {
   *scanRepo(info: RepoInfo, ctx: ScanContext): Iterable<Hit> {
     const days = ageDays(info.ownerCreatedAt, ctx.now);
     if (days !== null && days < NEW_ACCOUNT_DAYS) {
-      yield { line: 0, text: "", note: `account "${info.ownerLogin}" was created ${plural(days, "day")} ago` };
+      yield { line: 0, text: "", ...note("accountNew", { days }) };
     }
   },
 };
@@ -52,7 +52,7 @@ const ARCHIVE_GAP: Rule = {
     yield {
       line: 0,
       text: "",
-      note: `${plural(hidden.length, "file")} missing from the archive (${sample}${hidden.length > 3 ? ", ..." : ""})`,
+      ...note("archiveHidden", { count: hidden.length, sample: `${sample}${hidden.length > 3 ? ", ..." : ""}` }),
     };
   },
 };

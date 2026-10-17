@@ -205,7 +205,7 @@ describe("the VirusTotal step of a scan", () => {
     expect(result.reputationCheck.status).toBe("found");
     expect(result.ruleScores["GR-BIN-003"]).toBe(70);
     const finding = result.findings.find((f) => f.ruleId === "GR-BIN-003");
-    expect(finding).toMatchObject({ path: "bin/loader.exe", note: "40 of 70 antivirus engines detect it" });
+    expect(finding).toMatchObject({ path: "bin/loader.exe", note: "40 of 70 antivirus engines detect this file" });
     expect(result.verdict).toBe("dangerous");
 
     const report = toReport(result);

@@ -5,6 +5,8 @@
  * them by rule id.
  */
 
+import { NOTE_TEMPLATES } from "@/engine";
+
 import type { PluralText } from "../format";
 
 export interface RuleText {
@@ -413,6 +415,7 @@ export const en = {
       runs: "Runs it",
     } as Record<string, string>,
     chainLine: "line {n}",
+    notes: NOTE_TEMPLATES as Record<string, string>,
     breakdownTitle: "Score breakdown",
     noRule: "No rule matched. Score 0.",
     findingCount: { one: "{n} finding", other: "{n} findings" } as PluralText,

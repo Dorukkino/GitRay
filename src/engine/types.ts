@@ -1,6 +1,7 @@
 /** Plain data types shared by the engine, the CLI and the web app. */
 
 import type { ChainStep } from "./behavior/analyze";
+import type { NoteArgs, NoteKey } from "./notes";
 import type { Submodule } from "./submodules";
 import type { Reputation } from "./virustotal";
 
@@ -145,6 +146,9 @@ export interface Finding {
    */
   patternContext?: boolean;
   note: string | null;
+  /** Translatable note key and arguments (src/engine/notes.ts); the UI prefers these over `note`. */
+  noteKey?: NoteKey;
+  noteArgs?: NoteArgs;
   /** Data-flow steps for a behavior finding (GR-BEH-*). */
   chain?: ChainStep[];
 }

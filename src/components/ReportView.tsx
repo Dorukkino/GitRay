@@ -282,7 +282,9 @@ function FindingCard({ f }: { f: ReportFinding }) {
           </a>
         )}
       </div>
-      {f.note && !f.chain?.length && <p className="mt-1.5 text-sm text-muted">{f.note}</p>}
+      {!f.chain?.length && (f.noteKey || f.note) && (
+        <p className="mt-1.5 text-sm text-muted">{f.noteKey ? fmt(t.notes[f.noteKey] ?? f.note ?? "", f.noteArgs ?? {}) : f.note}</p>
+      )}
       {f.chain && f.chain.length > 0 && <ChainView chain={f.chain} />}
       {f.snippet && (
         <pre className="film mt-3 overflow-x-auto rounded-xl border border-film-line p-3 font-mono text-[13px] leading-relaxed break-all whitespace-pre-wrap">

@@ -4,6 +4,7 @@
  */
 
 import type { BinaryFile, RepoInfo, ScanContext } from "../types";
+import { note } from "../notes";
 import type { Hit, Rule } from "./base";
 
 const u16le = (b: Uint8Array, o: number): number => b[o] | (b[o + 1] << 8);
@@ -24,23 +25,26 @@ const MACHO_MAGICS = [
 ];
 
 /** What kind of native executable the bytes are, if any. */
-export function executableKind(b: Uint8Array): string | null {
+export type ExecutableKind = "exePe" | "exeDll" | "exeElf" | "exeMacho" | "exeMachoUniversal" | "exeLnk";
+
+/** The program kind from a file's first bytes, as a note key, or null. */
+export function executableKind(b: Uint8Array): ExecutableKind | null {
   if (startsWith(b, [0x4d, 0x5a]) && b.length >= 0x40) {
     const pe = u32le(b, 0x3c);
     if (pe + 24 <= b.length && startsWith(b, [0x50, 0x45, 0x00, 0x00], pe)) {
       const characteristics = u16le(b, pe + 22);
-      return characteristics & 0x2000 ? "Windows DLL (PE)" : "Windows executable (PE)";
+      return characteristics & 0x2000 ? "exeDll" : "exePe";
     }
     return null;
   }
-  if (startsWith(b, [0x7f, 0x45, 0x4c, 0x46])) return "Linux executable (ELF)";
-  if (MACHO_MAGICS.some((m) => startsWith(b, m))) return "macOS executable (Mach-O)";
+  if (startsWith(b, [0x7f, 0x45, 0x4c, 0x46])) return "exeElf";
+  if (MACHO_MAGICS.some((m) => startsWith(b, m))) return "exeMacho";
   // 0xCAFEBABE is also a Java class file; a fat Mach-O has a small architecture count there.
   if (startsWith(b, [0xca, 0xfe, 0xba, 0xbe]) && b.length >= 8) {
     const count = u32be(b, 4);
-    if (count > 0 && count < 20) return "macOS universal executable (Mach-O)";
+    if (count > 0 && count < 20) return "exeMachoUniversal";
   }
-  if (startsWith(b, LNK_MAGIC)) return "Windows shortcut (.lnk)";
+  if (startsWith(b, LNK_MAGIC)) return "exeLnk";
   return null;
 }
 
@@ -105,7 +109,7 @@ const EXECUTABLE: Rule = {
   *scanBinary(file: BinaryFile): Iterable<Hit> {
     const kind = executableKind(file.head);
     if (kind) {
-      yield { line: 0, text: "", weight: kind.includes(".lnk") ? 30 : undefined, note: kind };
+      yield { line: 0, text: "", weight: kind === "exeLnk" ? 30 : undefined, ...note(kind) };
       return;
     }
     const zip = zipInfo(file.head);
@@ -114,8 +118,8 @@ const EXECUTABLE: Rule = {
     // Language packages (Python wheels, NuGet) ship native libraries and launchers for
     // their package manager; nobody is lured into double-clicking inside one.
     yield PACKAGE_ARCHIVE.test(file.path)
-      ? { line: 0, text: inner, weight: 5, note: "package archive (wheel, NuGet) containing a Windows program or library" }
-      : { line: 0, text: inner, note: "ZIP archive containing a Windows program, launcher or disk image" };
+      ? { line: 0, text: inner, weight: 5, ...note("zipPackageExe") }
+      : { line: 0, text: inner, ...note("zipExe") };
   },
 };
 
@@ -128,8 +132,8 @@ const ENCRYPTED_ARCHIVE: Rule = {
     "An encrypted archive cannot be inspected by GitHub, antivirus or this scanner. Legit " +
     "projects have no reason to commit one; malware does it to slip past every scanner.",
   *scanBinary(file: BinaryFile): Iterable<Hit> {
-    if (zipInfo(file.head)?.encrypted) yield { line: 0, text: "", note: "encrypted ZIP archive" };
-    else if (rarHeadersEncrypted(file.head)) yield { line: 0, text: "", note: "RAR archive with encrypted headers" };
+    if (zipInfo(file.head)?.encrypted) yield { line: 0, text: "", ...note("zipEncrypted") };
+    else if (rarHeadersEncrypted(file.head)) yield { line: 0, text: "", ...note("rarEncrypted") };
   },
 };
 
@@ -157,9 +161,7 @@ const KNOWN_TO_ANTIVIRUS: Rule = {
         line: 0,
         text: f.source === "release" ? `release asset ${f.name}` : "",
         weight: known ? undefined : 10,
-        note:
-          `${s.malicious} of ${total} antivirus engines detect ${f.source === "release" ? "this release file" : "it"}` +
-          (known ? "" : " (few detections: may be a false positive)"),
+        ...note(f.source === "release" ? (known ? "avReleaseKnown" : "avReleaseMaybe") : (known ? "avRepoKnown" : "avRepoMaybe"), { bad: s.malicious, total }),
       };
     }
   },

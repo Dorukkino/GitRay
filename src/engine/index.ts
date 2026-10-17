@@ -22,6 +22,7 @@ export {
   type Severity,
 } from "./report";
 export { allRules, getRule, type Rule } from "./rules";
+export { NOTE_TEMPLATES, type NoteKey } from "./notes";
 export { scanEntries, scanRepo, scanTarball, type ScanOptions } from "./scanner";
 export { DANGEROUS_AT, SUSPICIOUS_AT } from "./scoring";
 export { fullName, parseTarget } from "./target";

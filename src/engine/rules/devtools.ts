@@ -7,6 +7,7 @@
 
 import { extension, iterScanLines, parseJsonc, splitLines } from "../text";
 import type { TextFile } from "../types";
+import { note } from "../notes";
 import { DOWNLOAD_TOOL, type Hit, type Rule, URL_PATTERN } from "./base";
 
 /** Downloads, shells with inline code, encoded payloads or script hosts. */
@@ -55,7 +56,7 @@ const DEVCONTAINER: Rule = {
         line,
         text,
         weight: risky ? 40 : undefined,
-        note: risky ? "runs on the host and downloads or decodes something" : "runs on the host before the container starts",
+        ...note(risky ? "devcontainerRisky" : "devcontainer"),
       };
     }
   },
@@ -103,7 +104,7 @@ const EDITOR_PROGRAM: Rule = {
       if (!programKey || !pointsIntoRepository(value)) continue;
       const leaf = key.split(".").pop() ?? key;
       const { line, text } = locate(file.content, value, leaf);
-      yield { line, text, note: `"${key}" points to a program in the repository` };
+      yield { line, text, ...note("vscodeProgram", { key }) };
     }
   },
 };
@@ -181,7 +182,7 @@ const ASSISTANT_HOOKS: Rule = {
         line,
         text,
         weight: risky ? 40 : undefined,
-        note: risky ? "hook command downloads or decodes something" : "hook command runs automatically",
+        ...note(risky ? "hookRisky" : "hook"),
       };
     }
     // MCP servers usually need the user's approval first, so they weigh less.
@@ -192,7 +193,7 @@ const ASSISTANT_HOOKS: Rule = {
         line,
         text,
         weight: risky ? 35 : 10,
-        note: risky ? "MCP server command downloads or decodes something" : "project declares an MCP server command",
+        ...note(risky ? "mcpRisky" : "mcp"),
       };
     }
   },
@@ -215,12 +216,12 @@ const NPM_CONFIG: Rule = {
   *scanText(file: TextFile): Iterable<Hit> {
     for (const { line, text } of iterScanLines(file.content)) {
       if (NODE_PRELOAD.test(text)) {
-        yield { line, text, note: "every Node process started by npm loads this code" };
+        yield { line, text, ...note("npmrcNodeOptions") };
         continue;
       }
       const shell = SCRIPT_SHELL.exec(text);
       if (shell && !STANDARD_SHELL.test(shell[1].trim().replace(/^["']|["']$/g, ""))) {
-        yield { line, text, note: "every npm script runs through this program" };
+        yield { line, text, ...note("npmrcScriptShell") };
       }
     }
   },
@@ -242,7 +243,7 @@ const DIRENV: Rule = {
     for (const { line, text } of iterScanLines(file.content)) {
       if (/^\s*#/.test(text)) continue;
       if (DIRENV_FETCH.test(text) || DOWNLOAD_TOOL.test(text) || (URL_PATTERN.test(text) && /\b(?:source|eval)\b/.test(text))) {
-        yield { line, text, note: "runs when you enter the folder and fetches remote content" };
+        yield { line, text, ...note("envrcRemote") };
       }
     }
   },
