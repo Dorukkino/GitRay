@@ -26,11 +26,21 @@ export interface ScanSummary {
 /** "all" is the recent scans list: every verdict, newest first. */
 export type ListedVerdict = "clean" | "dangerous" | "all";
 
+/** Just the verdict of a repository's latest scan — cheap to read, for the README badge. */
+export interface LatestScan {
+  verdict: Verdict;
+  score: number;
+  complete: boolean;
+  scannedAt: string;
+}
+
 export interface ScanStore {
   readonly configured: boolean;
   save(report: Report): Promise<void>;
   /** The stored report of a repository if it was scanned after `since`. */
   fresh(repoKey: string, since: Date): Promise<Report | null>;
+  /** The verdict of a repository's latest stored scan, if any (never triggers a scan). */
+  latest(repoKey: string): Promise<LatestScan | null>;
   list(verdict: ListedVerdict, limit: number): Promise<ScanSummary[]>;
   counts(): Promise<Record<Verdict, number>>;
   /** Repositories whose latest scan is newer than `since` (a rescan counts once). */
@@ -181,6 +191,18 @@ export class PostgresScanStore implements ScanStore {
     return report?.schemaVersion === 1 ? report : null;
   }
 
+  async latest(key: string): Promise<LatestScan | null> {
+    if (HIDDEN_REPOS.has(key)) return null;
+    await this.ensureSchema();
+    const rows = await this.db.query<{ verdict: Verdict; score: number; complete: boolean; scanned_at: string | Date }>(
+      "SELECT verdict, score, complete, scanned_at FROM scans WHERE repo_key = $1",
+      [key],
+    );
+    const r = rows[0];
+    if (!r) return null;
+    return { verdict: r.verdict, score: Number(r.score), complete: r.complete, scannedAt: new Date(r.scanned_at).toISOString() };
+  }
+
   async list(verdict: ListedVerdict, limit: number): Promise<ScanSummary[]> {
     await this.ensureSchema();
     const columns = "full_name, head_sha, verdict, score, description, stars, findings, top_rules, scanned_at";
@@ -228,6 +250,9 @@ export const nullScanStore: ScanStore = {
   configured: false,
   async save() {},
   async fresh() {
+    return null;
+  },
+  async latest() {
     return null;
   },
   async list() {

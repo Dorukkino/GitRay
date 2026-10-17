@@ -40,6 +40,10 @@ class MapStore implements ScanStore {
     const r = this.saved.get(key);
     return r && Date.parse(r.startedAt) > since.getTime() ? r : null;
   }
+  async latest(key: string) {
+    const r = this.saved.get(key);
+    return r ? { verdict: r.verdict, score: r.score, complete: r.complete, scannedAt: r.startedAt } : null;
+  }
   async list() {
     return [];
   }

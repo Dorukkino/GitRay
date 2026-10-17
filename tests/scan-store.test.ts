@@ -163,6 +163,15 @@ describe("PostgresScanStore", () => {
     expect(await store.fresh("other/repo", new Date(0))).toBeNull();
   });
 
+  it("reads the latest verdict cheaply, regardless of age, for the badge", async () => {
+    await store.save(report("octo/demo", "dangerous", "2026-10-02T00:00:00Z", 90));
+    const latest = await store.latest("octo/demo");
+    expect(latest).toMatchObject({ verdict: "dangerous", score: 90, complete: true });
+    // A never-scanned repo and a hidden repo both read as null (badge shows "not scanned").
+    expect(await store.latest("never/scanned")).toBeNull();
+    expect(await store.latest("dorukkino/gitray")).toBeNull();
+  });
+
   it("never stores or lists a hidden repository and deletes one stored before", async () => {
     await store.save(report("Dorukkino/GitRay", "suspicious", "2026-10-01T00:00:00Z", 69));
     expect(await store.list("all", 10)).toEqual([]);
