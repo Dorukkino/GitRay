@@ -82,13 +82,13 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
-### 17 Ekim 2026 (38. oturum): "Yanlış mı? Bildir" formu artık ekran ortasında modal
+### 17 Ekim 2026 (38. oturum): "Yanlış mı? Bildir" modal'ı + admin panelinde detaylı rapor görünümü
 
 - **Sorun:** Kullanıcı canlıda butona basınca "hiçbir şey olmuyor" dedi. Tanı: sayfa etkileşimi sağlam, Console temiz, form aslında açılıyordu ama uzun özet kartının altında, satır içinde, ekranın görünür kısmının (fold) altında kalıyordu; viewport değişmediği için fark edilmiyordu.
 - **Çözüm (salt UI, motor değişmedi → `ENGINE_VERSION` aynı):** `ReportFalseFinding` artık `createPortal` ile `document.body`'ye basılan, ekran ortasında açılan bir **modal (dialog)**. Arka plan kararır (`bg-black/50`, `backdrop-blur` yok — performans kuralı), Escape/✕/arka plan tıklama kapatır, body scroll kilitlenir, ilk alan odaklanır. Giriş/çıkış animasyonu bileşenin içinde `AnimatePresence onExitComplete` ile yönetilir; buton yalnızca açar (`setReporting(true)`).
 - **İçerik sırası kullanıcı isteğine göre:** önce robot doğrulaması (captcha), sonra sebep metni, en altta gönder. Portal tüm `overflow-hidden`/`transform` bağlamlarından (`.animate-enter`, özet `motion.section`) kurtarır; panel her zaman viewport ortasında.
-- **Admin tarafı zaten hazırdı:** `/dorukadm` tablosunda her bildirim için tarih, repo (`ad @ sha`), karar (`verdict (puan)`), motor sürümü ve "Why it is wrong" (kişinin yazdığı sebep) görünüyor — değişiklik gerekmedi.
-- 983 test (32 dosya) geçti; lint/typecheck/build temiz.
+- **Admin paneli detaylandı (kullanıcı "hepsini görmek istiyorum" dedi):** `/dorukadm` rapor listesi artık `src/components/admin/ReportsTable.tsx` (istemci, salt-okuma): satıra tıklayınca detay genişler (saniyeli UTC zaman, tam commit SHA, tam sebep metni, karar/motor); aynı reponun toplam bildirim sayısı `×N` rozeti (`list`'te `COUNT(*) OVER (PARTITION BY repo_key)`); o repoya `/en/scan/<owner>/<repo>` tarama linki; ve **anonim bildiren etiketi** (`clientLabel`: IP'nin HMAC'ının ilk 10 hex'i — ham IP değil, yeni veri toplanmaz, aynı kişi aynı etiket). `FalseReport`'a `repoCount` + `clientLabel` eklendi; gizlilik metni/`LEGAL_UPDATED` değişmedi.
+- 985 test (32 dosya) geçti; lint/typecheck/build temiz.
 
 ### 17 Ekim 2026 (37. oturum): Yanlış sonucu bildirme + özel admin paneli + kendi captcha'mız
 
