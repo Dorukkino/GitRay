@@ -35,6 +35,10 @@ export interface FalseReport {
   engineVersion: string;
   reason: string;
   createdAt: string;
+  /** Total reports for this repository across the whole table. */
+  repoCount: number;
+  /** Short pseudonymous reporter label (from the IP's HMAC); never the raw IP. */
+  clientLabel: string;
 }
 
 export interface ReportStore {
@@ -69,6 +73,8 @@ interface Row {
   engine_version: string;
   reason: string;
   created_at: string | Date;
+  repo_count: number | string;
+  client_hash: string;
 }
 
 export class PostgresReportStore implements ReportStore {
@@ -136,7 +142,8 @@ export class PostgresReportStore implements ReportStore {
   async list(limit: number, offset: number): Promise<FalseReport[]> {
     await this.ensureSchema();
     const rows = await this.db.query<Row>(
-      `SELECT id, full_name, head_sha, verdict, score, engine_version, reason, created_at
+      `SELECT id, full_name, head_sha, verdict, score, engine_version, reason, created_at,
+              client_hash, count(*) OVER (PARTITION BY repo_key) AS repo_count
        FROM false_reports ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset],
     );
@@ -149,6 +156,9 @@ export class PostgresReportStore implements ReportStore {
       engineVersion: r.engine_version,
       reason: r.reason,
       createdAt: new Date(r.created_at).toISOString(),
+      repoCount: Number(r.repo_count),
+      // A short, opaque slice of the HMAC: distinguishes reporters, reveals no IP.
+      clientLabel: r.client_hash.slice(0, 10),
     }));
   }
 

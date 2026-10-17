@@ -48,6 +48,21 @@ describe("PostgresReportStore", () => {
     expect(await store.count()).toBe(2);
   });
 
+  it("counts reports per repository and exposes a short anonymous reporter label", async () => {
+    await store.save(input({ fullName: "octo/demo", clientKey: "1.1.1.1" }), new Date("2026-10-17T10:00:00Z"));
+    await store.save(input({ fullName: "octo/demo", clientKey: "2.2.2.2" }), new Date("2026-10-17T11:00:00Z"));
+    await store.save(input({ fullName: "octo/other", clientKey: "1.1.1.1" }), new Date("2026-10-17T12:00:00Z"));
+    const rows = await store.list(10, 0);
+    const demo = rows.filter((r) => r.fullName === "octo/demo");
+    const other = rows.find((r) => r.fullName === "octo/other");
+    expect(demo.every((r) => r.repoCount === 2)).toBe(true);
+    expect(other?.repoCount).toBe(1);
+    // Short, opaque, stable per client key; never the raw IP.
+    for (const r of rows) expect(r.clientLabel).toMatch(/^[0-9a-f]{10}$/);
+    const sameKey = rows.filter((r) => r.clientLabel === rows.find((x) => x.fullName === "octo/other")!.clientLabel);
+    expect(sameKey.map((r) => r.fullName).sort()).toEqual(["octo/demo", "octo/other"]);
+  });
+
   it("stores the client only as a 32-hex hash, never the raw IP", async () => {
     await store.save(input({ clientKey: "9.9.9.9" }), new Date());
     const rows = (await pg.query<{ client_hash: string }>("SELECT client_hash FROM false_reports")).rows;
