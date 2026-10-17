@@ -75,8 +75,16 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
               <ScanForm autoFocus />
             </div>
           </div>
-          <div className="animate-enter hidden sm:block" style={{ animationDelay: "380ms" }}>
-            <HeroScan />
+          <div className="animate-enter" style={{ animationDelay: "380ms" }}>
+            <p className="flex items-start gap-2.5 rounded-2xl border border-suspicious/30 bg-suspicious/10 px-4 py-3 text-sm leading-relaxed text-muted">
+              <svg viewBox="0 0 24 24" width="18" height="18" className="mt-0.5 shrink-0 text-suspicious" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+              </svg>
+              <span>{h.beta}</span>
+            </p>
+            <div className="mt-4 hidden sm:block">
+              <HeroScan />
+            </div>
           </div>
         </div>
       </section>
