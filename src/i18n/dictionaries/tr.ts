@@ -764,7 +764,7 @@ export const tr: Dictionary = {
       title: "Windows araçlarıyla indiriyor, saklanıyor ya da kalıcı oluyor",
       why:
         "Windows'un kendi programları (certutil, bitsadmin, mshta, rundll32, regsvr32) zararlı yük indirip " +
-        "çalıştırabilir; Defender istisnaları, gizli PowerShell pencereleri ve Run anahtarları da zararlı yazılımın " +
+        "çalıştırabilir; Defender istisnaları, gizli PowerShell pencereleri ve Run anahtarlarına yazmak da zararlı yazılımın " +
         "saklanma ve yeniden başlatmadan sağ çıkma yoludur. Normal projelerin bunlara neredeyse hiç ihtiyacı olmaz.",
     },
     "GR-CODE-008": {

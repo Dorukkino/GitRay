@@ -1,0 +1,9 @@
+# path: agent/persist.py
+# lines: 4
+# weight: 35
+# ---
+import winreg
+
+def persist(path):
+    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
+    winreg.SetValueEx(key, "Demo", 0, winreg.REG_SZ, path)

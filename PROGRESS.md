@@ -579,6 +579,14 @@ Kullanıcı: siteyi Google Analytics panelinden takip etmek istiyor (ölçüm ki
 - Kullanıcının yapacağı: bir şey yok; Google Analytics panelinde (Raporlar → Gerçek zamanlı) yalnızca "Kabul et" diyen ziyaretçiler görünür. Reddedenler sayılmaz, bu yüzden GA'daki sayılar gerçek ziyaretçi sayısından düşük olur.
 - Düzeltme (aynı gün): Chrome'da `collect` istekleri 204 dönmesine rağmen Gerçek zamanlı rapor boş kaldı. Sebep: kullanıcının ilk verdiği etiket kodundaki `G-MZQTYNJGCB` başka bir akışa aitti; GA'daki GiTRay mülkünün web akışının ölçüm kimliği `G-NFBDBGY2JH`. `GA_MEASUREMENT_ID` güncellendi. Kimlik değişirse yalnızca `src/lib/site.ts` değişir.
 
+### 17 Ekim 2026 (24. oturum): Run anahtarı yanlış alarmı
+
+Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yöneticisi reposunda (`UClear/InvalidReferences.cs:405`) kod yalnızca kayıt defteri anahtarının adını `Equals(@"...\CurrentVersion\Run")` ile karşılaştırıyordu, ama `GR-CODE-007` "YÜKSEK" (+35) dedi ve tek başına Şüpheli yaptı. Haklıydı: kural Run anahtarının adının geçmesini kalıcılık sayıyordu.
+
+- `GR-CODE-007`: Run/RunOnce anahtarı artık yalnızca adı geçiyorsa 10 alıyor (tek başına Şüpheli yapmaz). 10 satır yakınında kayıt defterine yazma varsa (`reg add`/`import`, `New-`/`Set-ItemProperty`, `SetValue(Ex)`, `RegSetValue*`, Go `Set*Value`, VBScript `RegWrite`, Delphi `WriteString`, `KEY_SET_VALUE`/`KEY_WRITE`/`KEY_ALL_ACCESS`, `OpenSubKey(..., true)`) ya da dosya `.reg` ise 35 kalıyor. Kurulum scriptlerinde yine 5.
+- Bilinen sınır: anahtar adı dosyanın başında bir sabitte tanımlanıp yazma 10 satırdan uzakta yapılırsa 10 alır.
+- Yeni fixture'lar: okuma (10), C# yazma, Python winreg yazma, `.reg` dosyası (35). `ENGINE_VERSION` 0.8.2 (eski sonuçlar yeniden taranır). 26 dosya, 866 test.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
 
 1. ~~**Domain**~~ (11 Ekim'de canlıya çıktı). İsteğe bağlı: Google Search Console'a domaini ekleyip sitemap'i gönder (TXT kaydı Vercel'in hesap seviyesindeki Domains → gitray.com.tr → DNS Records'a eklenir).
