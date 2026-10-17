@@ -82,6 +82,16 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 17 Ekim 2026 (40. oturum): README güvenlik rozeti (badge)
+
+- Kullanıcı istedi: kullanıcılar tarama sonucunu README'lerine ekleyebilsin (shields.io tarzı). Karar: rozet **yalnızca kayıtlı sonucu** gösterir, **tarama tetiklemez**; hiç taranmamışsa "not scanned".
+- `GET /api/badge?repo=owner/name` → SVG (`src/lib/badge.ts` `badgeSvg`). Sabit "GiTRay" etiketi + kapalı kümeden verdict kelimesi; **SVG'de hiç repo içeriği yok** (enjeksiyon yüzeyi sıfır). Renkler globals.css açık-tema hex'leri (tema-bağımsız, README iki temada da render olur).
+- `scan-store.ts`'e ince `latest(repoKey)` eklendi: `SELECT verdict, score, complete, scanned_at` (tüm raporu çözmez). `HIDDEN_REPOS` ve kayıt yok → null → "not scanned". `runScan` **asla** çağrılmaz → GitHub bütçesi/tetikleme yok, bot/img-proxy güvenli.
+- Tarama yanıtlarının aksine rozet **önbeneklenebilir** (`Cache-Control: public, s-maxage=3600, stale-while-revalidate`).
+- `ReportView`'a "Badge" bölümü (`BadgeSection`): canlı önizleme + kopyalanabilir markdown (`window.location.origin` ile). i18n: `badgeTitle/badgeIntro/badgeCopy/badgeCopied` (en+tr).
+- Motor değişmedi → `ENGINE_VERSION` aynı. Yeni veri toplanmaz (verdict'ler zaten Safe Zone/Scammer'da herkese açık) → gizlilik/`LEGAL_UPDATED` değişmez. Testler: `badge.test.ts` + scan-store `latest()`; 993 test geçti; lint/typecheck/build temiz.
+- **Sırada (ayrı PR):** obfuscation tespitini güçlendirme (packer imzası, `_0x` string-array obfuscator, `\u` kaçışları; temkinli — tek başına Tehlikeli yapmaz).
+
 ### 17 Ekim 2026 (39. oturum): Tam güvenlik denetimi + sertleştirme
 
 Kullanıcı isteği: "bir siber güvenlik sitesi olarak kendimizi de koruyalım, her yerden sızmaya çalışsınlar çalışamasınlar." Dört paralel denetçi ajan tüm saldırı yüzeyini taradı (SQL injection + veri katmanı; kimlik/captcha/oturum; XSS/SSRF/girdi; DoS/ReDoS/limitler). Bulgular kodda tek tek doğrulandı ve düzeltildi.

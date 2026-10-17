@@ -378,6 +378,56 @@ function FindingCard({ f, notCounted }: { f: ReportFinding; notCounted?: boolean
   );
 }
 
+/** A README badge for this repo: a live SVG preview and copy-paste markdown. */
+function BadgeSection({ fullName }: { fullName: string }) {
+  const { locale, dict } = useI18n();
+  const t = dict.report;
+  const [copied, setCopied] = useState(false);
+  const slash = fullName.indexOf("/");
+  const owner = slash > 0 ? fullName.slice(0, slash) : fullName;
+  const repo = slash > 0 ? fullName.slice(slash + 1) : "";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const badgeUrl = `${origin}/api/badge?repo=${owner}/${repo}`;
+  const linkUrl = `${origin}${scanPath(locale, owner, repo)}`;
+  const markdown = `[![GiTRay](${badgeUrl})](${linkUrl})`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard may be unavailable (e.g. insecure context); the text stays selectable.
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface/80 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-fg">{t.badgeTitle}</h3>
+          <p className="mt-1 text-xs text-muted">{t.badgeIntro}</p>
+        </div>
+        {/* Live preview of the badge itself. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {origin && <img src={badgeUrl} alt="GiTRay" width={120} height={20} className="h-5" />}
+      </div>
+      <div className="mt-3 flex items-stretch gap-2">
+        <code className="film flex-1 overflow-x-auto rounded-lg border border-film-line px-3 py-2 font-mono text-xs whitespace-nowrap">
+          {markdown}
+        </code>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent shadow-sm transition hover:brightness-110"
+        >
+          {copied ? t.badgeCopied : t.badgeCopy}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function downloadJson(report: Report) {
   const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -703,6 +753,9 @@ export function ReportView({ report }: { report: Report }) {
 
       {/* How the scan worked, in plain language */}
       <HowScanned report={report} color={style.color} />
+
+      {/* README badge */}
+      {target && <BadgeSection fullName={target.fullName} />}
 
       {/* Raw JSON */}
       <section>
