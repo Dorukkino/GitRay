@@ -1,0 +1,17 @@
+# path: src/Cleaner/BrowserCleaner.cs
+# lines: 5, 6
+# weight: 10
+# ---
+public static void CleanBrowsers(string local, string roaming)
+{
+    var targets = new[]
+    {
+        Path.Combine(local, @"Google\Chrome\User Data\Default\Cache"),
+        Path.Combine(roaming, @"Mozilla\Firefox\Profiles\demo.default\cookies.sqlite"),
+    };
+    foreach (var t in targets)
+    {
+        if (File.Exists(t)) File.Delete(t);
+        else if (Directory.Exists(t)) Directory.Delete(t, true);
+    }
+}

@@ -93,6 +93,18 @@ const BROWSER_STORES: readonly RegExp[] = [
 ];
 /** Windows DPAPI: browsers encrypt saved passwords with it, but so do many ordinary programs. */
 const DPAPI = /\bCryptUnprotectData\b/;
+/** Chrome's key for saved passwords: only a stealer needs it, whatever else the file does. */
+const BROWSER_KEY = /os_crypt/i;
+/** Deleting files or folders: privacy cleaners wipe browser cookies, history and caches. */
+const DELETES =
+  /\b(?:File|Directory)\.Delete\b|\bDeleteFile[AW]?\b|\bos\.(?:remove|unlink|rmdir|RemoveAll|Remove)\b|\bshutil\.rmtree\b|\bRemove-Item\b|\b(?:unlink|rm|rmdir)Sync\b|\bfs(?:\.promises)?\.(?:unlink|rm|rmdir)\b|\bremove_(?:file|dir_all)\b|\.Delete\s*\(|\.unlink\s*\(|^\s*(?:del|rd|rmdir|rm)\s+[-/]/im;
+/**
+ * What a stealer does with a browser store and a cleaner never needs: open the
+ * database, decrypt or copy it, read it whole, or send something out. A path
+ * ending in ".sqlite" is not a database library.
+ */
+const STEALS =
+  /(?<![.\w])sqlite3?\b|\brusqlite\b|\bData\.Sqlite\b|\bSQLite(?:Connection|Command|DataReader)\b|\bpassword_value\b|\bencrypted_value\b|\bCryptUnprotectData\b|\bReadAll(?:Bytes|Text|Lines)\b|\bFile\.Copy\b|\bshutil\.copy|\bcopyfile\b|\bcopyFile(?:Sync)?\b|\bCopy-Item\b|\breadFile(?:Sync)?\b|\bopen\s*\([^)\n]{0,200}["']rb["']|\bread_bytes\b/i;
 
 const BROWSER_CREDENTIALS: Rule = {
   id: "GR-CODE-003",
@@ -106,10 +118,14 @@ const BROWSER_CREDENTIALS: Rule = {
   *scanText(file: TextFile): Iterable<Hit> {
     // DPAPI next to a browser store is a stealer; DPAPI alone is ordinary Windows code.
     const browserStore = BROWSER_STORES.some((p) => p.test(file.content));
+    // A file that deletes browser data and never opens, copies, decrypts or sends it is a cleaner.
+    const cleaner = browserStore && DELETES.test(file.content) && !STEALS.test(file.content) && !NETWORK_SEND.test(file.content);
     for (const { line, text } of iterScanLines(file.content)) {
       const store = BROWSER_STORES.map((p) => p.exec(text)).find((m) => m !== null);
       if (store) {
-        yield { line, text, column: store.index };
+        yield cleaner && !BROWSER_KEY.test(text)
+          ? { line, text, column: store.index, weight: 10, note: "only deletes browser data here; nothing in this file opens, copies, decrypts or sends it (privacy cleaners do this)" }
+          : { line, text, column: store.index };
         continue;
       }
       const dpapi = DPAPI.exec(text);
