@@ -537,6 +537,25 @@ export const tr: Dictionary = {
     },
     rawTitle: "Ham JSON raporu (geliştiriciler için)",
     download: "İndir",
+    reportButton: "Yanlış mı? Bildir",
+    reportTitle: "Yanlış sonucu bildir",
+    reportIntro: "Kararlar otomatiktir ve yanlış olabilir. Neyi yanlış bulduğumuzu yazın — yalnızca site sahibine iletilir.",
+    reportPlaceholder: "Güvenli olduğu halde neyi işaretledik, ya da neyi kaçırdık?",
+    captchaAlt: "Robot kontrolü",
+    captchaLabel: "Karakterleri yazın",
+    captchaRefresh: "Yenile",
+    reportSubmit: "Gönder",
+    reportSending: "Gönderiliyor…",
+    reportSuccess: "Teşekkürler — bildiriminiz site sahibine iletildi.",
+    reportClose: "Kapat",
+    reportErrors: {
+      captcha_failed: "Robot kontrolü yanlış ya da süresi dolmuş. Lütfen tekrar deneyin.",
+      bad_reason: "Lütfen neyin yanlış olduğunu birkaç kelimeyle yazın.",
+      bad_request: "Geçersiz istek. Lütfen tekrar deneyin.",
+      rate_limited: "Buradan çok fazla bildirim geldi. Lütfen sonra tekrar deneyin.",
+      storage_unavailable: "Bildirim şu anda kullanılamıyor.",
+      generic: "Bildiriminiz gönderilemedi. Lütfen tekrar deneyin.",
+    } as Record<string, string>,
     gaugeLabel: "Risk puanı 100 üzerinden {score}",
     gaugeSuffix: "/ 100 risk",
   },
@@ -688,6 +707,19 @@ export const tr: Dictionary = {
             "veritabanında tutulur. Vercel, kendi politikası çerçevesinde IP adreslerini de içeren standart istek " +
             "loglarını tutabilir. Yazı tipleri bu siteden gelir. Tek üçüncü taraf script Google Analytics'tir ve " +
             "yalnızca kabul ettikten sonra yüklenir.",
+        ],
+      },
+      {
+        title: "Yanlış sonucu bildirme",
+        paragraphs: [
+          'Bir tarama sayfasındaki "yanlış sonucu bildir" düğmesini kullanırsanız, yazdığınız not; o taramanın repo ' +
+            "adı, kararı, puanı ve motor sürümüyle birlikte saklanır. İsim, e-posta ya da başka bir kimlik bilgisi " +
+            "istenmez ve saklanmaz. IP adresiniz yalnızca bildirimlerin sıklığını sınırlamak ve kötüye kullanımı " +
+            "önlemek için kullanılır ve tam haliyle değil, yalnızca anahtarlı bir özet (HMAC) olarak tutulur.",
+          "Bu bildirimler özeldir: tespiti iyileştirmek için yalnızca site sahibi okur. Herkese açık gösterilmez. En " +
+            "fazla 2.000 tanesi tutulur; en eskiler önce silinir.",
+          "Site sahibi bunları özel bir sayfada; kullanıcı adı, şifre ve bir robot kontrolüyle inceler. Giriş IP " +
+            "adresi yalnızca başarısız denemeleri sınırlamak için, anahtarlı bir özet olarak kullanılır.",
         ],
       },
       {

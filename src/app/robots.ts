@@ -5,7 +5,7 @@ import { siteUrl } from "@/lib/site";
 /** The API stays out of crawlers' reach, so a crawler rendering a scan page cannot start scans. */
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/api/" },
+    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/dorukadm"] },
     sitemap: `${siteUrl()}/sitemap.xml`,
   };
 }

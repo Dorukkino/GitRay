@@ -12,6 +12,7 @@ import { useI18n } from "@/i18n/provider";
 import { ruleText } from "@/i18n/rules";
 
 import { Reveal } from "./motion";
+import { ReportFalseFinding } from "./ReportFalseFinding";
 import { ScoreGauge } from "./ScoreGauge";
 import { CATEGORY_ORDER, SEVERITY_STYLE, VERDICT_STYLE, VerdictBadge } from "./verdict";
 
@@ -420,6 +421,7 @@ export function ReportView({ report }: { report: Report }) {
   const t = dict.report;
   const [category, setCategory] = useState<Category | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
+  const [reporting, setReporting] = useState(false);
   const style = VERDICT_STYLE[report.verdict];
   const target = report.target;
 
@@ -481,6 +483,16 @@ export function ReportView({ report }: { report: Report }) {
                   {t.partialScan}
                 </span>
               )}
+              {target && (
+                <button
+                  type="button"
+                  onClick={() => setReporting((v) => !v)}
+                  aria-expanded={reporting}
+                  className="rounded-full border border-line bg-surface/70 px-2.5 py-1 text-xs text-muted transition hover:border-accent/40 hover:text-accent"
+                >
+                  {t.reportButton}
+                </button>
+              )}
             </div>
             {target ? (
               <div>
@@ -518,6 +530,10 @@ export function ReportView({ report }: { report: Report }) {
         {/* Reports stored before this check existed have no submodules. */}
         {(report.submodules?.length ?? 0) > 0 && <Submodules list={report.submodules} />}
       </motion.section>
+
+      <AnimatePresence>
+        {reporting && target && <ReportFalseFinding key="report-form" report={report} onClose={() => setReporting(false)} />}
+      </AnimatePresence>
 
       {report.partial && (
         <Reveal>
