@@ -3,7 +3,11 @@
 const MiB = 1024 * 1024;
 
 export interface Limits {
-  /** Repository size reported by the GitHub API (KB, includes history; approximate). */
+  /**
+   * Repository size reported by the GitHub API (KB). It includes the whole history,
+   * while a scan downloads only one commit's tree, so this is a loose upper gate; the
+   * download itself is bounded by maxDownloadBytes and maxTotalBytes.
+   */
   maxRepoSizeKb: number;
   /** Compressed bytes downloaded from GitHub. */
   maxDownloadBytes: number;
@@ -39,7 +43,7 @@ export interface Limits {
 }
 
 export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
-  maxRepoSizeKb: 500_000,
+  maxRepoSizeKb: 1_500_000,
   maxDownloadBytes: 50 * MiB,
   maxEntries: 20_000,
   maxFileBytes: 1 * MiB,

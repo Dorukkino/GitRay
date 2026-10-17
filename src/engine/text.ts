@@ -91,6 +91,16 @@ export function isSourcePath(path: string): boolean {
   return SOURCE_SUFFIXES.has(extension(path));
 }
 
+/**
+ * A bundled or minified file: large with very long lines (no reviewer reads it).
+ * Used to skip human-review attacks (Trojan Source) and generated-code analysis.
+ * Not used by payload detection, where a one-line blob is exactly what we look for.
+ */
+export function isMinified(content: string): boolean {
+  const avgLineLength = content.length / (content.split("\n", 2000).length || 1);
+  return content.length > 20_000 && avgLineLength > 400;
+}
+
 const TEST_DIRS = new Set([
   "test",
   "tests",

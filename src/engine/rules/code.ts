@@ -107,6 +107,13 @@ const DELETES =
 const STEALS =
   /(?<![.\w])sqlite3?\b|\brusqlite\b|\bData\.Sqlite\b|\bSQLite(?:Connection|Command|DataReader)\b|\bpassword_value\b|\bencrypted_value\b|\bCryptUnprotectData\b|\bReadAll(?:Bytes|Text|Lines)\b|\bFile\.Copy\b|\bshutil\.copy|\bcopyfile\b|\bcopyFile(?:Sync)?\b|\bCopy-Item\b|\breadFile(?:Sync)?\b|\bopen\s*\([^)\n]{0,200}["']rb["']|\bread_bytes\b/i;
 
+/**
+ * String tables and settings files (translations, INI): UI labels and config
+ * values, never executable code. A browser-store name here is a label, and words
+ * like "SQLite" or "curl" in a label are not the code that reads or sends a store.
+ */
+const STRING_TABLE_EXTENSIONS = new Set([".ini", ".po", ".pot", ".properties", ".strings", ".resx"]);
+
 const BROWSER_CREDENTIALS: Rule = {
   id: "GR-CODE-003",
   title: "Reads browser password or cookie stores",
@@ -119,14 +126,21 @@ const BROWSER_CREDENTIALS: Rule = {
   *scanText(file: TextFile): Iterable<Hit> {
     // DPAPI next to a browser store is a stealer; DPAPI alone is ordinary Windows code.
     const browserStore = BROWSER_STORES.some((p) => p.test(file.content));
+    // A string table or settings file (translations, INI) holds labels and values, not
+    // code: a store name there is only a label, so it never reads, decrypts or sends anything.
+    const dataFile = STRING_TABLE_EXTENSIONS.has(extension(file.path));
     // A file that deletes browser data and never opens, copies, decrypts or sends it is a cleaner.
     const cleaner = browserStore && DELETES.test(file.content) && !STEALS.test(file.content) && !NETWORK_SEND.test(file.content);
     for (const { line, text } of iterScanLines(file.content)) {
       const store = BROWSER_STORES.map((p) => p.exec(text)).find((m) => m !== null);
       if (store) {
-        yield cleaner && !BROWSER_KEY.test(text)
-          ? { line, text, column: store.index, weight: 10, ...note("browserCleaner") }
-          : { line, text, column: store.index };
+        if (dataFile) {
+          yield { line, text, column: store.index, weight: 10, ...note("browserName") };
+        } else {
+          yield cleaner && !BROWSER_KEY.test(text)
+            ? { line, text, column: store.index, weight: 10, ...note("browserCleaner") }
+            : { line, text, column: store.index };
+        }
         continue;
       }
       const dpapi = DPAPI.exec(text);
@@ -163,8 +177,15 @@ const AUTHORIZED_KEYS = /authorized_keys/;
 const SSH_KEYS: Rule = {
   ...SSH_KEY_PATTERNS,
   *scanText(file: TextFile, ctx): Iterable<Hit> {
+    // CI configurations run on a build server, not on the cloner's machine, and set up
+    // their own deploy keys there (echo "$key" > ~/.ssh/id_rsa). Low signal, like GR-CI-001.
+    const ci = pathMatches(file.path, CI_PATHS);
     const sends = NETWORK_SEND.test(file.content);
     for (const hit of SSH_KEY_PATTERNS.scanText!(file, ctx)) {
+      if (ci) {
+        yield { ...hit, weight: 10, ...note("sshCi") };
+        continue;
+      }
       if (AUTHORIZED_KEYS.test(hit.text)) {
         yield hit;
         continue;

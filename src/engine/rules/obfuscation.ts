@@ -1,6 +1,6 @@
 /** GR-OBF-*: obfuscated, packed or hidden content. */
 
-import { STEGO_CLASS, ZERO_WIDTH_CLASS, closingQuote, isSourcePath, iterScanLines, openQuoteAt, shannonEntropy } from "../text";
+import { STEGO_CLASS, ZERO_WIDTH_CLASS, closingQuote, isMinified, isSourcePath, iterScanLines, openQuoteAt, shannonEntropy } from "../text";
 import type { TextFile } from "../types";
 import { type NoteArgs, type NoteKey, note } from "../notes";
 import type { Hit, Rule } from "./base";
@@ -153,6 +153,12 @@ const HIGH_ENTROPY: Rule = {
     "*.svg",
     "*.drawio",
     "*.pdf",
+    // Yarn commits its own package manager and plugins here (Zero-Install); the
+    // PnP loader is generated. Like a lockfile, these are tool-managed, not hand-written.
+    ".yarn/releases/*",
+    ".yarn/plugins/*",
+    ".pnp.cjs",
+    ".pnp.loader.mjs",
   ],
   why:
     "Long strings that look random are typical of encoded or encrypted payloads that are " +
@@ -201,6 +207,9 @@ const TROJAN_SOURCE: Rule = {
   *scanText(file: TextFile): Iterable<Hit> {
     // Only source files: bidi controls are legitimate in right-to-left prose and translations.
     if (!isSourcePath(file.path)) return;
+    // Bundled or minified files (e.g. a dist .mjs on one long line) are read by no
+    // reviewer, so the review deception this attack relies on cannot happen.
+    if (isMinified(file.content)) return;
     let last = 0;
     for (const { line, text } of iterScanLines(file.content)) {
       const m = line === last ? null : BIDI_OPENER.exec(text);

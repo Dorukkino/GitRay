@@ -1,6 +1,6 @@
 # GiTRay ilerleme günlüğü
 
-Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
+Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
 
 ## Şu anki durum
 
@@ -9,7 +9,7 @@ Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Parça | Durum |
 | --- | --- |
 | Tarama motoru (TypeScript, bellekte ve limitli) | Hazır |
-| 35 kural, 9 kategori | Hazır |
+| 38 kural, 9 kategori | Hazır |
 | ZIP içeriğini tarama, `export-ignore` ile saklanan dosyaları yakalama | Hazır (5. oturum) |
 | Web sitesi: arama, sonuç, Safe Zone, Scammer, Son tarananlar, kurallar | Hazır; 10. oturumda yeni tasarım (açık/koyu tema, Motion animasyonları, kullanıcının logosu, kaydırınca gelen kartlar), 11. oturumda son tarananlar ve haftalık sayı |
 | Diller | İngilizce ve Türkçe (10. oturum); yenisi `src/i18n/` ile eklenir |
@@ -18,7 +18,7 @@ Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 26 dosya, 858 test |
+| Testler | 27 dosya, 941 test |
 | Vercel'e deploy | Canlıda: **https://www.gitray.com.tr** (11 Ekim; `gitray.com.tr` ona yönlenir, gitray.vercel.app de çalışır) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -81,6 +81,16 @@ Son güncelleme: **11 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 - [ ] **Aşama 6 (opsiyonel):** Tarayıcı eklentisi (GitHub sayfasında rozet), GitHub Action, Gradle/Podfile/Makefile kuralları, LLM ile bulgu özeti.
 
 ## Oturum günlüğü
+
+### 17 Ekim 2026 (34. oturum): Büyük meşru projelerdeki yanlış alarmlar (Joomla, OpenCart) + WordPress taranamıyordu
+
+Dış geri bildirim (bir arkadaş/forum): tanınmış projeleri "Tehlikeli" etiketlemek hukuki risk ("joomla veya opencart dava açabilir") ve WordPress reposu "her seferinde yarım bitti". Yerelde (kod çalıştırmadan, sadece dosya okuyarak) tarayıp kök sebepleri bulduk; hepsi yanlış alarmdı:
+- **Joomla 100 → 55 (Suspicious).** `GR-CODE-003` çeviri dosyasındaki `INSTL_LOGIN_DATA="Login Data"` etiketini "tarayıcı şifresi okuyor" sandı (+40); aynı `.ini`'deki `SQLITE="SQLite"` etiketi de "okuma" kanıtı sayılıyordu. Düzeltme: **string tablosu / ayar dosyaları** (`.ini`, `.po`, `.pot`, `.properties`, `.strings`, `.resx`; `STRING_TABLE_EXTENSIONS`) kod değildir, oradaki tarayıcı-dosyası adı her zaman etiket (10). `GR-CODE-004` ise `.drone.yml` (CI) içinde dağıtım anahtarı **yazılmasını** (`echo "$key" > ~/.ssh/id_rsa`) anahtar **çalma** sandı (+25); CI dosyalarında artık 10 (derleme sunucusunda çalışır, `CI_PATHS`). Kalan 55 gerçek sinyal (repoya konmuş `php_gmp.dll`, kurulum scripti).
+- **OpenCart 45 → 15 (Clean).** `GR-OBF-001` Yarn'ın kendi `.yarn/releases/yarn-4.1.0.cjs` dosyasını (+15) ve `GR-OBF-002` KaTeX'in `katex.mjs`'sindeki yön karakterini (+15) işaretledi. Düzeltme: Yarn Zero-Install dosyaları (`.yarn/releases/*`, `.yarn/plugins/*`, `.pnp.cjs`, `.pnp.loader.mjs`) GR-OBF-001'de hariç; GR-OBF-002 artık adıyla **ve içeriğiyle** minified dosyaları atlar (`text.isMinified`, davranış motorundan taşındı). GR-OBF-001 içerik-minified atlaması kullanmaz (tek satırlık blob tam da payload olabilir).
+- **WordPress "Eksik".** Kesin sebep: GitHub'ın bildirdiği `size` **tüm geçmişi** içerir (WordPress 707 MB), bizim `maxRepoSizeKb` 500 MB'dı → daha indirmeden reddediliyordu. Oysa çalışma ağacı 160 MB ve biz yalnızca tek commit'in arşivini indiririz. `maxRepoSizeKb` 1,5 GB yapıldı; indirme zaten `maxDownloadBytes`/`maxTotalBytes`/süre ile sınırlı. Artık reddedilmez; büyük kısmı taranır (WordPress arşivi ~60 MB olduğu için yine indirme sınırında Eksik bitebilir ama bu dürüst ve 0 dosya yerine ~%80).
+- **Hukuki/isim:** EN liste adı "Scammer" → **"Dangerous"** (TR'deki "Tehlikeli" ile aynı, suçlayıcı değil; URL `/scammer` kalır). Tehlikeli listesi uyarısı güçlendirildi (en/tr): otomatik puandır, kimseye suçlama değildir, yanlış olabilir, tanınmış proje bile yanlışlıkla işaretlenebilir, düzeltince yeniden taranabilir.
+- `ENGINE_VERSION` 0.9.7 → 0.9.8. Tüm testler geçti (941), kalibrasyon kilitli (zararlı biçimler hâlâ yakalanıyor; tüm değişiklikler puanı azaltan yönde, yeni yanlış pozitif üretmez). Lint, typecheck, build temiz.
+- Açık kalibrasyon sorusu (kullanıcıya soruldu, sonra): `GR-BIN-001` (repoya konmuş program, +20) meşru vendored DLL'ler için çok mu yüksek — Joomla'yı Suspicious'ta tutan asıl sinyal bu.
 
 ### 9 Ekim 2026: Sıfırdan yeniden başlangıç ve MVP
 
