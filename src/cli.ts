@@ -39,6 +39,9 @@ function printReport(r: Report): void {
   if (r.testFilesCapped) {
     out.push("Held at suspicious: the score above 69 comes from test files, and nothing runs by itself on install");
   }
+  if (r.weakSignalsCapped) {
+    out.push("Held at suspicious: the score comes from several medium findings adding up, not one decisive signal");
+  }
   out.push(
     `Scanned ${r.stats.textFiles} text and ${r.stats.binaryFiles} binary files with ${r.rulesRun} rules in ${(r.durationMs / 1000).toFixed(1)} s`,
   );

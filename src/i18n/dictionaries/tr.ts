@@ -397,6 +397,13 @@ export const tr: Dictionary = {
       "değiştirmez — sonuç test dışındaki dosyalara göre verilir. Bu repoda kurulumda ya da açılışta kendiliğinden " +
       'çalışan bir şey yok; olsaydı puanın tamamı sayılırdı. Testleri çalıştırmadan önce "test dosyasında" diye ' +
       "işaretlenen bulgulara bakın.",
+    weakHeldTitle: "Şüpheli'de tutuldu.",
+    weakHeldText:
+      "Puan yüksek ama tek bir belirleyici bulgudan değil, birkaç orta bulgunun toplanmasından geliyor. Büyük meşru " +
+      "projeler böyle sinyaller biriktirir — bir kurulum adımı, dokümanlarında indirme linkleri, paketlenmiş bir " +
+      "kütüphane. Tehlikeli yalnızca tek bir güçlü işaret (kimlik bilgisi çalan bir veri akışı, zararlı bir " +
+      "bağımlılık, antivirüslerin yakaladığı bir dosya) ya da iki güçlü işaret birlikte varsa verilir. Aşağıdaki " +
+      "bulgulara bakıp kendiniz karar verin.",
     scanResult: "Tarama sonucu",
     metadata: "Repo bilgisi",
     inDocs: "belgede, ağırlığı düşürüldü",

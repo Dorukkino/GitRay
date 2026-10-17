@@ -57,6 +57,7 @@ function result(findings: Finding[]): ScanResult {
     archiveCheck: { status: "ok", hidden: 0, scanned: 0 },
     dependencyCheck: { status: "none", packages: 0, malicious: 0 },
     testFilesCapped: false,
+    weakSignalsCapped: false,
     submodules: [],
     reputationCheck: { status: "none", files: [], notLookedUp: 0 },
     rulesRun: ["GR-CODE-002"],

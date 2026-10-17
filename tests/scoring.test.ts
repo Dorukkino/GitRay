@@ -43,6 +43,22 @@ describe("scoring", () => {
     expect(clean.ruleScores).toEqual({ A: 35, B: 15, C: 20 });
   });
 
+  it("holds an accumulation of weak/medium signals at suspicious unless one is decisive", () => {
+    // No single finding >= 40 and not two >= 35: a big legitimate project's signals.
+    const weak = score([finding("A", 35), finding("B", 20), finding("C", 20), finding("D", 15), finding("E", 10)]);
+    expect(weak).toMatchObject({ verdict: "suspicious", weakSignalsCapped: true });
+    expect(weak.score).toBe(DANGEROUS_AT - 1);
+    // One strong finding (>= 40) is decisive.
+    const strong = score([finding("A", 40), finding("B", 20), finding("C", 20)]);
+    expect(strong).toMatchObject({ verdict: "dangerous", weakSignalsCapped: false });
+    // Two high findings (>= 35) are decisive (an install hook that pipes a download to a shell).
+    const twoHigh = score([finding("A", 35), finding("B", 35)]);
+    expect(twoHigh).toMatchObject({ verdict: "dangerous", weakSignalsCapped: false });
+    // A social-engineering / distribution red flag keeps a lure dangerous even with weak parts.
+    const lure = score([finding("GR-SOC-001", 25, "README.md", "social"), finding("GR-LINK-003", 20), finding("GR-LINK-004", 20), finding("GR-LINK-001", 20)]);
+    expect(lure).toMatchObject({ verdict: "dangerous", weakSignalsCapped: false });
+  });
+
   it("does not hold it when an autorun launches the test file or the non-test findings stand on their own", () => {
     const tests = [finding("A", 45, "tests/setup.js"), finding("B", 15, "tests/setup.js")];
     // An install script that actually runs a test-folder file disables the cap.

@@ -82,6 +82,14 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 17 Ekim 2026 (36. oturum): Güçlü sinyal şartı (zayıf sinyal birikimi artık Tehlikeli yapmaz)
+
+35. oturumun açık meselesi (kullanıcı "güçlü tek sinyal şartı"nı seçti). 52 repoluk tam tarama 3 Tehlikeli bıraktı: powertoys (100), rustup (80), yt-dlp (75) — ilk ikisi birikimden. Çözüm (`scoring.ts` `hasDecisiveSignal`): **Tehlikeli (≥70) belirleyici bir sinyal ister** (tek bulgu ≥40, ya da iki ≥35, ya da `LURE_RULES` tuzak bayrağı); yoksa Şüpheli'de tutulur, puan 69'a iner (`weakSignalsCapped`, raporda ayrı açıklama kutusu, en/tr).
+- **Kritik tasarım**: düz "≥40 şartı" projenin **birincil hedefini** (sahte "ücretsiz araç" tuzakları) kaçırırdı — onlar 20–25'lik sinyallerin (antivirüsü kapat + mediafire + şifreli arşiv) birikiminden 70+ alır, tek güçlü sinyalleri yoktur. Bu yüzden `LURE_RULES` (dosya-paylaşım `GR-LINK-003`, arşiv şifresi `GR-LINK-004`, şifreli arşiv `GR-BIN-002`, malware satışı `GR-SOC-002`) varken birikim korunur. İki ≥35 de belirleyici (install hook'ta `curl|sh`: `GR-AUTO`+`GR-CODE-002`).
+- `GR-SOC-001` (antivirüsü kapat) bilerek tuzak setinin **dışında**: rustup `faq.md`'de yavaşlık için "disable antivirus scanner and try again" diyor — meşru ama metince tuzakla aynı. Dışarıda bırakınca rustup Şüpheli oldu, sahte-araç tuzağı ise `LINK-003`+`LINK-004` ile Tehlikeli kaldı.
+- **Sonuç:** powertoys 100→**Şüpheli 69**, rustup 80→**Şüpheli 69**. yt-dlp **Tehlikeli 75** kalır: `yt_dlp/cookies.py` gerçekten tarayıcı çerez/şifre veritabanını (cookies.sqlite, os_crypt) okur — meşru bir özellik ama gerçek bir yetenek; `GR-CODE-003`=40 belirleyici. (Not: yt-dlp çerezleri dışarı sızdırmaz; sızdırsaydı `GR-BEH-001`=70 olurdu. İleride "okuyor ama göndermiyor" durumunu daha da yumuşatmak tartışılabilir.)
+- `ENGINE_VERSION` 0.9.9 → 0.10.0. 942 test (yeni kapı için birim testleri eklendi); tüm zararlı kalibrasyon vakaları hâlâ Tehlikeli; lint/typecheck/build temiz.
+
 ### 17 Ekim 2026 (35. oturum): Geniş kalibrasyon turu (popüler repolardaki yanlış alarmlar)
 
 Kullanıcı: "kalibre edelim, her şeyin doğru düzgün olması temel amaç; gerçek rapor vermezse sitenin anlamı kalmaz." 52 popüler temiz repoyu yerelde (kod çalıştırmadan) tarayıp Temiz olmayanları inceledik. Çıkan kök sebepler ve düzeltmeler:
