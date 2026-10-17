@@ -1,0 +1,9 @@
+# path: README.md
+# ---
+# Awesome Malware Analysis
+
+- Ransomware trackers, botnet sinkhole data and RAT configuration extractors.
+- Crypter and packer identification tools.
+- Keylogger and stealer samples for research (password protected, see theZoo).
+
+Contributions welcome: open a pull request.

@@ -8,7 +8,7 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 
 ## What it checks
 
-35 rules in 9 categories (full list on the `/rules` page):
+36 rules in 9 categories (full list on the `/rules` page):
 
 | Category | Examples |
 | --- | --- |
@@ -16,7 +16,7 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 | Runs automatically | npm `postinstall`, `setup.py`, VS Code tasks and settings, dev container `initializeCommand`, Claude Code / Cursor hooks and MCP servers, `.npmrc`, `.envrc`, Visual Studio build events, Rust `build.rs` |
 | Malicious code patterns | decode-and-exec, `curl \| sh`, browser password and cookie stores, SSH keys, crypto wallets, Discord/Telegram exfiltration, Windows LOLBins |
 | Hidden content | high-entropy blobs, Trojan Source bidi characters, code pushed off-screen with whitespace, invisible Unicode payloads |
-| Links and social engineering | executables outside the repo's own releases, file-sharing sites, link shorteners, archive passwords, "disable your antivirus" |
+| Links and social engineering | executables outside the repo's own releases, file-sharing sites, link shorteners, archive passwords, "disable your antivirus", READMEs that sell malware builders and crypters |
 | Binary files | committed PE/ELF/Mach-O executables, `.lnk` shortcuts, encrypted archives, files antivirus engines detect ([VirusTotal](https://www.virustotal.com), by SHA-256 only); files inside ZIPs are unpacked in memory and scanned too |
 | Repository signals | brand-new accounts and repositories, files hidden from GitHub's download archive (weak signals) |
 
@@ -24,7 +24,7 @@ Each rule adds its strongest finding once to a 0-100 score: **clean** below 30, 
 
 The site speaks English and Turkish (`/en/...`, `/tr/...`; the visitor's browser language is picked by default) and has a light and a dark theme.
 
-The latest result of every scanned repository is stored. Clean repositories are listed in the **Safe Zone**, dangerous ones in the **Scammer** list (automated results, with a link to report false positives).
+The latest result of every scanned repository is stored. Clean repositories are listed in the **Safe Zone**, dangerous ones in the **Scammer** list (automated results; a repository can be scanned again after a fix).
 
 ## How it works
 

@@ -1,0 +1,7 @@
+# path: reports/2026-demo-actor.md
+# ---
+# Demo actor: crypter-as-a-service
+
+The actor sells a FUD crypter on Telegram for $50 per month and advertises it next to
+stealer and RAT builder offers. Victims are reached through fake job interviews.
+Payment is taken in USDT. Indicators of compromise are listed below.
