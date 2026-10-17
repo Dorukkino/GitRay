@@ -390,12 +390,13 @@ export const tr: Dictionary = {
       "{title} {limit} sınırı taramayı {files} dosyadan sonra durdurdu ({reason}). Saldırganlar yükü büyük dosyaların " +
       "arkasına saklayabilir, bu yüzden kısmi bir tarama asla temiz sayılmaz.",
     partialTitle: "Kısmi tarama.",
-    heldTitle: "Şüpheli'de tutuldu.",
+    heldTitle: "Test dosyaları ayrı tutuldu.",
     heldText:
       "Puanın çoğu test dosyalarından geliyor (tests/, spec/, fixtures/). Test kodu bir repoyu klonlayınca ya da " +
-      "kurunca çalışmaz ve güvenlik araçları saldırı örneklerini orada tutar; bu yüzden bu bulgular tek başına bir " +
-      "repoyu en fazla Şüpheli yapar. Bu repoda kurulumda ya da açılışta kendiliğinden çalışan bir şey yok; olsaydı " +
-      'puanın tamamı sayılırdı. Testleri çalıştırmadan önce "test dosyasında" diye işaretlenen bulgulara bakın.',
+      "kurunca çalışmaz ve güvenlik araçları saldırı örneklerini orada tutar; bu yüzden bu bulgular tek başına kararı " +
+      "değiştirmez — sonuç test dışındaki dosyalara göre verilir. Bu repoda kurulumda ya da açılışta kendiliğinden " +
+      'çalışan bir şey yok; olsaydı puanın tamamı sayılırdı. Testleri çalıştırmadan önce "test dosyasında" diye ' +
+      "işaretlenen bulgulara bakın.",
     scanResult: "Tarama sonucu",
     metadata: "Repo bilgisi",
     inDocs: "belgede, ağırlığı düşürüldü",
@@ -474,6 +475,7 @@ export const tr: Dictionary = {
       envrcRemote: "klasöre girdiğinizde çalışıyor ve uzaktan içerik indiriyor",
       downloadHost: "{host} adresinden bir program ya da arşiv indiriyor",
       downloadGithub: "GitHub'da barınan bir indirme, ama bu reponun release'lerinden değil",
+      downloadGithubSource: "GitHub'dan başka bir reponun kaynak arşivini indiriyor (incelenebilir kaynak, paketlenmiş dosya değil)",
       downloadOtherArchive: "bu reponun taranmamış bir sürümünü indiriyor (başka bir dal ya da etiket)",
       hostLink: "{host} bağlantısı",
       sellsMalware: "{kinds} satışa sunuyor",

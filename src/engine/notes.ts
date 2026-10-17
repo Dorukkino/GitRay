@@ -73,6 +73,7 @@ export const NOTE_TEMPLATES = {
   // links
   downloadHost: "downloads an executable or archive from {host}",
   downloadGithub: "download hosted on GitHub, but not from this repository's releases",
+  downloadGithubSource: "downloads another repository's source archive from GitHub (reviewable source, not a packaged file)",
   downloadOtherArchive: "downloads a version of this repository that was not scanned (another branch or tag)",
   hostLink: "{host} link",
   sellsMalware: "offers {kinds} for sale",

@@ -135,6 +135,20 @@ function ownDownload(url: URL, info: RepoInfo | null): "release" | "archive" | "
   return ref === info.defaultBranch.toLowerCase() || ref === info.headSha ? "archive" : "other-archive";
 }
 
+/**
+ * A GitHub source archive of any repository (github.com/<o>/<r>/archive/... or
+ * codeload.github.com/<o>/<r>/tar.gz|zip/...). This is reviewable source code,
+ * no more dangerous than cloning that repository, so it weighs little — unlike a
+ * packaged executable or a release binary. Path-escaped links do not qualify.
+ */
+function isGithubSourceArchive(url: URL): boolean {
+  const host = url.hostname;
+  if (PATH_ESCAPES.some((e) => url.href.slice(url.origin.length).includes(e))) return false;
+  if (host === "github.com" || host === "www.github.com") return /^\/[^/]+\/[^/]+\/archive\//i.test(url.pathname);
+  if (host === "codeload.github.com") return /^\/[^/]+\/[^/]+\/(?:tar\.gz|zip|legacy\.(?:tar\.gz|zip))\//i.test(url.pathname);
+  return false;
+}
+
 function hasRiskyExtension(url: URL): boolean {
   const path = url.pathname.toLowerCase();
   return RISKY_EXTENSIONS.some((ext) => path.endsWith(ext)) && !isInfoPage(url);
@@ -156,6 +170,11 @@ const DOWNLOAD_LINK: Rule = {
         if (!hasRiskyExtension(url)) continue;
         const own = ownDownload(url, ctx.info);
         if (own === "release" || own === "archive") continue;
+        if (own !== "other-archive" && isGithubSourceArchive(url)) {
+          // Another repository's source tarball: reviewable, like a clone. Low weight.
+          yield { line, text, column: index, weight: 5, ...note("downloadGithubSource") };
+          break;
+        }
         const hit =
           own === "other-archive"
             ? note("downloadOtherArchive")
