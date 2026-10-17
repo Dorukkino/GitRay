@@ -318,7 +318,7 @@ function HowScanned({ report, color }: { report: Report; color: string }) {
   );
 }
 
-function FindingCard({ f }: { f: ReportFinding }) {
+function FindingCard({ f, notCounted }: { f: ReportFinding; notCounted?: boolean }) {
   const { dict } = useI18n();
   const t = dict.report;
   const text = ruleText(dict, f.ruleId, { title: f.title, why: f.why });
@@ -336,8 +336,9 @@ function FindingCard({ f }: { f: ReportFinding }) {
         <SeverityPill severity={f.severity} />
         <h4 className="font-medium text-fg">{text.title}</h4>
         <span className="font-mono text-xs text-subtle">
-          {f.ruleId} · +{f.weight}
+          {f.ruleId} · {notCounted ? <span className="text-subtle line-through">+{f.weight}</span> : `+${f.weight}`}
         </span>
+        {notCounted && <Tag>{t.notCounted}</Tag>}
         {f.docContext && <Tag>{t.inDocs}</Tag>}
         {f.patternContext && <Tag>{t.inPattern}</Tag>}
         {f.inArchive && <Tag>{t.inZip}</Tag>}
@@ -548,20 +549,25 @@ export function ReportView({ report }: { report: Report }) {
           <div className="overflow-hidden rounded-2xl border border-line bg-surface/80 shadow-sm">
             <table className="w-full text-sm">
               <tbody>
-                {report.rules.map((r, i) => (
-                  <tr key={r.id} className="border-b border-line/70 last:border-0">
-                    <td className="w-16 px-3 py-2.5 text-right font-mono font-semibold text-fg">+{r.points}</td>
+                {report.rules.map((r, i) => {
+                  const notCounted = report.testFilesCapped && r.testOnly;
+                  return (
+                  <tr key={r.id} className={`border-b border-line/70 last:border-0 ${notCounted ? "opacity-60" : ""}`}>
+                    <td className="w-16 px-3 py-2.5 text-right font-mono font-semibold text-fg">
+                      {notCounted ? <span className="text-subtle line-through">+{r.points}</span> : `+${r.points}`}
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className="text-fg">{ruleText(dict, r.id, { title: r.title, why: "" }).title}</div>
                       <div className="font-mono text-xs text-subtle">
                         {r.id} · {dict.categories[r.category].label} · {plural(locale, r.findings, t.findingCount)}
+                        {notCounted && <span className="ml-1 text-subtle">· {t.notCounted}</span>}
                       </div>
                     </td>
                     <td className="hidden w-1/3 px-3 py-2.5 sm:table-cell">
                       <div className="h-1.5 overflow-hidden rounded-full bg-sunken">
                         <motion.div
                           className="h-1.5 rounded-full"
-                          style={{ background: style.color }}
+                          style={{ background: notCounted ? "var(--subtle)" : style.color }}
                           initial={{ width: 0 }}
                           whileInView={{ width: `${Math.min(100, r.points * 2)}%` }}
                           viewport={{ once: true }}
@@ -570,7 +576,8 @@ export function ReportView({ report }: { report: Report }) {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -610,7 +617,7 @@ export function ReportView({ report }: { report: Report }) {
                   <h3 className="mb-2 text-sm font-semibold tracking-wide text-subtle uppercase">{dict.categories[cat].label}</h3>
                   <div className="space-y-3">
                     {list.map((f, i) => (
-                      <FindingCard key={`${f.ruleId}-${f.path}-${f.line}-${i}`} f={f} />
+                      <FindingCard key={`${f.ruleId}-${f.path}-${f.line}-${i}`} f={f} notCounted={report.testFilesCapped && f.testContext} />
                     ))}
                   </div>
                 </motion.div>

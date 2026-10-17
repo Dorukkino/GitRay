@@ -488,6 +488,7 @@ export const tr: Dictionary = {
       accountNew: "sahip hesabı {days} gün önce açılmış",
       archiveHidden: "indirme arşivinde olmayan {count} dosya ({sample})",
     } as Record<string, string>,
+    notCounted: "sayılmadı",
     breakdownTitle: "Puanın dökümü",
     noRule: "Hiçbir kural eşleşmedi. Puan 0.",
     findingCount: { one: "{n} bulgu", other: "{n} bulgu" },

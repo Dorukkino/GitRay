@@ -418,6 +418,7 @@ export const en = {
     } as Record<string, string>,
     chainLine: "line {n}",
     notes: NOTE_TEMPLATES as Record<string, string>,
+    notCounted: "not counted",
     breakdownTitle: "Score breakdown",
     noRule: "No rule matched. Score 0.",
     findingCount: { one: "{n} finding", other: "{n} findings" } as PluralText,

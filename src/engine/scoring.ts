@@ -54,9 +54,11 @@ export function score(findings: Iterable<Finding>, complete = true): Scored {
   const outside = list.filter((f) => !isTestPath(f.path));
   if (!outside.some((f) => f.category === "autorun" && f.ruleId !== "GR-AUTO-008")) {
     const outsideScore = total(ruleScores(outside));
-    const cap = outsideScore >= DANGEROUS_AT ? MAX_SCORE : outsideScore >= SUSPICIOUS_AT ? DANGEROUS_AT - 1 : SUSPICIOUS_AT - 1;
-    if (points > cap) {
-      points = cap;
+    // The score becomes the non-test score itself, so the gauge matches the
+    // findings that actually counted. Not when the non-test findings are already
+    // dangerous: there the test findings just add within the same band.
+    if (outsideScore < DANGEROUS_AT && points > outsideScore) {
+      points = outsideScore;
       testFilesCapped = true;
     }
   }
