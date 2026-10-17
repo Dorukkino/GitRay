@@ -232,15 +232,36 @@ const LOLBIN_PATTERNS = regexRule({
 
 /** The registry keys Windows reads at logon to start programs. */
 const RUN_KEY = /\\CurrentVersion\\Run(?:Once)?\b/i;
+/** Setting a registry value: reg add, PowerShell, .NET, Win32, Python winreg, Go, VBScript, NSIS, Delphi. */
+const VALUE_WRITE =
+  /\breg(?:\.exe)?\s+(?:add|import)\b|\b(?:New|Set)-ItemProperty\b|\.SetValue\s*\(|\bSetValueEx[AW]?\b|\bRegSetValue|\bRegSetKeyValue|\bSet(?:String|ExpandString|DWord|QWord|Binary|Strings)Value\b|\bRegWrite\b|\bWriteReg(?:Str|ExpandStr|DWORD|Bin)\b|\bWriteString\b/i;
+/** Creating a key opens it for writing. */
+const CREATE_KEY = /\b(?:CreateSubKey|CreateKey(?:Ex)?|RegCreateKeyEx[AW]?)\s*\(/;
+/** Opening a key, and the flags that open it for writing. */
+const OPEN_KEY = /\b(?:OpenSubKey|OpenKey(?:Ex)?|RegOpenKeyEx[AW]?)\s*\(/;
+const WRITABLE = /,\s*true\s*\)|\bKEY_(?:SET_VALUE|WRITE|ALL_ACCESS)\b|\bregistry\.(?:SET_VALUE|WRITE|ALL_ACCESS)\b/i;
+/** A name given to the Run key path: `const string Run = @"...\Run"`, `RUN = r"..."`, `$p = "HKCU:\...\Run"`. */
+const RUN_KEY_NAME = /([$\w.]+)\s*:?=\s*[@rR]?["'`][^"'`\n]{0,200}\\CurrentVersion\\Run(?:Once)?\b/;
+
+/** True when the line writes to the key it names (the Run path itself or a name holding it). */
+function writesKey(line: string): boolean {
+  return VALUE_WRITE.test(line) || CREATE_KEY.test(line) || (OPEN_KEY.test(line) && WRITABLE.test(line));
+}
+
 /**
- * Writing to the registry: reg add, PowerShell, .NET, Win32, Python winreg, Go,
- * VBScript, Delphi, or opening a key for writing. Startup managers and cleaners
- * only read the Run keys; persistence writes to them.
+ * Startup managers and cleaners name the Run keys to list, compare or delete
+ * entries; persistence writes a value into them. A write counts only when it
+ * targets the Run key: on the same line as its path, or through a name the path
+ * was assigned to. A write to another key nearby does not count.
  */
-const REGISTRY_WRITE =
-  /\breg(?:\.exe)?\s+(?:add|import)\b|\b(?:New|Set)-ItemProperty\b|\bSetValue(?:Ex)?\b|\bRegSetValue|\bRegSetKeyValue|\bSet(?:String|ExpandString|DWord|QWord|Binary|Strings)Value\b|\bRegWrite\b|\bWriteString\b|\bKEY_(?:SET_VALUE|WRITE|ALL_ACCESS)\b|\bOpenSubKey\s*\([^)\n]{0,200},\s*true\s*\)/i;
-/** A write this many lines before or after the Run key counts as writing to it. */
-const RUN_KEY_WRITE_LINES = 10;
+function writesRunKey(lines: readonly string[], index: number): boolean {
+  const text = lines[index];
+  if (writesKey(text)) return true;
+  const name = RUN_KEY_NAME.exec(text)?.[1];
+  if (!name) return false;
+  const token = new RegExp(`(?<![\\w$])${name.replace(/[$.]/g, "\\$&")}(?![\\w$])`);
+  return lines.some((l, i) => i !== index && token.test(l) && writesKey(l));
+}
 
 /** Installer definitions (Inno Setup, WiX, NSIS): run keys and hidden PowerShell are what installers do. */
 const INSTALLER_PATHS = ["*.iss", "*.wxs", "*.wxi", "*.nsi", "*.nsh"];
@@ -257,7 +278,7 @@ const WINDOWS_LOLBINS: Rule = {
     }
     // A .reg file is applied as a whole when someone imports it.
     const regFile = extension(file.path) === ".reg";
-    let writeLines: number[] | null = null;
+    let lines: string[] | null = null;
     for (const { line, text } of iterScanLines(file.content)) {
       if (seen.has(line)) continue;
       const m = RUN_KEY.exec(text);
@@ -267,11 +288,10 @@ const WINDOWS_LOLBINS: Rule = {
         yield { line, text, column: m.index, weight: 5, note: installerNote };
         continue;
       }
-      writeLines ??= splitLines(file.content).flatMap((l, i) => (REGISTRY_WRITE.test(l) ? [i + 1] : []));
-      const writes = regFile || writeLines.some((w) => Math.abs(w - line) <= RUN_KEY_WRITE_LINES);
-      yield writes
+      lines ??= splitLines(file.content);
+      yield regFile || writesRunKey(lines, line - 1)
         ? { line, text, column: m.index, note: "writes to a Run key: starts a program at every logon" }
-        : { line, text, column: m.index, weight: 10, note: "only names a Run key; no registry write nearby (startup managers and cleaners read these keys)" };
+        : { line, text, column: m.index, weight: 10, note: "names a Run key but does not write to it (startup managers and cleaners list, compare and delete these entries)" };
     }
   },
 };

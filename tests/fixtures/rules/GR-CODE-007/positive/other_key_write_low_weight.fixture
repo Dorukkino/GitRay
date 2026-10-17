@@ -1,0 +1,9 @@
+# path: tests/RegistryChecks.cs
+# lines: 3
+# weight: 10
+# ---
+using (var key = hive.OpenSubKey(serverKey, true)) key!.SetValue("", @"C:\Demo\component.dll");
+Check(Matches(target), "Quoted launch command matched");
+string run = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+Check(DeletableValue(run, "Demo", target), "Startup value can be cleaned");
+using (var key = hive.CreateSubKey(clsidKey)) key.SetValue("InstallFolder", target);
