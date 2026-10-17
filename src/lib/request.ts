@@ -2,8 +2,16 @@
 
 import type { NextRequest } from "next/server";
 
-/** The client's IP: the first x-forwarded-for hop, then x-real-ip, else "unknown". */
+/**
+ * The client's IP for rate limiting. On Vercel `x-real-ip` is set by the
+ * platform to the real client IP and cannot be spoofed by the caller, so it is
+ * preferred. The leftmost `x-forwarded-for` hop is caller-controlled (a client
+ * can prepend its own value before the platform appends the real one), so it is
+ * only a fallback for local/non-Vercel runs where `x-real-ip` is absent.
+ */
 export function clientIp(request: NextRequest): string {
+  const real = request.headers.get("x-real-ip")?.trim();
+  if (real) return real;
   const forwarded = request.headers.get("x-forwarded-for");
-  return forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  return forwarded?.split(",")[0]?.trim() || "unknown";
 }

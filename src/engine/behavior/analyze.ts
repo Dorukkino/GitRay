@@ -94,6 +94,15 @@ const SOURCE_STEP: Record<Exclude<Label, "browserdir">, StepKind> = {
 const MAX_STEPS = 6;
 /** Taint is followed through this many passes, so functions defined after their callers still count. */
 const PASSES = 3;
+/**
+ * Hard caps so a crafted file cannot blow up taint propagation into a
+ * super-linear (≈O(n²)) hang: a name bound to very many frames, or a file with
+ * a huge number of tainted calls, would otherwise make one scan run for
+ * minutes. Set far above anything real code reaches, so normal results are
+ * unchanged; only pathological input stops early (returns the chains so far).
+ */
+const MAX_CALLEE_FRAMES = 200;
+const MAX_PROPAGATIONS = 2_000_000;
 
 // --- Sensitive data, matched in a statement's strings (also joined with "/", for Path.Combine and os.path.join) ---
 
@@ -748,8 +757,10 @@ export function analyzeFile(file: TextFile): Chain[] {
     if (!chains.has(key)) chains.set(key, { behavior, steps });
   };
 
-  for (let pass = 0; pass < PASSES; pass++) {
-    stmts.forEach((s, i) => {
+  let propagations = 0;
+  outer: for (let pass = 0; pass < PASSES; pass++) {
+    for (let i = 0; i < stmts.length; i++) {
+      const s = stmts[i];
       const f = facts[i];
       const incoming: Taint = new Map();
       for (const src of f.sources) {
@@ -763,7 +774,7 @@ export function analyzeFile(file: TextFile): Chain[] {
       }
       // A decode produces tainted data on its own (an opaque blob becomes code), like a source.
       if (f.decode !== null && !incoming.has("decoded")) incoming.set("decoded", [{ kind: "decodes", line: f.decode }]);
-      if (!incoming.size) return;
+      if (!incoming.size) continue;
 
       if (f.decrypt !== null) for (const [label, steps] of incoming) incoming.set(label, withStep(steps, { kind: "decrypts", line: f.decrypt }));
       if (f.decode !== null) for (const [label, steps] of incoming) if (label !== "decoded") incoming.set(label, withStep(steps, { kind: "decodes", line: f.decode }));
@@ -793,7 +804,15 @@ export function analyzeFile(file: TextFile): Chain[] {
         if (!callee) continue;
         const called = s.toks[k + 1]?.value === "(" || lang === "powershell";
         if (!called || s.opens?.name === tok.value) continue;
-        for (const fn of callee) for (const p of fn.params) scopes.set(p, fn, incoming, true);
+        // Bound the fan-out so a crafted file (one name bound to very many
+        // frames, or a huge number of tainted calls) cannot hang the scan.
+        let frames = 0;
+        for (const fn of callee) {
+          if (++frames > MAX_CALLEE_FRAMES) break;
+          for (const p of fn.params) scopes.set(p, fn, incoming, true);
+          propagations += fn.params.length;
+        }
+        if (propagations > MAX_PROPAGATIONS) break outer;
       }
       const first = s.toks[0];
       if (s.frame?.name && first.kind === "id" && (first.value === "return" || first.value === "yield")) {
@@ -801,7 +820,7 @@ export function analyzeFile(file: TextFile): Chain[] {
         scopes.set(`this.${s.frame.name}`, null, incoming);
         scopes.set(`self.${s.frame.name}`, null, incoming);
       }
-    });
+    }
   }
   return [...chains.values()];
 }

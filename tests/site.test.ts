@@ -59,9 +59,11 @@ describe("sitemap and robots", () => {
     for (const e of entries) expect(e.alternates?.languages).toMatchObject({ en: expect.stringMatching(/^http/) });
   });
 
-  it("keeps crawlers out of the API and the admin page, and points to the sitemap", () => {
+  it("keeps crawlers out of the API, does not disclose the secret admin path, and points to the sitemap", () => {
     const r = robots();
-    expect(r.rules).toMatchObject({ userAgent: "*", disallow: ["/api/", "/dorukadm"] });
+    expect(r.rules).toMatchObject({ userAgent: "*", disallow: ["/api/"] });
+    // The admin URL is secret; listing it in robots.txt would reveal it.
+    expect(JSON.stringify(r.rules)).not.toContain("dorukadm");
     expect(r.sitemap).toBe("http://localhost:3000/sitemap.xml");
   });
 });

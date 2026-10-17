@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 
 import { getAdminStore } from "@/lib/admin-store";
-import { ADMIN_COOKIE, SESSION_MAX_AGE_SECONDS, signSession, verifyPassword } from "@/lib/admin-auth";
+import { ADMIN_COOKIE, SESSION_MAX_AGE_SECONDS, signSession, validPassword, verifyPassword } from "@/lib/admin-auth";
 import { CAPTCHA_COOKIE, verifyCaptcha } from "@/lib/captcha";
 import { logError } from "@/lib/log";
 import { getRateStore } from "@/lib/rate-store";
@@ -59,8 +59,11 @@ export async function POST(request: NextRequest) {
 
   const username = typeof body.username === "string" ? body.username : "";
   const password = typeof body.password === "string" ? body.password : "";
-  const ok = username === admin.username && verifyPassword(password, admin.salt, admin.passwordHash);
-  if (!ok) return fail(401, "invalid", "Wrong username or password.");
+  // Run the scrypt check whenever the password is a plausible length, regardless
+  // of the username, so response time never reveals whether the username is
+  // valid; an over-length password is rejected before hashing (no CPU waste).
+  const passwordOk = validPassword(password) && verifyPassword(password, admin.salt, admin.passwordHash);
+  if (!(passwordOk && username === admin.username)) return fail(401, "invalid", "Wrong username or password.");
 
   const session = signSession();
   if (!session) return fail(503, "unavailable", "The admin panel is not configured.");

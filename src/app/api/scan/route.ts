@@ -1,15 +1,11 @@
 import type { NextRequest } from "next/server";
 
+import { clientIp } from "@/lib/request";
 import { runScan } from "@/lib/scan-service";
 
 // Downloading and scanning a large repository can take a while; the engine
 // stops itself earlier (Limits.timeBudgetMs) and reports a partial scan.
 export const maxDuration = 60;
-
-function clientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  return forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-}
 
 /**
  * GET /api/scan?repo=owner/name[&fresh=1]: scan a public GitHub repository and

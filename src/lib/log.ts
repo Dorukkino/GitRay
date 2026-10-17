@@ -8,9 +8,10 @@ const TOKEN = /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g;
 
 export function redact(message: string): string {
   let out = message.replace(CONNECTION_STRING, "[redacted connection string]").replace(TOKEN, "[redacted token]");
-  // VirusTotal keys are plain hex; redact the configured one wherever it appears.
-  const vtKey = process.env.VIRUSTOTAL_API_KEY;
-  if (vtKey && vtKey.length >= 16) out = out.split(vtKey).join("[redacted key]");
+  // Opaque secrets: redact the configured ones wherever they appear verbatim.
+  for (const value of [process.env.VIRUSTOTAL_API_KEY, process.env.ADMIN_SECRET]) {
+    if (value && value.length >= 16) out = out.split(value).join("[redacted key]");
+  }
   return out;
 }
 

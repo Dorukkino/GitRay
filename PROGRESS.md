@@ -82,6 +82,22 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 17 Ekim 2026 (39. oturum): Tam güvenlik denetimi + sertleştirme
+
+Kullanıcı isteği: "bir siber güvenlik sitesi olarak kendimizi de koruyalım, her yerden sızmaya çalışsınlar çalışamasınlar." Dört paralel denetçi ajan tüm saldırı yüzeyini taradı (SQL injection + veri katmanı; kimlik/captcha/oturum; XSS/SSRF/girdi; DoS/ReDoS/limitler). Bulgular kodda tek tek doğrulandı ve düzeltildi.
+
+**Zaten temiz çıkanlar (doğrulandı):** SQL injection yok (tüm sorgular parametreli `$1,$2…`, hiçbir kullanıcı verisi sorgu metnine gömülmüyor), XSS yok (`dangerouslySetInnerHTML`/`innerHTML` hiç yok, repo içeriği sanitize + React kaçışı, tıklanabilir linkler yalnızca doğrulanmış parçalardan), SSRF yok (token yalnızca `api.github.com`'a, yönlendirmeler host-kısıtlı, VT/OSV host sabit), ReDoS yok, sıkıştırma bombaları (gzip/zip/iç içe zip) tahsisten önce sayılıyor, oturum/captcha/scrypt kriptosu doğru, setup tek-satır yarış-güvenli.
+
+**Düzeltilen bulgular:**
+- **CRITICAL — davranış analizi DoS:** `behavior/analyze.ts` taint yayılımı ≈O(n²) şişebiliyordu (aynı adla binlerce fonksiyon + binlerce taint'li çağrı); ~300 KB'lık özel dosya bir taramayı Vercel öldürene (60 sn) kadar çalıştırıp, yarım tarama önbelleğe yazılmadığı için sonsuz tekrarlanıp 4 eşzamanlı yuvayı kilitliyordu → herkese DoS. Sabit sınırlar eklendi: `MAX_CALLEE_FRAMES`=200, `MAX_PROPAGATIONS`=2.000.000 (aşılınca durur, normal sonuçlar değişmez).
+- **HIGH — IP sahteleme:** `clientIp` `x-forwarded-for`'un ilk (istemci kontrollü) değerini kullanıyordu → admin brute-force dahil tüm IP limitleri atlatılabiliyordu. Artık Vercel'in koyduğu sahtelenemez `x-real-ip` tercih ediliyor (`request.ts`; scan route da buna bağlandı).
+- **MEDIUM — lexer stack overflow:** derin iç içe template (`` `${`${…}`}` ``) sınırsız özyinelemeyle 500 veriyordu. `MAX_INTERP_DEPTH`=50 eklendi (dosya zarifçe atlanır).
+- **LOW:** robots.txt gizli `/dorukadm` yolunu ifşa ediyordu → kaldırıldı (noindex + auth yeterli); login scrypt'i artık kullanıcı adından bağımsız her zaman çalışır (zamanlama sızıntısı) + aşırı uzun şifreyi hash'lemeden reddeder; `/api/report` gövde 16 KB ile sınırlı; `log.ts` `ADMIN_SECRET`'i de gizler.
+
+`ENGINE_VERSION` 0.10.0 → **0.11.0** (motora DoS sınırları eklendi). Yeni testler: fan-out sınırı ve lexer derinliği (behavior.test), robots dorukadm'i listelemiyor (site.test). 987 test (32 dosya) geçti; lint/typecheck/build temiz.
+
+**Kalan (bilinçli kabul, düşük):** HMAC anahtarı `DATABASE_URL` (aynı env'i okuyabilen zaten DB URL'sine sahip; düşük); oturum durumsuz, 7 gün, iptal edilemez (tek sahip için kabul); logout CSRF (yalnızca rahatsızlık). Kötüye kullanım görülürse ele alınır.
+
 ### 17 Ekim 2026 (38. oturum): "Yanlış mı? Bildir" modal'ı + admin panelinde detaylı rapor görünümü
 
 - **Sorun:** Kullanıcı canlıda butona basınca "hiçbir şey olmuyor" dedi. Tanı: sayfa etkileşimi sağlam, Console temiz, form aslında açılıyordu ama uzun özet kartının altında, satır içinde, ekranın görünür kısmının (fold) altında kalıyordu; viewport değişmediği için fark edilmiyordu.
