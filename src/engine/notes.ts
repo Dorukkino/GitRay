@@ -84,11 +84,13 @@ export const NOTE_TEMPLATES = {
 
   // obfuscation
   hexEscapes: "long run of \\xNN escape sequences",
+  unicodeEscapes: "long run of \\uXXXX escape sequences",
   entropyString: "{len}-char string with entropy {e} bits/char",
   entropyHex: "{len}-char hex string with entropy {e} bits/char",
   offscreen: "code starts after {n} spaces",
   invisibleRun: "{n} invisible characters in a row",
   hangulFiller: "blank-looking Hangul filler used in code",
+  stringArrayObfuscation: "{n} _0x… hex identifiers (machine-obfuscated code)",
 
   // repo
   accountNew: "owner account was created {days} days ago",
