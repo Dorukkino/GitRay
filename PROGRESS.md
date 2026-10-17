@@ -585,7 +585,10 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 
 - `GR-CODE-007`: Run/RunOnce anahtarı artık yalnızca adı geçiyorsa 10 alıyor (tek başına Şüpheli yapmaz). 10 satır yakınında kayıt defterine yazma varsa (`reg add`/`import`, `New-`/`Set-ItemProperty`, `SetValue(Ex)`, `RegSetValue*`, Go `Set*Value`, VBScript `RegWrite`, Delphi `WriteString`, `KEY_SET_VALUE`/`KEY_WRITE`/`KEY_ALL_ACCESS`, `OpenSubKey(..., true)`) ya da dosya `.reg` ise 35 kalıyor. Kurulum scriptlerinde yine 5.
 - Bilinen sınır: anahtar adı dosyanın başında bir sabitte tanımlanıp yazma 10 satırdan uzakta yapılırsa 10 alır.
-- Yeni fixture'lar: okuma (10), C# yazma, Python winreg yazma, `.reg` dosyası (35). `ENGINE_VERSION` 0.8.2 (eski sonuçlar yeniden taranır). 26 dosya, 866 test.
+- Yeni fixture'lar: okuma (10), C# yazma, Python winreg yazma, `.reg` dosyası (35). `ENGINE_VERSION` 0.8.2 (eski sonuçlar yeniden taranır). 26 dosya, 866 test (PR 32).
+- Arkadaşın ikinci geri bildirimi: "YÜKSEK yapıştırmak yerine kodu okuyup ne işe yaradığını anlasın." Kullanıcıya üç yol anlatıldı: yapay zekâyla kod okutmak (ücretli ve prompt injection ile kandırılabilir, reddedildi), kuralları bağlama duyarlı yapmak (seçildi), AST ayrıştırma (büyük iş, ileride). Kullanıcı "en mantıklısını yap" dedi; ilke CLAUDE.md'ye yazıldı ("Ne yaptığına bak, adına değil").
+- `GR-CODE-003`: temizlik araçları tarayıcı çerez/önbellek dosyalarını siler. Dosya bu yolları yalnızca siliyor ve hiçbir yerinde açma, kopyalama, çözme, okuma ya da ağa gönderme yoksa bulgu 10 alır (önce 40, tek başına Şüpheli yapıyordu). `os_crypt` (şifre anahtarı) her zaman 40. `cookies.sqlite` gibi yol adları veritabanı kütüphanesi sayılmaz. Fixture'lar: temizleyici (10), kopyalayıp okuyup sonra silen stealer (40). `ENGINE_VERSION` 0.8.3. 26 dosya, 870 test.
+- Arkadaşın taradığı repo (UClear) web aramasında bulunamadı; kullanıcı linki verirse yerelde klonlanıp (yalnızca okuma) tam rapor kontrol edilecek.
 
 ## Sıradaki adımlar (öncelik sırasıyla)
 
