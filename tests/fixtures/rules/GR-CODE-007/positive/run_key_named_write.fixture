@@ -1,0 +1,22 @@
+# path: src/Agent/Autostart.cs
+# lines: 3
+# weight: 35
+# ---
+static class Autostart
+{
+    const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+    static string Self() => Environment.ProcessPath ?? "";
+
+    static void Log(string message)
+    {
+        Console.WriteLine(message);
+    }
+
+    static void Enable()
+    {
+        Log("enabling");
+        using var key = Registry.CurrentUser.OpenSubKey(RunKey, true);
+        key?.SetValue("DemoUpdater", Self());
+    }
+}

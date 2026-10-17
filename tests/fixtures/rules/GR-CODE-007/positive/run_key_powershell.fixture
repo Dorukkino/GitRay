@@ -1,0 +1,6 @@
+# path: tools/install.ps1
+# lines: 1
+# weight: 35
+# ---
+$p = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+New-ItemProperty -Path $p -Name "Demo" -Value "$env:APPDATA\demo.exe" -Force

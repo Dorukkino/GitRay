@@ -1,0 +1,13 @@
+# path: src/Cleaner/InvalidEntries.cs
+# lines: 4
+# weight: 10
+# ---
+var (root, subkey) = OpenRegistry(item.Location);
+bool validScope = item.Category switch
+{
+    "Startup" => subkey.Equals(@"Software\Microsoft\Windows\CurrentVersion\Run", StringComparison.OrdinalIgnoreCase),
+    _ => false
+};
+if (!validScope) throw new IOException("Outside the cleanup scope.");
+using var key = root.OpenSubKey(subkey, true);
+key?.DeleteValue(item.Name);
