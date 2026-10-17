@@ -598,6 +598,14 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (33. oturum): Gelişmiş SEO
+
+Kullanıcı: gelişmiş SEO. Mevcut (metadata, canonical/hreflang, sitemap, robots, html lang) üstüne:
+- **JSON-LD yapılandırılmış veri** (`src/components/JsonLd.tsx`): kök layout'ta Organization + WebSite + SoftwareApplication (`SecurityApplication`, ücretsiz offer), dile göre. `dangerouslySetInnerHTML` yasak olduğu için `<script type="application/ld+json">{json}</script>` + `<`→`\u003c` kaçışı (güvenli, `security.test.ts`'e uyumlu; yorumdaki "dangerously..." kelimesi de teste takıldığı için yeniden yazıldı).
+- **Dinamik OG/Twitter görseli**: `src/app/[lang]/opengraph-image.tsx` (+ `twitter-image.tsx` re-export), Next `ImageResponse` (1200×630, markalı kart, ASCII metin → font sorunu yok). `twitter: summary_large_image` metadata'ya eklendi.
+- **sitemap**: `priority`/`changeFrequency`/`lastModified`. **manifest** (`src/app/manifest.ts`). Proxy matcher'a `manifest.webmanifest` eklendi.
+- **Tarama sayfaları**: `index:false` kalıyor (repo başına bir sayfa) ama artık açıklama + OG başlığı var (paylaşım önizlemesi).
+- Build OG/manifest rotalarını üretti; 941 test geçiyor. Motor değişmedi, `ENGINE_VERSION` aynı (0.9.7).
 ### 17 Ekim 2026 (32. oturum): "Sayılmadı" göstergesi + dürüst puan
 
 Kullanıcı: resmî repo raporunda test dosyası bulguları hâlâ "+15" gösteriyordu ("etkilemiyorsa neden puan verdin?"). İki düzeltme:

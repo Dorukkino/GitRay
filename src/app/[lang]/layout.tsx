@@ -5,8 +5,9 @@ import { notFound } from "next/navigation";
 
 import { Analytics, ConsentSettingsButton } from "@/components/Analytics";
 import { Providers } from "@/components/Providers";
+import { JsonLd } from "@/components/JsonLd";
 import { SiteHeader } from "@/components/SiteHeader";
-import { INTL_LOCALE, LOCALES, isLocale, localePath } from "@/i18n/config";
+import { INTL_LOCALE, LOCALES, type Locale, isLocale, localePath } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 
@@ -34,7 +35,51 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
       title: dict.meta.title,
       description: dict.meta.description,
       locale: INTL_LOCALE[lang].replace("-", "_"),
+      url: localePath(lang, "/"),
     },
+    twitter: {
+      card: "summary_large_image",
+      title: dict.meta.title,
+      description: dict.meta.description,
+    },
+  };
+}
+
+/** schema.org data describing the site and the tool, for rich results. */
+function structuredData(lang: Locale, title: string, description: string): object {
+  const base = siteUrl();
+  const home = `${base}${localePath(lang, "/")}`;
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${base}/#org`,
+        name: SITE_NAME,
+        url: base,
+        logo: `${base}/brand/gitray-logo-full.svg`,
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${base}/#site`,
+        name: SITE_NAME,
+        url: home,
+        description,
+        inLanguage: INTL_LOCALE[lang],
+        publisher: { "@id": `${base}/#org` },
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: SITE_NAME,
+        url: home,
+        applicationCategory: "SecurityApplication",
+        operatingSystem: "Web",
+        description,
+        inLanguage: INTL_LOCALE[lang],
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        publisher: { "@id": `${base}/#org` },
+      },
+    ],
   };
 }
 
@@ -48,6 +93,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
         {/* Applies the saved theme before the first paint; a plain file because inline HTML is banned here. */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/theme.js" />
+        <JsonLd data={structuredData(lang, dict.meta.title, dict.meta.description)} />
       </head>
       <body className="relative flex min-h-full flex-col font-sans">
         <Providers locale={lang} dict={dict}>
