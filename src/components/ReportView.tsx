@@ -103,7 +103,7 @@ function CheckedFiles({ files }: { files: ReportCheckedFile[] }) {
               rel="noopener noreferrer nofollow"
               className="text-accent underline decoration-accent/30 underline-offset-2 hover:text-accent-strong"
             >
-              {t.link}
+              {f.reputation.status === "found" ? t.link : t.searchLink}
             </a>
           </li>
         );

@@ -210,7 +210,9 @@ describe("the VirusTotal step of a scan", () => {
 
     const report = toReport(result);
     expect(report.reputationCheck.files.map((f) => f.name)).toEqual(["bin/loader.exe", "v1.0/tool-setup.exe", "tests/data/helper.exe"]);
-    expect(report.reputationCheck.files[1].virusTotalUrl).toBe(`https://www.virustotal.com/gui/file/${releaseSha}`);
+    // Found files link to their VirusTotal page; unknown files link to a search that never 404s.
+    expect(report.reputationCheck.files[0].virusTotalUrl).toBe(`https://www.virustotal.com/gui/file/${hex(big)}`);
+    expect(report.reputationCheck.files[1].virusTotalUrl).toBe(`https://www.virustotal.com/gui/search/${releaseSha}`);
   });
 
   it("skips checksum lists, looks up at most 10 files and only counts the rest", async () => {

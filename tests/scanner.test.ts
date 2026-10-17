@@ -34,7 +34,7 @@ describe("scanRepo", () => {
     const result = await scan(gh);
     expect(result.verdict).toBe("dangerous");
     expect(Object.keys(result.ruleScores).sort()).toEqual(
-      ["GR-LINK-001", "GR-LINK-003", "GR-LINK-004", "GR-REPO-001", "GR-REPO-002", "GR-SOC-001"].sort(),
+      ["GR-LINK-001", "GR-LINK-003", "GR-LINK-004", "GR-REPO-001", "GR-SOC-001"].sort(),
     );
   });
 

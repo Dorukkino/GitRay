@@ -598,6 +598,14 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (27. oturum): TR liste adı, yeni-repo puanı, dürüst VirusTotal linki
+
+Üç kullanıcı isteği:
+- **TR'de "Dolandırıcılar" → "Tehlikeli".** Yalnızca TR arayüz metinleri (menü, sayfa başlığı/eyebrow, gizlilik/şartlar metinlerindeki anma). EN "Scammer" kaldı, URL `/scammer` kaldı.
+- **Yeni açılmış repo puan eklemesin.** `GR-REPO-002` ("Repo çok yakın zamanda açılmış", +5) tamamen kaldırıldı (kural, tr çevirisi, fixture, test referansı). Sebep: yeni repo yaygın ve meşru; açılış tarihi raporda metadata kutusunda zaten görünüyor. Sahip hesabının yaşı (`GR-REPO-001`, +10) küçük bir sinyal olarak kaldı (kullanıcı yalnızca repoyu belirtti).
+- **VirusTotal linki dürüst oldu.** Kullanıcı: "önceden VT'de görünüyordu, şimdi görünmüyor." Açıklandı: GiTRay dosya yüklemez, yalnızca SHA-256 sorar; VT bir dosyayı ancak başka biri yüklediyse tanır (release dosyası değişince parmak izi değişir). Kullanıcı yüklemeyi istemedi (gizlilik), linkin dürüst olmasını seçti: bulunan dosya → `gui/file/<sha>`, bilinmeyen dosya ve release dosyaları → `gui/search/<sha>` (404 yerine "sonuç yok"). Arayüzde etiket "VirusTotal'de gör" (bulunan) / "VirusTotal'de ara" (bilinmeyen).
+- Kural sayısı 38, `ENGINE_VERSION` 0.9.3. 27 dosya, 932 test. Not: bulgu notlarının (`note`) Türkçeleştirilmesi istendi, ayrı iş olarak sıraya alındı (büyük: ~40 not, çeviri altyapısı gerekiyor).
+
 ### 17 Ekim 2026 (26. oturum): GR-SOC-002 Tehlikeli'ye yükseltildi
 
 Kullanıcı `me-hacker001/Hacking-Tools-Pack`'i (yalnızca README'den ibaret bir zararlı yazılım dükkânı) gösterdi: "buna %100 demesi gerekmiyor mu?" 25. oturumda temkinli davranıp Şüpheli (45) bırakmıştım; kullanıcı Tehlikeli olmasını istedi. Doğru: açıkça RAT/fidye/stealer satan, kripto/WhatsApp ile ödeme isteyen bir repo Scammer listesine girmelidir. `GR-SOC-002` ağırlığı 45 → 80 (tek başına Tehlikeli). Kural zaten dar (3+ tür, 1 saldırı aracı, fiyat, satış çağrısı; 164 güvenlik Markdown'ında 0 yanlış alarm), bu yüzden Tehlikeli seviyesi güvenli. Fixture ağırlıkları ve `ENGINE_VERSION` 0.9.1 güncellendi.

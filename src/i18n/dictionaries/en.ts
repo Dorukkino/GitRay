@@ -328,6 +328,7 @@ export const en = {
       releaseFile: "release file",
       inRepository: "in the repository",
       link: "VirusTotal",
+      searchLink: "search on VirusTotal",
     },
     archive: {
       ok: "GitHub's download archive holds every file of this commit.",

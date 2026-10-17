@@ -14,7 +14,7 @@ export const tr: Dictionary = {
     scan: "Tara",
     how: "Nasıl çalışır",
     safeZone: "Güvenli Bölge",
-    scammer: "Dolandırıcılar",
+    scammer: "Tehlikeli",
     rules: "Kurallar",
   },
   footer: {
@@ -334,6 +334,7 @@ export const tr: Dictionary = {
       releaseFile: "release dosyası",
       inRepository: "repoda",
       link: "VirusTotal",
+      searchLink: "VirusTotal'de ara",
     },
     archive: {
       ok: "GitHub'ın indirme arşivi bu commit'in bütün dosyalarını içeriyor.",
@@ -473,9 +474,9 @@ export const tr: Dictionary = {
   },
 
   scammer: {
-    metaTitle: "Dolandırıcı listesi",
+    metaTitle: "Tehlikeli listesi",
     metaDescription: "GiTRay'in tehlikeli bulduğu, yakın zamanda taranmış GitHub repoları.",
-    eyebrow: "Dolandırıcı listesi",
+    eyebrow: "Tehlikeli listesi",
     title: "Tehlikeli bulunan repolar",
     intro:
       "Son taraması {score} puan alan son {n} repo: yük indiren kurulum scriptleri, şifre hırsızlığı ya da sahte " +
@@ -541,7 +542,7 @@ export const tr: Dictionary = {
         paragraphs: [
           "Her reponun son taraması saklanır: reponun adı, açıklaması, yıldız sayısı, commit'i, kararı, puanı ve " +
             "dosyalarından kısa alıntılarla bulguları. Bu sonuçları herkes tarama sayfasında ve herkese açık " +
-            "listelerde (Son tarananlar, Güvenli Bölge, Dolandırıcılar) görebilir. Taramayı kimin başlattığına dair " +
+            "listelerde (Son tarananlar, Güvenli Bölge, Tehlikeli) görebilir. Taramayı kimin başlattığına dair " +
             "hiçbir şey sonuçla birlikte saklanmaz. En fazla 5.000 sonuç tutulur; önce en eskileri silinir.",
         ],
       },
@@ -622,7 +623,7 @@ export const tr: Dictionary = {
           "Sonuçlar, bilinen zararlı yazılım hilelerini arayan kurallar tarafından otomatik üretilir. Bir güvenlik " +
             "denetimi ya da garanti değildir. Temiz kararı bir reponun güvenli olduğunu kanıtlamaz ve GiTRay taradığı " +
             "kodu çalıştırmaz.",
-          "Tehlikeli kararı ya da Dolandırıcılar listesinde yer almak, tek bir commit'teki dosyaların otomatik bir " +
+          "Tehlikeli kararı ya da Tehlikeli listesinde yer almak, tek bir commit'teki dosyaların otomatik bir " +
             "değerlendirmesidir. Reponun arkasındaki kişiler hakkında bir ifade değildir ve yanlış olabilir: güvenlik " +
             "araçları ve zararlı yazılım araştırmaları çoğu zaman GiTRay'in aradığı kalıpları içerir. Bulguları " +
             "karar vermeden önce okuyun.",
@@ -912,12 +913,6 @@ export const tr: Dictionary = {
       why:
         "Sahte repolar genellikle birkaç gün önce açılmış ve şikâyet edilince terk edilen hesaplardan yüklenir. Yeni " +
         "hesap tek başına sorun değildir ama diğer bulgulara ağırlık katar.",
-    },
-    "GR-REPO-002": {
-      title: "Repo çok yakın zamanda açılmış",
-      why:
-        "Zararlı yazılım kampanyaları yeni repolar açar (çoğu zaman popüler projelerin kopyaları) ve kimse yakından " +
-        "bakmadan onları öne çıkarır. Yalnızca diğer bulgularla birlikte önem taşıyan zayıf bir işarettir.",
     },
     "GR-REPO-003": {
       title: "Dosyalar GitHub'ın indirme arşivinden çıkarılmış",

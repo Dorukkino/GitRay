@@ -152,6 +152,15 @@ function chainSteps(steps: ChainStep[], fullName: string, sha: string, path: str
   }));
 }
 
+/**
+ * A VirusTotal link built from a validated SHA-256 only. "found" files have a
+ * page; for anything else the search URL is honest — it shows "no matches"
+ * instead of a 404, since GiTRay only queries hashes and never uploads files.
+ */
+function virusTotalUrl(sha256: string, found: boolean): string {
+  return `https://www.virustotal.com/gui/${found ? "file" : "search"}/${sha256}`;
+}
+
 function byImportance(a: Finding, b: Finding): number {
   return b.weight - a.weight || a.path.localeCompare(b.path) || a.line - b.line;
 }
@@ -225,7 +234,7 @@ export function toReport(result: ScanResult): Report {
           source: f.source,
           name: sanitize(f.name, PATH_MAX),
           sha256: f.sha256,
-          virusTotalUrl: `https://www.virustotal.com/gui/file/${f.sha256}`,
+          virusTotalUrl: virusTotalUrl(f.sha256, f.reputation.status === "found"),
           reputation: f.reputation,
         })),
       notLookedUp: result.reputationCheck.notLookedUp,
@@ -269,7 +278,7 @@ export function toReport(result: ScanResult): Report {
         name: sanitize(a.name, 200),
         size: a.size,
         sha256,
-        virusTotalUrl: sha256 ? `https://www.virustotal.com/gui/file/${sha256}` : null,
+        virusTotalUrl: sha256 ? virusTotalUrl(sha256, false) : null,
       };
     }),
     rulesRun: result.rulesRun.length,

@@ -8,7 +8,7 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 
 ## What it checks
 
-39 rules in 10 categories (full list on the `/rules` page):
+38 rules in 10 categories (full list on the `/rules` page):
 
 | Category | Examples |
 | --- | --- |
