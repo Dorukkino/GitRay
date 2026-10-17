@@ -598,6 +598,12 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
 - README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
 
+### 17 Ekim 2026 (32. oturum): "Sayılmadı" göstergesi + dürüst puan
+
+Kullanıcı: resmî repo raporunda test dosyası bulguları hâlâ "+15" gösteriyordu ("etkilemiyorsa neden puan verdin?"). İki düzeltme:
+- `scoring.ts`: test cap uygulandığında gösterilen puan artık bandın tavanı (29/69) değil, **gerçek test dışı toplam**. Resmî repo: 29 yerine 15. Gauge ile puan dökümü artık tutarlı.
+- Arayüz: test cap uygulandığında test dosyası bulguları ve yalnızca-test kuralları "+15" yerine üstü çizili "sayılmadı" (`notCounted`) gösteriyor (kart ve döküm). `ReportRule.testOnly` eklendi (`report.ts`). Sözlükte `report.notCounted` (en/tr).
+- `ENGINE_VERSION` 0.9.7. 27 dosya, 937 test.
 ### 17 Ekim 2026 (31. oturum): Resmî plugin reposu yanlış alarmı (test cap + GitHub kaynak arşivi)
 
 Kullanıcı `anthropics/claude-plugins-official`'i taradı: Şüpheli 60, "çok saçma". Dökümü: GR-LINK-001 (20) + GR-OBF-002 (15, test) + GR-CODE-004 (15, test) + GR-AUTO-008 (10). İki kök sorun:

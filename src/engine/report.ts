@@ -79,6 +79,8 @@ export interface ReportRule {
   /** Points this rule added to the score. */
   points: number;
   findings: number;
+  /** Every finding of this rule is in a test file (used with testFilesCapped). */
+  testOnly: boolean;
 }
 
 export interface ReportAsset {
@@ -181,6 +183,7 @@ export function toReport(result: ScanResult): Report {
   const titles = new Map(allRules().map((r) => [r.id, r]));
   const counts = new Map<string, number>();
   for (const f of result.findings) counts.set(f.ruleId, (counts.get(f.ruleId) ?? 0) + 1);
+  const ruleHasNonTestFinding = new Set(result.findings.filter((f) => !isTestPath(f.path)).map((f) => f.ruleId));
 
   // Keep the strongest findings, at most MAX_FINDINGS_PER_RULE per rule.
   const kept: Finding[] = [];
@@ -260,6 +263,7 @@ export function toReport(result: ScanResult): Report {
           category: rule?.category ?? "code",
           points,
           findings: counts.get(id) ?? 0,
+          testOnly: !ruleHasNonTestFinding.has(id),
         };
       })
       .sort((a, b) => b.points - a.points || a.id.localeCompare(b.id)),
