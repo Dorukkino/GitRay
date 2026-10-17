@@ -592,7 +592,20 @@ Kullanıcıya gelen geri bildirim: bir temizlik/başlangıç programı yönetici
 - Düzeltme: yazma artık Run anahtarının kendisine yapılmalı: Run yolu ile aynı satırda değer yazma, `CreateSubKey` ya da yazılabilir açma; ya da Run yolunun atandığı ad (`const string Run = ...`, `$p = ...`) dosyada böyle bir satırda kullanılmalı. Yakındaki başka anahtara yazmak, girdi silmek ve sadece karşılaştırmak 10. Yeni fixture'lar: temizlik silmesi (10), başka anahtara yazma (10), adla yazma (C#, 35), PowerShell `$p` + `New-ItemProperty` (35). UClear: **Temiz, 10 puan** (5 düşük bulgu, hepsi "names a Run key but does not write to it"). `ENGINE_VERSION` 0.8.4. 26 dosya, 878 test.
 - Bilinen sınır: Run yolu bir fonksiyon parametresiyle taşınıp başka bir yerde yazılırsa (UClear'ın `ToggleAt(entry, runPath, ...)` gibi) 10 alır. Başlangıç yöneticisinin bir girdiyi yeniden açması ile kalıcılık metin olarak ayırt edilemez; bu bilerek düşük tarafta bırakıldı.
 
+- **Kaçırılan repo: `me-hacker001/Hacking-Tools-Pack`** (kullanıcı, 17 Ekim: "sadece virüs olan bir repo, Temiz demişiz"). Klonlanıp yalnızca okundu: repoda tek dosya var (README); program yok. README bir zararlı yazılım dükkânı: "310 RAT builder, ransomware builder, crypter, stealer...", "28$, e-posta ya da WhatsApp ile iletişime geçin, kripto kabul ediyoruz", `wa.me`, `sellix.io`, `rzp.io` linkleri. GiTRay'de satış/vitrin README'leri için kural yoktu.
+- Yeni kural **`GR-SOC-002` "Sells malware tools"** (45, tek başına Şüpheli). Şartlar: en az 3 zararlı araç türü (RAT, ransomware, crypter, stealer, keylogger, botnet, builder, FUD, antivirüs atlatma, gizli miner, bilinen RAT aileleri, cracked), en az biri saldırıya özgü (builder, crypter, FUD, antivirüs atlatma, cracked, gizli miner), bir fiyat/satın alma sözcüğü ve birinci ağızdan satış çağrısı (mağaza linki, `wa.me`, "contact us", "buy/DM ... WhatsApp/Telegram"). Tehditleri sayan antivirüs README'si (saldırı aracı yok) ve satışı anlatan tehdit raporu (çağrı yok) negatif fixture.
+- Yanlış alarm kontrolü: 15 meşru güvenlik reposunun 164 Markdown dosyası (awesome-malware-analysis, Awesome-Hacking, Quasar, maltrail, PEASS-ng, Yara-Rules, awesome-pentest, blue team, threat intel, Empire, Covenant, CrackMapExec, mimikatz...): 0 bulgu. Kaçırılan repo: Şüpheli 45.
+- Bilerek Tehlikeli yapılmadı: repo klonlanınca zarar vermiyor (program yok) ve Tehlikeli herkese açık Scammer listesine girer. Satılan paketler başka bir yerden indirilir; o dosyalar repoda olsaydı ikili dosya kuralları ve VirusTotal zaten Tehlikeli'ye götürürdü. Kullanıcı isterse ağırlık 70'e çıkarılabilir.
+- README düzeltmesi: "yanlış alarm bildirme linki" cümlesi (iletişim bölümü kaldırılmıştı) silindi; kural sayısı 36. `ENGINE_VERSION` 0.8.5. 26 dosya, 889 test.
+
 ## Sıradaki adımlar (öncelik sırasıyla)
+
+0. **Tarama kalitesi programı** (kullanıcı, 17 Ekim: "aciliyet yok, sistemi en güzel haline getirelim"). Sırayla:
+   - **Kaçırılan/yanlış alarm günlüğü:** kullanıcının ve arkadaşlarının bildirdiği her repo yerelde (yalnızca okuma) taranır, sonuç ve düzeltme burada yazılır; her düzeltme fixture ile kilitlenir.
+   - **README'deki başka GitHub repoları:** vitrin repoları dosyaları başka bir repoda tutuyor (bu örnekte `in-future-world/All-Hacking-Tools`). Raporda "bu repo şunlara yönlendiriyor, onları da tara" listesi (yalnızca kendi `/scan` sayfamıza link, submodule'lerdeki gibi).
+   - **Repo açıklaması ve konuları (topics):** tuzak metni çoğu zaman açıklamada ("free robux generator", "fortnite cheat"); şu an yalnızca dosyalar taranıyor.
+   - **Sahte hile/crack/keygen tuzakları:** README'de "free + cheat/crack/keygen/generator + indirme/şifre" birlikteliği.
+   - **Kalibrasyon 2. tur** (aşağıdaki 4. madde) ve bağlama duyarlı kuralların diğer `GR-CODE-*` kurallarına yayılması ("ne yaptığına bak").
 
 1. ~~**Domain**~~ (11 Ekim'de canlıya çıktı). İsteğe bağlı: Google Search Console'a domaini ekleyip sitemap'i gönder (TXT kaydı Vercel'in hesap seviyesindeki Domains → gitray.com.tr → DNS Records'a eklenir).
 2. ~~VirusTotal anahtarı~~ (eklendi, canlıda çalışıyor).

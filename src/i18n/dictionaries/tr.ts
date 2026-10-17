@@ -831,6 +831,13 @@ export const tr: Dictionary = {
         "Kullanıcılara Windows Defender'ı kapatmalarını, istisna eklemelerini ya da bir \"yanlış alarmı\" görmezden " +
         "gelmelerini söylemek sahte hile, crack ve araç repolarının imzasıdır: yoksa indirilen dosya engellenirdi.",
     },
+    "GR-SOC-002": {
+      title: "Zararlı yazılım aracı satıyor",
+      why:
+        "README bir zararlı yazılım dükkânı: RAT ve fidye yazılımı oluşturucular, crypter'lar, stealer'lar; ödeme WhatsApp, " +
+        "Telegram ya da bir mağaza linki üzerinden. Bunları başkalarına karşı kullanmak suçtur, satılan kopyalar da çoğu zaman " +
+        "kendisi virüslüdür ya da hiç teslim edilmez.",
+    },
     "GR-BIN-001": {
       title: "Repoya program dosyası eklenmiş",
       why:

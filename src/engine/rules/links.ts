@@ -332,4 +332,62 @@ const DISABLE_ANTIVIRUS: Rule = {
   },
 };
 
-export const RULES: readonly Rule[] = [DOWNLOAD_LINK, SHORTENED_LINK, FILE_HOST_LINK, ARCHIVE_PASSWORD, DISABLE_ANTIVIRUS];
+/**
+ * Kinds of malware tooling. Research lists and security products mention the
+ * threats (ransomware, keyloggers, botnets); only offensive kinds (builders,
+ * crypters, FUD, antivirus bypass, cracked tools) are things nobody but an
+ * attacker buys.
+ */
+const MALWARE_KINDS: readonly { label: string; pattern: RegExp; offensive?: true }[] = [
+  { label: "RAT", pattern: /\bRATs?\b|\bremote access trojans?\b/ },
+  { label: "RAT builder", pattern: /\brat builders?\b/i, offensive: true },
+  { label: "ransomware", pattern: /\bransomware\b/i },
+  { label: "crypter", pattern: /\bcrypters?\b/i, offensive: true },
+  { label: "stealer", pattern: /\b(?:info[- ]?|password |token |cookie )?stealers?\b/i },
+  { label: "keylogger", pattern: /\bkey ?loggers?\b/i },
+  { label: "botnet", pattern: /\bbotnets?\b/i },
+  { label: "malware builder", pattern: /\b(?:virus|malware|trojan|worm|exploit|payload|ransomware|stealer|keylogger|botnet) builders?\b/i, offensive: true },
+  { label: "FUD", pattern: /\bFUD\b|\bfully undetectable\b/i, offensive: true },
+  { label: "antivirus bypass", pattern: /\b(?:bypass(?:es|ing)?|evad(?:es?|ing)) (?:all )?(?:anti-?virus(?:es)?|AVs?|windows defender|defender)\b/i, offensive: true },
+  { label: "hidden miner", pattern: /\b(?:silent|hidden|stealth) (?:crypto ?)?miners?\b/i, offensive: true },
+  { label: "named RAT family", pattern: /\b(?:njRAT|AsyncRAT|Quasar|Remcos|DarkComet|Orcus|SpyNote|SpyMAX|AhMyth|Adwind|NanoCore|DCRat|XWorm|Venom ?RAT)\b/i },
+  { label: "cracked tools", pattern: /\bcracked\b/i, offensive: true },
+];
+/** Selling: a price or a buy/payment request. */
+const SALE = /\b(?:price|pricing|buy|purchase|payment|pay)\b|(?:^|[\s(`])\$\s?\d{1,5}\b|\b\d{1,5}(?:\.\d{2})?\s?(?:\$|USD|USDT|EUR|€)/i;
+/**
+ * A storefront's own call to buy: a shop or chat-to-buy link, "contact us", or
+ * "buy/contact/DM ... on WhatsApp/Telegram". A threat report saying an actor
+ * "sells a crypter on Telegram" is not one.
+ */
+const STOREFRONT =
+  /\b(?:sellix\.io|shoppy\.gg|selly\.(?:gg|io)|rzp\.io)\b|\bwa\.me\/|\bcontact us\b|\b(?:contact|dm|message|text|buy|order|purchase)\b[^\n]{0,80}\b(?:what'?s ?app|telegram|t\.me\/|discord|e-?mail|instagram)\b/i;
+/** Fewer kinds is a security write-up mentioning a technique, not a catalogue. */
+const MIN_MALWARE_KINDS = 3;
+
+const SELLS_MALWARE: Rule = {
+  id: "GR-SOC-002",
+  title: "Sells malware tools",
+  category: "social",
+  weight: 45,
+  appliesTo: DOC_PATTERNS,
+  why:
+    "The README is a storefront for malware: RAT and ransomware builders, crypters, stealers, " +
+    "paid for over WhatsApp, Telegram or a shop link. Such packs are illegal to use against " +
+    "others, and the copies they sell are often infected themselves or never delivered.",
+  *scanText(file: TextFile): Iterable<Hit> {
+    if (RELEASE_NOTES.test(basename(file.path))) return;
+    const found = MALWARE_KINDS.filter((k) => k.pattern.test(file.content));
+    if (found.length < MIN_MALWARE_KINDS || !found.some((k) => k.offensive) || !SALE.test(file.content)) return;
+    const kinds = found.map((k) => k.label);
+    for (const { line, text } of iterScanLines(file.content)) {
+      const m = STOREFRONT.exec(text);
+      if (m) {
+        yield { line, text, column: m.index, note: `offers ${kinds.slice(0, 5).join(", ")}${kinds.length > 5 ? ", ..." : ""} for sale` };
+        return;
+      }
+    }
+  },
+};
+
+export const RULES: readonly Rule[] = [DOWNLOAD_LINK, SHORTENED_LINK, FILE_HOST_LINK, ARCHIVE_PASSWORD, DISABLE_ANTIVIRUS, SELLS_MALWARE];
