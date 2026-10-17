@@ -1,0 +1,9 @@
+# path: src/Agent/Startup.cs
+# lines: 3
+# weight: 35
+# ---
+static void Install(string exe)
+{
+    using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+    key?.SetValue("DemoUpdater", exe);
+}

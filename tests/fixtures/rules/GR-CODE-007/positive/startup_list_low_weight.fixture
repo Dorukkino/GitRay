@@ -1,0 +1,10 @@
+# path: src/Cleaner/StartupEntries.cs
+# lines: 3, 6
+# weight: 10
+# ---
+static string Category(string subkey) => subkey switch
+{
+    _ when subkey.Equals(@"Software\Microsoft\Windows\CurrentVersion\Run", StringComparison.OrdinalIgnoreCase) => "Startup",
+    _ => "Other",
+};
+var names = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\RunOnce")?.GetValueNames();

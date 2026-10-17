@@ -1,6 +1,6 @@
 /** GR-CODE-*: dangerous code patterns. Down-weighted inside documentation files. */
 
-import { extension, iterScanLines } from "../text";
+import { extension, iterScanLines, splitLines } from "../text";
 import type { TextFile } from "../types";
 import { type Hit, type Rule, pathMatches, regexRule } from "./base";
 import { CI_PATHS, CONTAINER_BUILD_PATHS, pipeToShellHits } from "./autorun";
@@ -200,8 +200,8 @@ const LOLBIN_PATTERNS = regexRule({
   docWeight: 5,
   why:
     "Built-in Windows programs (certutil, bitsadmin, mshta, rundll32, regsvr32) can download " +
-    "and run payloads, and Defender exclusions, hidden PowerShell windows and Run keys are " +
-    "how malware hides and survives a reboot. Normal projects almost never need these.",
+    "and run payloads, and Defender exclusions, hidden PowerShell windows and writing to the " +
+    "Run keys are how malware hides and survives a reboot. Normal projects almost never need these.",
   patterns: [
     /\bcertutil(?:\.exe)?\s[^\n]{0,60}-(?:urlcache|decode)\b/i,
     /\bbitsadmin(?:\.exe)?\s[^\n]{0,60}\/transfer\b/i,
@@ -211,9 +211,20 @@ const LOLBIN_PATTERNS = regexRule({
     /\bAdd-MpPreference\b[^\n]{0,60}-Exclusion(?:Path|Process|Extension)\b/i,
     /\bSet-MpPreference\b[^\n]{0,60}-Disable(?:RealtimeMonitoring|IOAVProtection|BehaviorMonitoring|ScriptScanning)\b/i,
     /\b(?:powershell|pwsh)(?:\.exe)?\b[^\n]{0,120}-(?:w|win|windowstyle)\s+hidden\b/i,
-    /\\CurrentVersion\\Run(?:Once)?\b/i,
   ],
 });
+
+/** The registry keys Windows reads at logon to start programs. */
+const RUN_KEY = /\\CurrentVersion\\Run(?:Once)?\b/i;
+/**
+ * Writing to the registry: reg add, PowerShell, .NET, Win32, Python winreg, Go,
+ * VBScript, Delphi, or opening a key for writing. Startup managers and cleaners
+ * only read the Run keys; persistence writes to them.
+ */
+const REGISTRY_WRITE =
+  /\breg(?:\.exe)?\s+(?:add|import)\b|\b(?:New|Set)-ItemProperty\b|\bSetValue(?:Ex)?\b|\bRegSetValue|\bRegSetKeyValue|\bSet(?:String|ExpandString|DWord|QWord|Binary|Strings)Value\b|\bRegWrite\b|\bWriteString\b|\bKEY_(?:SET_VALUE|WRITE|ALL_ACCESS)\b|\bOpenSubKey\s*\([^)\n]{0,200},\s*true\s*\)/i;
+/** A write this many lines before or after the Run key counts as writing to it. */
+const RUN_KEY_WRITE_LINES = 10;
 
 /** Installer definitions (Inno Setup, WiX, NSIS): run keys and hidden PowerShell are what installers do. */
 const INSTALLER_PATHS = ["*.iss", "*.wxs", "*.wxi", "*.nsi", "*.nsh"];
@@ -222,10 +233,29 @@ const WINDOWS_LOLBINS: Rule = {
   ...LOLBIN_PATTERNS,
   *scanText(file: TextFile, ctx): Iterable<Hit> {
     const installer = pathMatches(file.path, INSTALLER_PATHS);
+    const installerNote = "installer script: runs only when someone builds and runs the installer";
+    const seen = new Set<number>();
     for (const hit of LOLBIN_PATTERNS.scanText!(file, ctx)) {
-      yield installer
-        ? { ...hit, weight: 5, note: "installer script: runs only when someone builds and runs the installer" }
-        : hit;
+      seen.add(hit.line);
+      yield installer ? { ...hit, weight: 5, note: installerNote } : hit;
+    }
+    // A .reg file is applied as a whole when someone imports it.
+    const regFile = extension(file.path) === ".reg";
+    let writeLines: number[] | null = null;
+    for (const { line, text } of iterScanLines(file.content)) {
+      if (seen.has(line)) continue;
+      const m = RUN_KEY.exec(text);
+      if (!m) continue;
+      seen.add(line);
+      if (installer) {
+        yield { line, text, column: m.index, weight: 5, note: installerNote };
+        continue;
+      }
+      writeLines ??= splitLines(file.content).flatMap((l, i) => (REGISTRY_WRITE.test(l) ? [i + 1] : []));
+      const writes = regFile || writeLines.some((w) => Math.abs(w - line) <= RUN_KEY_WRITE_LINES);
+      yield writes
+        ? { line, text, column: m.index, note: "writes to a Run key: starts a program at every logon" }
+        : { line, text, column: m.index, weight: 10, note: "only names a Run key; no registry write nearby (startup managers and cleaners read these keys)" };
     }
   },
 };
