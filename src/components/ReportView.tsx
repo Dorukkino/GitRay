@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import type { Category, Report, ReportCheckedFile, ReportFinding, ReportSubmodule, Reputation, Severity } from "@/engine";
+import type { Category, Report, ReportChainStep, ReportCheckedFile, ReportFinding, ReportSubmodule, Reputation, Severity } from "@/engine";
 import { type Locale, INTL_LOCALE, scanPath } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { fmt, plural, rich } from "@/i18n/format";
@@ -218,6 +218,32 @@ function Tag({ children }: { children: React.ReactNode }) {
   return <span className="rounded-md bg-sunken px-2 py-0.5 text-[11px] text-muted">{children}</span>;
 }
 
+/** A behavior finding's data-flow chain: each step is a line, linked to GitHub when known. */
+function ChainView({ chain }: { chain: ReportChainStep[] }) {
+  const { dict } = useI18n();
+  const t = dict.report;
+  return (
+    <ol className="mt-3 space-y-1.5">
+      {chain.map((step, i) => (
+        <li key={i} className="flex items-start gap-2.5 text-sm">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/12 font-mono text-[11px] text-accent ring-1 ring-accent/20">{i + 1}</span>
+          <span className="text-muted">
+            {t.chainSteps[step.kind] ?? step.kind}
+            {" · "}
+            {step.githubUrl ? (
+              <a href={step.githubUrl} target="_blank" rel="noopener noreferrer nofollow" className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent">
+                {fmt(t.chainLine, { n: step.line })}
+              </a>
+            ) : (
+              <span className="text-subtle">{fmt(t.chainLine, { n: step.line })}</span>
+            )}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function FindingCard({ f }: { f: ReportFinding }) {
   const { dict } = useI18n();
   const t = dict.report;
@@ -256,7 +282,8 @@ function FindingCard({ f }: { f: ReportFinding }) {
           </a>
         )}
       </div>
-      {f.note && <p className="mt-1.5 text-sm text-muted">{f.note}</p>}
+      {f.note && !f.chain?.length && <p className="mt-1.5 text-sm text-muted">{f.note}</p>}
+      {f.chain && f.chain.length > 0 && <ChainView chain={f.chain} />}
       {f.snippet && (
         <pre className="film mt-3 overflow-x-auto rounded-xl border border-film-line p-3 font-mono text-[13px] leading-relaxed break-all whitespace-pre-wrap">
           {f.snippet}

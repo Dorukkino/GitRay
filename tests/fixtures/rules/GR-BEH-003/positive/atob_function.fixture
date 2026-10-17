@@ -1,0 +1,6 @@
+# path: demo/run.js
+# lines: 2
+# weight: 60
+# ---
+const src = atob("cmV0dXJuIDE7");
+new Function(src)();

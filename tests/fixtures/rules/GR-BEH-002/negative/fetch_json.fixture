@@ -1,0 +1,5 @@
+# path: demo/config.js
+# ---
+fetch("https://api.example.invalid/config")
+  .then((r) => r.text())
+  .then((body) => JSON.parse(body));

