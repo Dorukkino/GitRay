@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DANGEROUS_AT, SUSPICIOUS_AT, ruleScores, score, verdictFor } from "../src/engine/scoring";
 import type { Finding } from "../src/engine/types";
 
-function finding(ruleId: string, weight: number, path = "a", category: Finding["category"] = "code"): Finding {
-  return { ruleId, title: "", category, path, line: 1, snippet: "", why: "", weight, docContext: false, note: null };
+function finding(ruleId: string, weight: number, path = "a", category: Finding["category"] = "code", snippet = ""): Finding {
+  return { ruleId, title: "", category, path, line: 1, snippet, why: "", weight, docContext: false, note: null };
 }
 
 describe("scoring", () => {
@@ -43,12 +43,17 @@ describe("scoring", () => {
     expect(clean.ruleScores).toEqual({ A: 35, B: 15, C: 20 });
   });
 
-  it("does not hold it when something auto-runs or the non-test findings stand on their own", () => {
+  it("does not hold it when an autorun launches the test file or the non-test findings stand on their own", () => {
     const tests = [finding("A", 45, "tests/setup.js"), finding("B", 15, "tests/setup.js")];
-    const autorun = score([...tests, finding("AUTO", 10, "package.json", "autorun")]);
+    // An install script that actually runs a test-folder file disables the cap.
+    const autorun = score([...tests, finding("AUTO", 10, "package.json", "autorun", '"postinstall": "node tests/setup.js"')]);
     expect(autorun).toMatchObject({ score: 70, verdict: "dangerous", testFilesCapped: false });
+    // An autorun that does not reference the tests (patch-package, tsc) cannot launch
+    // the payload, so the cap still applies.
+    const unrelated = score([...tests, finding("AUTO", 10, "package.json", "autorun", '"postinstall": "patch-package"')]);
+    expect(unrelated).toMatchObject({ score: 10, verdict: "clean", testFilesCapped: true });
     // GR-AUTO-008 (MCP servers / AI hooks) is opt-in and does not count as auto-run here.
-    const mcp = score([finding("A", 35, "tests/a.test.ts"), finding("GR-AUTO-008", 10, ".mcp.json", "autorun")]);
+    const mcp = score([finding("A", 35, "tests/a.test.ts"), finding("GR-AUTO-008", 10, ".mcp.json", "autorun", "node tests/run.js")]);
     expect(mcp).toMatchObject({ score: 10, verdict: "clean", testFilesCapped: true });
     const outside = score([finding("A", 40, "spec/a.js"), finding("B", 35, "src/a.js"), finding("C", 35, "src/b.js")]);
     expect(outside).toMatchObject({ verdict: "dangerous", testFilesCapped: false });

@@ -100,7 +100,10 @@ const EXECUTABLE: Rule = {
   id: "GR-BIN-001",
   title: "Executable file committed to the repository",
   category: "binary",
-  weight: 20,
+  // A weak signal on its own: many legitimate projects commit native libraries,
+  // installer plugins, test fixtures or launcher stubs. VirusTotal (GR-BIN-003)
+  // is what turns a committed program into a strong signal when it is real malware.
+  weight: 10,
   why:
     "A ready-to-run program inside a source repository cannot be reviewed like code: what " +
     "you see on GitHub is not what runs. Fake projects ship the payload this way, often " +
@@ -109,7 +112,7 @@ const EXECUTABLE: Rule = {
   *scanBinary(file: BinaryFile): Iterable<Hit> {
     const kind = executableKind(file.head);
     if (kind) {
-      yield { line: 0, text: "", weight: kind === "exeLnk" ? 30 : undefined, ...note(kind) };
+      yield { line: 0, text: "", weight: kind === "exeLnk" ? 15 : undefined, ...note(kind) };
       return;
     }
     const zip = zipInfo(file.head);
