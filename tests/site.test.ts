@@ -59,9 +59,9 @@ describe("sitemap and robots", () => {
     for (const e of entries) expect(e.alternates?.languages).toMatchObject({ en: expect.stringMatching(/^http/) });
   });
 
-  it("keeps crawlers out of the API and points to the sitemap", () => {
+  it("keeps crawlers out of the API and the admin page, and points to the sitemap", () => {
     const r = robots();
-    expect(r.rules).toMatchObject({ userAgent: "*", disallow: "/api/" });
+    expect(r.rules).toMatchObject({ userAgent: "*", disallow: ["/api/", "/dorukadm"] });
     expect(r.sitemap).toBe("http://localhost:3000/sitemap.xml");
   });
 });
@@ -70,7 +70,7 @@ describe("proxy matcher", () => {
   const matcher = new RegExp(`^${config.matcher[0]}$`);
 
   it("leaves files served at the root alone", () => {
-    for (const path of ["/robots.txt", "/sitemap.xml", "/api/scan", "/icon.svg"]) {
+    for (const path of ["/robots.txt", "/sitemap.xml", "/api/scan", "/icon.svg", "/dorukadm"]) {
       expect(matcher.test(path), path).toBe(false);
     }
   });

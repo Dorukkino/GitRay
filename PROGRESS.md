@@ -18,7 +18,7 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 27 dosya, 941 test |
+| Testler | 32 dosya, 983 test |
 | Vercel'e deploy | Canlıda: **https://www.gitray.com.tr** (11 Ekim; `gitray.com.tr` ona yönlenir, gitray.vercel.app de çalışır) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -81,6 +81,17 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 - [ ] **Aşama 6 (opsiyonel):** Tarayıcı eklentisi (GitHub sayfasında rozet), GitHub Action, Gradle/Podfile/Makefile kuralları, LLM ile bulgu özeti.
 
 ## Oturum günlüğü
+
+### 17 Ekim 2026 (37. oturum): Yanlış sonucu bildirme + özel admin paneli + kendi captcha'mız
+
+Kullanıcı istedi: tarama raporuna "yanlış bildir" butonu; gelen bildirimleri yalnızca kendisinin okuyacağı, **sadece-okuma** bir admin paneli (`/dorukadm`, `/admin` değil); giriş için kullanıcı adı+şifre ve **tek seferlik token korumalı** ilk kurulum; brute-force'a IP sınırı; cevabı incele/devconsole'da görünmeyen, base64 PNG, **kendi yaptığımız** robot kontrolü; SQL injection güvenliği teyidi. (Bu, 10 Ekim'deki "yanlış alarm bildirme yolu yok" kararını tersine çevirir — kullanıcının kendi kararı.)
+- **Güvenlik sorusu cevabı:** SQL injection'a kapalıyız — tüm sorgular parametreli (`$1,$2…`), kullanıcı verisi asla sorgu metnine gömülmez; IP'ler ham değil HMAC saklanır; loglar bağlantı dizesi/token gizler; React kaçışı + `dangerouslySetInnerHTML` yasağı. Mevcut açık yok. Yeni kısım da aynı disiplinle yazıldı.
+- **Rapor akışı:** `ReportFalseFinding` (karar rozetinin yanında buton → form), `POST /api/report` (captcha + IP sınırı + doğrulama + `sanitize-text` + saklama), `report-store.ts` (`false_reports`; serbest metin + bağlam + IP'nin HMAC'ı; en fazla 2.000; **özel**, herkese açık değil).
+- **Admin:** `/dorukadm` (kendi kök layout'u, İngilizce, `noindex`, proxy/robots/sitemap'te yok, yalnızca URL'yle); oturum HMAC imzalı httpOnly cookie; `admin-auth.ts` scrypt şifre + `timingSafeEqual`; `admin-store.ts` tek satır hesap; setup `ADMIN_SETUP_TOKEN` ile tek seferlik; login `admin-login` IP kovası 5/15 dk. Panel yalnızca okur.
+- **Captcha:** `captcha.ts` + `GET /api/captcha` → `next/og ImageResponse` ile PNG; cevap yalnızca piksellerde, tarayıcıya giden httpOnly cookie sadece cevabın HMAC'ı (DOM/gövde/JS/devconsole'da cevap yok). İmza sırrı `ADMIN_SECRET`.
+- **Env:** `ADMIN_SECRET`, `ADMIN_SETUP_TOKEN` eklendi (`.env.example`). Gizlilik metni güncellendi (bildirim + admin IP), `LEGAL_UPDATED` 17 Ekim.
+- Duman testi: captcha PNG + imzalı cookie dönüyor (cevap görünmüyor); DB'siz rapor 503; `/dorukadm` bare URL'de açılıyor (yerele yönlenmiyor). 983 test (32 dosya) geçti; lint/typecheck/build temiz.
+- **Kullanıcının Vercel'de yapacağı:** `ADMIN_SECRET` (uzun rastgele) ve `ADMIN_SETUP_TOKEN` env değişkenlerini ekle → `/dorukadm`'e git → token + yeni kullanıcı adı/şifre ile hesabı bir kez kur.
 
 ### 17 Ekim 2026 (36. oturum): Güçlü sinyal şartı (zayıf sinyal birikimi artık Tehlikeli yapmaz)
 

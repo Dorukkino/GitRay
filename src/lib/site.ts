@@ -24,7 +24,7 @@ export function analyticsHost(hostname: string): boolean {
 export const THEME_KEY = "gitray-theme";
 
 /** Shown on the privacy and terms pages; change it whenever either text changes. */
-export const LEGAL_UPDATED = "2026-10-12";
+export const LEGAL_UPDATED = "2026-10-17";
 
 /** Pages without parameters, as paths inside a locale. Scan pages are not listed. */
 export const STATIC_PAGES = ["/", "/how-it-works", "/safe-zone", "/scammer", "/recent", "/rules", "/privacy", "/terms"] as const;

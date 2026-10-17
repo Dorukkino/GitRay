@@ -462,6 +462,25 @@ export const en = {
     },
     rawTitle: "Raw JSON report (for developers)",
     download: "Download",
+    reportButton: "Looks wrong? Report",
+    reportTitle: "Report a wrong result",
+    reportIntro: "Verdicts are automated and can be wrong. Tell us what we got wrong — it goes only to the site owner.",
+    reportPlaceholder: "What did we flag that is actually safe, or what did we miss?",
+    captchaAlt: "Robot check",
+    captchaLabel: "Type the characters",
+    captchaRefresh: "New image",
+    reportSubmit: "Send report",
+    reportSending: "Sending…",
+    reportSuccess: "Thanks — your report was sent to the site owner.",
+    reportClose: "Close",
+    reportErrors: {
+      captcha_failed: "The robot check was wrong or expired. Please try again.",
+      bad_reason: "Please describe what is wrong (a few words).",
+      bad_request: "Invalid request. Please try again.",
+      rate_limited: "Too many reports from here. Please try again later.",
+      storage_unavailable: "Reporting is not available right now.",
+      generic: "Could not send your report. Please try again.",
+    } as Record<string, string>,
     gaugeLabel: "Risk score {score} out of 100",
     gaugeSuffix: "/ 100 risk",
   },
@@ -614,6 +633,19 @@ export const en = {
             "at {neon}. Vercel may keep standard request logs, which include IP addresses, under its own policy. " +
             "Fonts are served from this site. The only third-party script is Google Analytics, and only after you " +
             "accept it.",
+        ],
+      },
+      {
+        title: "Reporting a wrong result",
+        paragraphs: [
+          'If you use the "report a wrong result" button on a scan page, GiTRay stores the note you write together ' +
+            "with that scan's repository, verdict, score and engine version. No name, email or other identity is asked " +
+            "for or stored. Your IP address is used only to limit how often reports can be sent and to curb abuse, and " +
+            "is kept only as a keyed hash (HMAC), never in full.",
+          "These reports are private: only the site owner reviews them, to improve the detection. They are not shown " +
+            "publicly. At most 2,000 are kept; the oldest are deleted first.",
+          "The owner signs in to review them on a private page, with a username, a password and a robot check; the " +
+            "sign-in IP address is used only, as a keyed hash, to limit failed attempts.",
         ],
       },
       {
