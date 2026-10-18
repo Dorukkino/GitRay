@@ -82,6 +82,13 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 18 Ekim 2026 (42. oturum): Sitemap — GSC-uyumlu + yeni sayfalar otomatik (unutma koruması)
+
+- Kullanıcı iki sitemap görseli gösterip "neden farklı" dedi. **Teknik hata yoktu:** Next 16 `sitemap.ts` metadata route'u `application/xml` sunuyor (node_modules'ta doğrulandı); görsel fark sadece tarayıcı render'ıydı (biri XML ağacı, diğeri düz metin). GSC geçerli XML'i sorunsuz okur.
+- İstek: GSC'nin rahat okuyacağı sitemap + yeni sayfa otomatik eklensin. Sitemap zaten `STATIC_PAGES` × `LOCALES` geziyor (alternates ile), `PAGE_HINTS` tipi `Record<StaticPage>` olduğu için öncelik/sıklık eklemeyi TS zorluyor. Tek açık: sayfa klasörü eklenip `STATIC_PAGES`'e eklenmezse sessizce atlanırdı.
+- **Çözüm:** `tests/site.test.ts`'e senkron testi eklendi — `src/app/[lang]/` altındaki gerçek sayfaları (dinamik/`[...]`/scan hariç) `STATIC_PAGES` ile iki yönlü karşılaştırır; biri eksikse CI patlar → unutmak imkânsız. Runtime dosya-sistemi taraması Vercel'de güvenilmez olduğu için (serverless'ta kaynak ağacı yok) bilinçli olarak "tek kaynak liste + test" seçildi; XSLT "şık sitemap" kullanıcı tarafından seçilmedi.
+- Motor/sitemap davranışı değişmedi (`ENGINE_VERSION` aynı). 1007 test geçti; lint/typecheck/build temiz. GSC'ye verilecek: `https://www.gitray.com.tr/sitemap.xml`.
+
 ### 17 Ekim 2026 (41. oturum): Obfuscation tespitini güçlendirme (temkinli)
 
 - r10 forumunda bir kullanıcı "obfuscate edilmiş kodlara karşı işe yaramıyor" dedi (elde somut repo yok). Keşif, **düşük yanlış-alarm riskli** üç somut boşluk buldu; kullanıcı **temkinli** yaklaşımı seçti (sinyal ekle ama tek başına Tehlikeli yapma).
