@@ -1,6 +1,7 @@
 /** The site's own addresses: public URL, metadata alternates, sitemap and robots.txt. */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -65,6 +66,23 @@ describe("sitemap and robots", () => {
     // The admin URL is secret; listing it in robots.txt would reveal it.
     expect(JSON.stringify(r.rules)).not.toContain("dorukadm");
     expect(r.sitemap).toBe("http://localhost:3000/sitemap.xml");
+  });
+});
+
+describe("sitemap stays in sync with the real pages", () => {
+  it("lists exactly the static pages that exist under app/[lang]", () => {
+    // Derive the real static routes from the filesystem so a new page cannot be
+    // silently left out of the sitemap: adding src/app/[lang]/<name>/page.tsx
+    // without adding "/<name>" to STATIC_PAGES (or vice versa) fails here.
+    const dir = join(__dirname, "..", "src", "app", "[lang]");
+    const found = new Set<string>();
+    if (existsSync(join(dir, "page.tsx"))) found.add("/");
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      // Dynamic segments ([...missing]) and the dynamic scan route are not static pages.
+      if (!entry.isDirectory() || entry.name.startsWith("[")) continue;
+      if (existsSync(join(dir, entry.name, "page.tsx"))) found.add(`/${entry.name}`);
+    }
+    expect([...found].sort()).toEqual([...STATIC_PAGES].sort());
   });
 });
 
