@@ -82,6 +82,12 @@ Son güncelleme: **19 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 19 Ekim 2026 (46. oturum): Coolify arkasında client IP sertleştirmesi (hız sınırı spoof koruması)
+
+- 44. oturumda açık bırakılan takip kapandı. Sorun: `clientIp` (`src/lib/request.ts`) önce `x-real-ip`'e bakıyordu. Vercel bunu garanti ediyordu; **Coolify'ın Traefik'i varsayılan koymaz ve istemcinin gönderdiği `x-real-ip`/`x-forwarded-for` ilk değerini ezmez** → kötü niyetli biri sahte başlıkla kişi-başı hız sınırını atlayabilirdi (normal kullanıcılar etkilenmiyordu; site geneli saatlik bütçe yine koruyordu).
+- Çözüm: `clientIp` artık **`x-forwarded-for`'un sağdan n. değerini** alıyor (n = `TRUSTED_PROXY_HOPS`, varsayılan 1). Ters-proxy gerçek IP'yi başlığın **sonuna** ekler; istemci yalnızca **başına** sahte değer koyabilir → sağdan n. girdi sahtelenemez. Bu hem Coolify/Traefik'te hem Vercel'de doğru (ikisi de tek hop). `x-real-ip` yalnızca XFF hiç yoksa (yerel) yedek. CDN (Cloudflare vb.) eklenirse `TRUSTED_PROXY_HOPS=2`.
+- `tests/request.test.ts` eklendi (spoof öneki sayılmıyor, hop ayarı, yedek, "unknown"). `.env.example` + CLAUDE.md güncellendi. Motor/puanlama değişmedi (`ENGINE_VERSION` aynı). 1016 test ✓, lint/typecheck/build temiz.
+
 ### 19 Ekim 2026 (45. oturum): Vercel → kendi VPS (Coolify) + domain gitray.com.tr → gitray.net
 
 - Kullanıcı barındırmayı **Vercel'den kendi VPS'ine (Coolify, Nixpacks, Node 22)** ve domaini **`www.gitray.com.tr`'den `gitray.net`'e** (apex) taşıdı. Neon veritabanı aynı kaldı (taşınmadı, yeni host aynı `DATABASE_URL` ile bağlandı → tüm taramalar/raporlar korundu). Env değişkenleri yeniden girildi: Secret'lar Vercel'den okunamadığı için VT anahtarı VT hesabından kopyalandı, GitHub token yeniden üretildi, `ADMIN_SECRET`/`ADMIN_SETUP_TOKEN` eski değerleriyle taşındı.
