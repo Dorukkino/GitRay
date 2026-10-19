@@ -498,8 +498,7 @@ export const en = {
     stars: { one: "{n} star", other: "{n} stars" } as PluralText,
     dbTitle: "The database is not connected yet.",
     dbText:
-      "Scans still work, but nothing is stored. Add a Postgres database (Neon) in the Vercel project's Storage tab to " +
-      "fill this list.",
+      "Scans still work, but nothing is stored. Set DATABASE_URL to a Postgres database (Neon) to fill this list.",
     failed: "The list could not be loaded right now. Try again in a minute.",
   },
 
@@ -635,10 +634,10 @@ export const en = {
       {
         title: "Hosting",
         paragraphs: [
-          "The site runs on {vercel}, and scan results and the rate-limit counters are kept in a Postgres database " +
-            "at {neon}. Vercel may keep standard request logs, which include IP addresses, under its own policy. " +
-            "Fonts are served from this site. The only third-party script is Google Analytics, and only after you " +
-            "accept it.",
+          "The site runs on a server operated by the site's owner, and scan results and the rate-limit counters are " +
+            "kept in a Postgres database at {neon}. The server may keep standard request logs, which include IP " +
+            "addresses. Fonts are served from this site. The only third-party script is Google Analytics, and only " +
+            "after you accept it.",
         ],
       },
       {
