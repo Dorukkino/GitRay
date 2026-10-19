@@ -135,6 +135,38 @@ describe("test files of security tools", () => {
   });
 });
 
+describe("local round-trip and non-executed instruction files are not false positives", () => {
+  it("eval of a value the file just encoded from visible source is a weak signal, not decisive", async () => {
+    // A dev verification harness base64-encodes a visible local script only to keep
+    // paths and quotes out of shell syntax, then decodes and runs it (morluto/rea).
+    const r = await scanFiles({
+      "scripts/verify-client.mjs":
+        "const script = `const fs=require('node:fs');console.log(fs.readFileSync(p,'utf8'));`;\n" +
+        'const encodedScript = Buffer.from(script).toString("base64");\n' +
+        "run({ command: `node -e \"eval(Buffer.from('${encodedScript}','base64').toString('utf8'))\"` });\n",
+    });
+    expect(r.ruleScores["GR-CODE-001"]).toBe(5);
+    expect(r.verdict).not.toBe("dangerous");
+  });
+
+  it("still flags eval of an opaque literal blob held in a variable", async () => {
+    const r = await scanFiles({
+      "server/config.js": `const p = "${noise(400)}";\neval(atob(p));\n`,
+    });
+    expect(r.ruleScores["GR-CODE-001"]).toBe(45);
+  });
+
+  it("does not count curl | sh shown on an HTML install page or in a changelog", async () => {
+    const r = await scanFiles({
+      "website/get-started/index.html":
+        "<pre><code>curl -fsSL https://example.invalid/install.sh | bash</code></pre>\n",
+      "docs/releases/6.5.0.json": '{"body":"fix(install): curl -fsSL https://example.invalid/i.sh | sh guard"}\n',
+    });
+    expect(r.ruleScores["GR-CODE-002"]).toBeUndefined();
+    expect(r.verdict).toBe("clean");
+  });
+});
+
 describe("legitimate patterns from popular repositories stay clean", () => {
   it("documentation, git hooks, install scripts and test data", async () => {
     const r = await scanFiles({

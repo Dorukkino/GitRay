@@ -1,6 +1,6 @@
 /** GR-CODE-*: dangerous code patterns. Down-weighted inside documentation files. */
 
-import { extension, iterScanLines, splitLines } from "../text";
+import { extension, isReleaseNotes, iterScanLines, splitLines } from "../text";
 import type { TextFile } from "../types";
 import { note } from "../notes";
 import { type Hit, type Rule, pathMatches, regexRule } from "./base";
@@ -50,12 +50,39 @@ const DECODE_EXEC_PATTERNS = regexRule({
 /** eval of URL-decoded data held in a variable: old code parsing cookies or query strings does this. */
 const EVAL_URL_DECODED = /\beval\s*\(\s*(?:unescape|decodeURIComponent)\s*\(/;
 
+/** JavaScript eval/Function of a decoded value: eval(atob(x)), eval(Buffer.from(x,'base64')), Function(atob(x)). */
+const JS_DECODE_RUN = /\b(?:eval|(?:new\s+)?Function)\s*\(\s*(?:atob|Buffer\.from)\s*\(/;
+/** The first identifier handed to that decode call: atob(name, Buffer.from(name, Buffer.from('${name}'. */
+const DECODED_OPERAND = /(?:atob|Buffer\.from)\s*\(\s*['"`]?\$?\{?\s*([A-Za-z_$][\w$]*)/;
+
+/**
+ * True when `name` holds a base64/hex string this same file produced by encoding
+ * its own visible source (btoa(x), Buffer.from(x).toString("base64")). Decoding
+ * it back and running it is a transport or shell-quoting round-trip, not a hidden
+ * payload: the plaintext source is right there for a reviewer to read. Malware
+ * ships an opaque literal blob instead, which this never matches.
+ */
+function locallyEncoded(content: string, name: string): boolean {
+  const id = name.replace(/[.$]/g, "\\$&");
+  const encode = "\\b" + id + "\\b\\s*=\\s*[^\\n;]*?(?:\\.toString\\s*\\(\\s*['\"`](?:base64|hex)['\"`]|\\bbtoa\\s*\\()";
+  return new RegExp(encode).test(content);
+}
+
 const DECODE_EXEC: Rule = {
   ...DECODE_EXEC_PATTERNS,
   *scanText(file: TextFile, ctx): Iterable<Hit> {
     const strong = new Set<number>();
     for (const hit of DECODE_EXEC_PATTERNS.scanText!(file, ctx)) {
       strong.add(hit.line);
+      // Decoding a value this file just encoded from visible source (a shell-quoting
+      // or transport trick) hides nothing, so it stays a weak signal, not a decisive one.
+      if (JS_DECODE_RUN.test(hit.text)) {
+        const name = DECODED_OPERAND.exec(hit.text)?.[1];
+        if (name && locallyEncoded(file.content, name)) {
+          yield { ...hit, weight: 5, ...note("localRoundTrip") };
+          continue;
+        }
+      }
       yield hit;
     }
     for (const { line, text } of iterScanLines(file.content)) {
@@ -79,6 +106,11 @@ const PIPE_TO_SHELL: Rule = {
     "A remote script is downloaded and executed immediately, without being saved or " +
     "reviewed. Whoever controls that URL controls your machine.",
   *scanText(file: TextFile): Iterable<Hit> {
+    // An HTML page shows install instructions and a changelog reports history; a
+    // "curl | sh" there is displayed text or data, not a script that runs when the
+    // repository is cloned — the same reason it is dropped inside a README.
+    const ext = extension(file.path);
+    if (ext === ".html" || ext === ".htm" || isReleaseNotes(file.path)) return;
     const container = pathMatches(file.path, CONTAINER_BUILD_PATHS);
     for (const hit of pipeToShellHits(file)) {
       yield container ? { ...hit, weight: 5, ...note("inContainer") } : hit;
