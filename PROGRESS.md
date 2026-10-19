@@ -82,6 +82,12 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 
 ## Oturum günlüğü
 
+### 19 Ekim 2026 (43. oturum): Tarama ekranında geçen süre + uzun tarama mesajı
+
+- Kullanıcı büyük bir repoyu taratınca ekran uzun bekledi, "2-20 sn" yazdığı için takıldı sandı. Gerçekte motor süre bütçesi 45 sn (`timeBudgetMs`), büyük/bağımlılığı çok repolar bütçeye yaklaşabilir — takılma değil.
+- `ScanClient` yükleme ekranına **geçen süre sayacı** (`· {s} sn geçti`, saniyede bir) ve **~20 sn sonra** (`LONG_SCAN_AFTER_SECONDS`) "Büyük bir repo olabilir; biraz daha sürebilir (en fazla ~45 sn)" mesajı eklendi (`dict.scan.durationLong`/`elapsed`, en+tr). Böylece kullanıcı takıldı sanmıyor.
+- Salt UI; motor değişmedi (`ENGINE_VERSION` aynı). 1007 test geçti; lint/typecheck/build temiz.
+
 ### 18 Ekim 2026 (42. oturum): Sitemap — GSC-uyumlu + yeni sayfalar otomatik (unutma koruması)
 
 - Kullanıcı iki sitemap görseli gösterip "neden farklı" dedi. **Teknik hata yoktu:** Next 16 `sitemap.ts` metadata route'u `application/xml` sunuyor (node_modules'ta doğrulandı); görsel fark sadece tarayıcı render'ıydı (biri XML ağacı, diğeri düz metin). GSC geçerli XML'i sorunsuz okur.

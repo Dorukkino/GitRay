@@ -28,8 +28,17 @@ function ScanAge({ iso, now }: { iso: string; now: number }) {
   return <span className="font-medium text-fg">{text}</span>;
 }
 
+/** After this many seconds, reassure that a long scan (a big repo) is normal, not stuck. */
+const LONG_SCAN_AFTER_SECONDS = 20;
+
 function Loading({ owner, repo, step }: { owner: string; repo: string; step: number }) {
   const { dict } = useI18n();
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -79,7 +88,10 @@ function Loading({ owner, repo, step }: { owner: string; repo: string; step: num
           </motion.li>
         ))}
       </ol>
-      <p className="mt-5 text-xs text-subtle">{dict.scan.duration}</p>
+      <p className="mt-5 text-xs text-subtle" aria-live="polite">
+        {elapsed >= LONG_SCAN_AFTER_SECONDS ? dict.scan.durationLong : dict.scan.duration}
+        {elapsed >= 1 && <span className="text-subtle/70"> · {fmt(dict.scan.elapsed, { s: elapsed })}</span>}
+      </p>
     </motion.div>
   );
 }

@@ -252,6 +252,8 @@ export const en = {
     ],
     scanning: "Scanning {repo}",
     duration: "Usually 2-20 seconds, depending on the size of the repository.",
+    durationLong: "This looks like a large repository; it can take a little longer (up to ~45s).",
+    elapsed: "{s}s elapsed",
     scannedWithCommit: "Scanned {age} for commit {sha}.",
     scanned: "Scanned {age}.",
     justNow: "just now",
