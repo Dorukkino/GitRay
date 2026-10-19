@@ -26,7 +26,6 @@ export default async function PrivacyPage({ params }: PageProps<"/[lang]/privacy
         consent: legalCode(CONSENT_KEY),
         ga: legalCode("_ga, _ga_*"),
         google: legalLink("https://policies.google.com/privacy", "Google"),
-        vercel: legalLink("https://vercel.com/legal/privacy-policy", "Vercel"),
         neon: legalLink("https://neon.com/privacy-policy", "Neon"),
       }}
     />

@@ -52,7 +52,7 @@ export default function OgImage() {
         </div>
         <div style={{ marginTop: "48px", display: "flex", gap: "14px", alignItems: "center", fontSize: "26px", color: "#6f8bb0" }}>
           <div style={{ width: "10px", height: "10px", borderRadius: "999px", background: "#3fd08a" }} />
-          gitray.com.tr
+          gitray.net
         </div>
       </div>
     ),

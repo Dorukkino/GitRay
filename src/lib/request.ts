@@ -3,11 +3,11 @@
 import type { NextRequest } from "next/server";
 
 /**
- * The client's IP for rate limiting. On Vercel `x-real-ip` is set by the
- * platform to the real client IP and cannot be spoofed by the caller, so it is
+ * The client's IP for rate limiting. A reverse proxy in front of the app sets
+ * `x-real-ip` to the real client IP, which the caller cannot spoof, so it is
  * preferred. The leftmost `x-forwarded-for` hop is caller-controlled (a client
- * can prepend its own value before the platform appends the real one), so it is
- * only a fallback for local/non-Vercel runs where `x-real-ip` is absent.
+ * can prepend its own value before the proxy appends the real one), so it is
+ * only a fallback for local runs or proxies that do not set `x-real-ip`.
  */
 export function clientIp(request: NextRequest): string {
   const real = request.headers.get("x-real-ip")?.trim();

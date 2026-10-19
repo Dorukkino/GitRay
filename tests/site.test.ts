@@ -15,22 +15,22 @@ import { config } from "../src/proxy";
 describe("siteUrl", () => {
   it("prefers SITE_URL, then www.gitray.com.tr on Vercel, then localhost", () => {
     expect(siteUrl({ SITE_URL: "https://gitray.example/", VERCEL: "1" })).toBe("https://gitray.example");
-    expect(siteUrl({ VERCEL: "1" })).toBe("https://www.gitray.com.tr");
+    expect(siteUrl({ VERCEL: "1" })).toBe("https://gitray.net");
     expect(siteUrl({})).toBe("http://localhost:3000");
   });
 
   it("ignores values that are not http(s) addresses", () => {
     expect(siteUrl({ SITE_URL: "javascript:alert(1)" })).toBe("http://localhost:3000");
-    expect(siteUrl({ SITE_URL: "ftp://gitray.example", VERCEL: "1" })).toBe("https://www.gitray.com.tr");
+    expect(siteUrl({ SITE_URL: "ftp://gitray.example", VERCEL: "1" })).toBe("https://gitray.net");
     expect(siteUrl({ SITE_URL: "not a url" })).toBe("http://localhost:3000");
   });
 });
 
 describe("analytics", () => {
   it("runs only on the production domain", () => {
-    expect(analyticsHost("www.gitray.com.tr")).toBe(true);
-    expect(analyticsHost("gitray.com.tr")).toBe(true);
-    for (const host of ["localhost", "gitray.vercel.app", "gitray-git-branch.vercel.app", "evil-gitray.com.tr", "www.gitray.com.tr.evil.example"]) {
+    expect(analyticsHost("gitray.net")).toBe(true);
+    expect(analyticsHost("www.gitray.net")).toBe(true);
+    for (const host of ["localhost", "gitray.vercel.app", "evil-gitray.net", "gitray.net.evil.example", "www.gitray.net.evil.example"]) {
       expect(analyticsHost(host), host).toBe(false);
     }
   });

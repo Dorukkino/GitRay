@@ -576,8 +576,8 @@ export const tr: Dictionary = {
     stars: { one: "{n} yıldız", other: "{n} yıldız" },
     dbTitle: "Veritabanı henüz bağlı değil.",
     dbText:
-      "Taramalar yine çalışır ama hiçbir şey saklanmaz. Bu listeyi doldurmak için Vercel projesinin Storage " +
-      "sekmesinden bir Postgres veritabanı (Neon) ekleyin.",
+      "Taramalar yine çalışır ama hiçbir şey saklanmaz. Bu listeyi doldurmak için DATABASE_URL olarak bir Postgres " +
+      "veritabanı (Neon) ayarlayın.",
     failed: "Liste şu an yüklenemedi. Bir dakika sonra tekrar deneyin.",
   },
 
@@ -712,10 +712,10 @@ export const tr: Dictionary = {
       {
         title: "Barındırma",
         paragraphs: [
-          "Site {vercel} üzerinde çalışır; tarama sonuçları ve hız sınırı sayaçları {neon} üzerindeki bir Postgres " +
-            "veritabanında tutulur. Vercel, kendi politikası çerçevesinde IP adreslerini de içeren standart istek " +
-            "loglarını tutabilir. Yazı tipleri bu siteden gelir. Tek üçüncü taraf script Google Analytics'tir ve " +
-            "yalnızca kabul ettikten sonra yüklenir.",
+          "Site, site sahibinin işlettiği bir sunucuda çalışır; tarama sonuçları ve hız sınırı sayaçları {neon} " +
+            "üzerindeki bir Postgres veritabanında tutulur. Sunucu, IP adreslerini de içeren standart istek loglarını " +
+            "tutabilir. Yazı tipleri bu siteden gelir. Tek üçüncü taraf script Google Analytics'tir ve yalnızca kabul " +
+            "ettikten sonra yüklenir.",
         ],
       },
       {

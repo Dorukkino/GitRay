@@ -19,7 +19,7 @@ Son güncelleme: **19 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
 | Testler | 33 dosya, 1010 test |
-| Vercel'e deploy | Canlıda: **https://www.gitray.com.tr** (11 Ekim; `gitray.com.tr` ona yönlenir, gitray.vercel.app de çalışır) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
+| Barındırma + domain | Canlıda: **https://gitray.net** (19 Ekim, kendi VPS'inde **Coolify**; `www`→apex). Vercel'den taşındı; eski `www.gitray.com.tr` 301 ile gitray.net'e yönlenir. Env: `DATABASE_URL`, `SITE_URL`, `GITHUB_TOKEN`, `VIRUSTOTAL_API_KEY`, `ADMIN_SECRET`, `ADMIN_SETUP_TOKEN`, `NIXPACKS_NODE_VERSION=22` |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
 ## Yayına alma rehberi (kullanıcı için, adım adım)
@@ -81,6 +81,19 @@ Son güncelleme: **19 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 - [ ] **Aşama 6 (opsiyonel):** Tarayıcı eklentisi (GitHub sayfasında rozet), GitHub Action, Gradle/Podfile/Makefile kuralları, LLM ile bulgu özeti.
 
 ## Oturum günlüğü
+
+### 19 Ekim 2026 (45. oturum): Vercel → kendi VPS (Coolify) + domain gitray.com.tr → gitray.net
+
+- Kullanıcı barındırmayı **Vercel'den kendi VPS'ine (Coolify, Nixpacks, Node 22)** ve domaini **`www.gitray.com.tr`'den `gitray.net`'e** (apex) taşıdı. Neon veritabanı aynı kaldı (taşınmadı, yeni host aynı `DATABASE_URL` ile bağlandı → tüm taramalar/raporlar korundu). Env değişkenleri yeniden girildi: Secret'lar Vercel'den okunamadığı için VT anahtarı VT hesabından kopyalandı, GitHub token yeniden üretildi, `ADMIN_SECRET`/`ADMIN_SETUP_TOKEN` eski değerleriyle taşındı.
+- **Kod değişiklikleri (motor değişmedi, `ENGINE_VERSION` aynı):**
+  - `src/lib/site.ts`: `PRODUCTION_URL` → `https://gitray.net`; `analyticsHost` apex+www'yi sağlam eşleyecek şekilde yazıldı (GA artık gitray.net'te yüklenir); `siteUrl` yorumları. **Önemli:** Coolify'da `VERCEL` env'i yok → `SITE_URL` artık **zorunlu** (yoksa site kendini `localhost` sanardı); host'ta `https://gitray.net` olarak ayarlandı.
+  - `opengraph-image.tsx` alt metni `gitray.net`.
+  - **Gizlilik metni (en+tr) + `privacy/page.tsx`:** "site Vercel'de çalışır, Vercel IP'li log tutar" cümlesi ve Vercel linki kaldırıldı → "site sahibinin işlettiği bir sunucuda çalışır". Veri işleyen değişikliği olduğu için `LEGAL_UPDATED` → **2026-10-19**. (Neon + Google aynı kaldı.)
+  - `.env.example`, `request.ts`/`db.ts` yorumları, README deploy bölümü, boş-liste ipucu metinleri Vercel'den host-bağımsıza çevrildi.
+  - `tests/site.test.ts`: `siteUrl`/`analyticsHost` iddiaları gitray.net'e güncellendi. 1010 test ✓, lint/typecheck/build temiz.
+- **Taşıma adımları (kullanıcı yaptı):** gitray.net → Coolify'a bağlandı, Let's Encrypt sertifikası, çalışıyor (tarama + admin + listeler). Eski `gitray.com.tr` → `gitray.net` **301** + GSC Change of Address (kullanıcı tarafında).
+- **Admin:** kullanıcı eski admin kullanıcı adı/şifresini unuttu; şifre scrypt+salt (geri gelmez) → DB'de `admin_credentials` satırı silinip `/dorukadm` kurulumuyla (ADMIN_SETUP_TOKEN) yeni hesap kurulacak (HTTPS'te, gitray.net'te).
+- **Açık takip:** Coolify/Traefik `x-real-ip` koyuyor mu doğrulanmalı (`src/lib/request.ts` `clientIp`). Koymuyorsa normal kullanıcılarda sorun yok ama XFF ilk değeri spoof'lanabilir → hız sınırı sertleştirme yaması gerekir. Veri işleyen olarak VPS sağlayıcısının adını gizlilik metnine eklemek istenirse kullanıcı sağlayıcıyı söyleyince eklenir (şimdilik genel ifade).
 
 ### 19 Ekim 2026 (44. oturum): rea yanlış alarmı — round-trip eval + çalıştırılmayan dosyalarda curl|bash
 

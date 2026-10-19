@@ -53,12 +53,12 @@ Optional settings in `.env.local` (see `.env.example`):
 - `DATABASE_URL`: Postgres connection string (Neon). Without it, scans work but nothing is stored and the lists stay empty.
 - `VIRUSTOTAL_API_KEY`: free VirusTotal API key. Committed programs and release files are then looked up by SHA-256 (nothing is uploaded or downloaded).
 
-### Deploy to Vercel
+### Deploy
 
-1. Import the repository on vercel.com (framework: Next.js, no extra settings) and add `GITHUB_TOKEN` as an environment variable.
-2. In the project's Storage tab, create a Neon Postgres database (free plan) and connect it to the project; Vercel adds `DATABASE_URL`. The table is created on first use.
-3. Redeploy.
-4. Domain: the site lives at **www.gitray.com.tr** (`gitray.com.tr` redirects to it). Add both in the project's Domains settings and create the DNS records Vercel shows at the registrar. Canonical links, the sitemap and `robots.txt` use `https://www.gitray.com.tr` on Vercel (`src/lib/site.ts`); `SITE_URL` overrides it.
+The site runs at **gitray.net**, self-hosted with Coolify; any Node 22 host works (`npm run build`, then `npm start`).
+
+1. Set the environment variables: `DATABASE_URL` (a Neon Postgres connection string), `SITE_URL` (the public address, e.g. `https://gitray.net`), and the optional `GITHUB_TOKEN`, `VIRUSTOTAL_API_KEY`, `ADMIN_SECRET`, `ADMIN_SETUP_TOKEN`. The table is created on first use.
+2. Point the domain at the host and issue a TLS certificate; `www` should redirect to the apex. Canonical links, the sitemap and `robots.txt` follow `SITE_URL` (`src/lib/site.ts`).
 
 ## API
 
