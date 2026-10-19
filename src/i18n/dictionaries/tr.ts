@@ -247,6 +247,8 @@ export const tr: Dictionary = {
     ],
     scanning: "{repo} taranıyor",
     duration: "Repo büyüklüğüne göre genellikle 2-20 saniye sürer.",
+    durationLong: "Büyük bir repo olabilir; biraz daha sürebilir (en fazla ~45 sn).",
+    elapsed: "{s} sn geçti",
     scannedWithCommit: "{age} tarandı, commit {sha}.",
     scanned: "{age} tarandı.",
     justNow: "az önce",
