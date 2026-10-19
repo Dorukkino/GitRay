@@ -1,6 +1,6 @@
 # GiTRay ilerleme günlüğü
 
-Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
+Son güncelleme: **19 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yapıldığı ve ne kaldığı için bu dosya. Bu dosya kullanıcının kendi takip dosyasıdır; sitede gösterilmez (8. oturumda `/progress` sayfası kaldırıldı). Not: GitHub reposu private'tır (kullanıcı kararı, 10 Ekim); bu dosyayı yalnızca repoya erişimi olanlar görür.
 
 ## Şu anki durum
 
@@ -18,7 +18,7 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 | Safe Zone, Scammer ve Son tarananlar, kalıcı depolama (Neon Postgres) | Hazır; veritabanı Vercel'de bağlı |
 | Zararlı bağımlılık kontrolü (OSV) | Hazır (6. oturum); rapordaki satır 7. oturumda her duruma görünür yapıldı, canlıda doğrulanmalı |
 | Yanlış alarm kalibrasyonu | 1. tur yapıldı (7. oturum): 38 popüler temiz repodan 28'i Temiz (önce 15); 8. oturumdaki test dosyası kararından sonra Tehlikeli 3; 12. oturumdaki arama kalıbı bağlamı sonuçları değiştirmedi. GiTRay'in kendisi Şüpheli 69 (testler yüzünden tutuldu) |
-| Testler | 32 dosya, 983 test |
+| Testler | 33 dosya, 1010 test |
 | Vercel'e deploy | Canlıda: **https://www.gitray.com.tr** (11 Ekim; `gitray.com.tr` ona yönlenir, gitray.vercel.app de çalışır) (`GITHUB_TOKEN`, Neon veritabanı ve `VIRUSTOTAL_API_KEY` ekli) |
 | VirusTotal kontrolü | Hazır ve canlıda çalışıyor (9. oturum; anahtar Vercel'de) |
 
@@ -81,6 +81,14 @@ Son güncelleme: **17 Ekim 2026**. Kurallar ve mimari için `CLAUDE.md`, ne yap�
 - [ ] **Aşama 6 (opsiyonel):** Tarayıcı eklentisi (GitHub sayfasında rozet), GitHub Action, Gradle/Podfile/Makefile kuralları, LLM ile bulgu özeti.
 
 ## Oturum günlüğü
+
+### 19 Ekim 2026 (44. oturum): rea yanlış alarmı — round-trip eval + çalıştırılmayan dosyalarda curl|bash
+
+- Kullanıcı `morluto/rea`'yı (popüler, çok yıldızlı, meşru bir tersine mühendislik MCP aracı) taratınca **Tehlikeli 100** çıktı. Rea klonlanıp (yalnızca okundu, hiç çalıştırılmadı) satır satır incelendi ve `npm run calibrate` ile ölçüldü. 100'ün sürücüleri: `GR-CODE-001 +45, GR-CODE-002 +35, GR-LINK-001 +20, GR-AUTO-001 +10, GR-CODE-008 +10`. Hiçbiri gerçek zararlı değildi: postinstall yok, hırsız yok, zararlı bağımlılık yok, VirusTotal isabeti yok; `install.sh` güvenlik bilinçli (truncation guard). **Karar: yanlış alarm.** İki kalibrasyon açığı bulundu ve düzeltildi (motor sürümü 0.12.0 → **0.13.0**):
+  - **Fix 1 (GR-CODE-001 round-trip):** `scripts/verify-qwen-client.mjs:290` görünür yerel bir script'i (`const script = ...`) aynı dosyada base64'leyip (`Buffer.from(script).toString("base64")`) tekrar çözüp çalıştırıyordu — Windows/POSIX kabuk-alıntılama hilesi, gizli yük değil. `eval/Function(atob|Buffer.from(x))`'in çözdüğü değişken aynı dosyada **görünür kaynaktan** üretilmişse (`btoa`/`.toString('base64'|'hex')`) artık **45 yerine 5** alıyor (`code.ts` `locallyEncoded`, not `localRoundTrip`). Opak literal blob (`const p = "<base64>"; eval(atob(p))`) hâlâ 45 — calibration testi bunu kilitliyor (sahte iş görüşmesi malware'i Tehlikeli kalıyor).
+  - **Fix 2 (GR-CODE-002, Gap B):** `.html`/`.htm` sayfalarındaki ve release-notes/changelog dosyalarındaki `curl|bash` artık sayılmıyor (klonlayınca çalışmaz; README'deki gibi gösterim metni/veri). rea'da `website/.../get-started/index.html` (fnm/codex/claude resmi kurulum satırları) ve `docs/releases/6.5.0.contributions.json`. `isReleaseNotes` `links.ts`'ten `text.ts`'e taşınıp export edildi.
+- **Sonuç: rea Tehlikeli 100 → Şüpheli 45.** Temiz değil, çünkü gerçekten güçlü/çift kullanımlı bir araç: GR-LINK-001 +20 (docs'ta harici araç/hedef indirme linkleri — ubuntu-base, mitmproxy, joplin; bilerek zayıf sinyal kalır), GR-AUTO-001 +10 (`prepare`/husky), GR-CODE-008 +10 (vendored pwndbg bridge `exec(compile(file))`). `*.test.ts`'teki gerçek `eval(".source")` örneği +45 görünüyor ama test-cap ile kararı yükseltmiyor (doğru davranış). GR-LINK/AUTO/CODE-008'i Temiz'e zorlamak için kesmek tarayıcıyı kör ederdi — yapılmadı.
+- 1010 test geçti (yeni calibration testleri: round-trip 5 + Şüpheli, opak blob 45, html/changelog curl sayılmıyor); lint/typecheck/build temiz.
 
 ### 19 Ekim 2026 (43. oturum): Tarama ekranında geçen süre + uzun tarama mesajı
 

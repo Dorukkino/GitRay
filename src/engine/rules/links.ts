@@ -5,7 +5,7 @@
  * and a request to turn off the antivirus.
  */
 
-import { basename, iterScanLines, splitLines } from "../text";
+import { isReleaseNotes, iterScanLines, splitLines } from "../text";
 import type { RepoInfo, ScanContext, TextFile } from "../types";
 import { note } from "../notes";
 import type { Hit, Rule } from "./base";
@@ -325,15 +325,6 @@ const DISABLE_AV_PATTERNS: readonly RegExp[] = [
   /(?<!\p{L})(?:antivir[üu]s|defender)\p{L}*\s+(?:\S+\s+){0,2}(?:kapat|devre\s+d[ıi][şs][ıi])/iu,
 ];
 
-const RELEASE_NOTES = /^(?:change(?:s|log)|history|news|release[-_ ]?notes|releases)(?:\.[a-z]+)?$/i;
-/** A changelog directory (changelogs/0.12.x.md, release-notes/2.0.md): version-named notes live here. */
-const RELEASE_NOTES_DIR = /(?:^|\/)(?:change(?:s|log|logs)|history|news|release[-_ ]?notes|releases)\//i;
-
-/** Release notes, by file name or by a changelog directory: history, not instructions to follow. */
-function isReleaseNotes(path: string): boolean {
-  return RELEASE_NOTES.test(basename(path)) || RELEASE_NOTES_DIR.test(path);
-}
-
 const DISABLE_ANTIVIRUS: Rule = {
   id: "GR-SOC-001",
   title: "Asks you to disable your antivirus",
@@ -403,7 +394,7 @@ const SELLS_MALWARE: Rule = {
     "paid for over WhatsApp, Telegram or a shop link. Such packs are illegal to use against " +
     "others, and the copies they sell are often infected themselves or never delivered.",
   *scanText(file: TextFile): Iterable<Hit> {
-    if (RELEASE_NOTES.test(basename(file.path))) return;
+    if (isReleaseNotes(file.path)) return;
     const found = MALWARE_KINDS.filter((k) => k.pattern.test(file.content));
     if (found.length < MIN_MALWARE_KINDS || !found.some((k) => k.offensive) || !SALE.test(file.content)) return;
     const kinds = found.map((k) => k.label);

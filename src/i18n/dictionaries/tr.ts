@@ -459,6 +459,7 @@ export const tr: Dictionary = {
       avReleaseKnown: "{total} antivirüs motorundan {bad} tanesi bu release dosyasını yakalıyor",
       avReleaseMaybe: "{total} antivirüs motorundan {bad} tanesi bu release dosyasını yakalıyor (az sayıda; yanlış alarm olabilir)",
       evalUrlDecoded: "bir değişkendeki URL-çözülmüş veriyi çalıştırıyor",
+      localRoundTrip: "bu dosyanın az önce kendi görünür kaynağından ürettiği bir değeri çözüyor (gizli bir yük değil, bir taşıma ya da kabuk-alıntılama gidiş-dönüşü)",
       inContainer: "doğrudan bilgisayarınızda değil, bir konteyner imajı derlenirken çalışıyor",
       browserCleaner: "burada tarayıcı verisini yalnızca siliyor; bu dosyada onu açan, kopyalayan, çözen ya da gönderen bir şey yok (gizlilik temizleyicileri böyle yapar)",
       browserName: "bir tarayıcı şifre ya da çerez dosyasının adını anıyor ama onu açmıyor, okumuyor, çözmüyor ya da göndermiyor (etiketler ve ayarlar da bu adları anar)",

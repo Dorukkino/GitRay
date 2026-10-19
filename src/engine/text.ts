@@ -87,6 +87,15 @@ export function isDocPath(path: string): boolean {
   return DOC_SUFFIXES.has(extension(path)) || DOC_TXT_NAMES.has(basename(path).toLowerCase());
 }
 
+const RELEASE_NOTES = /^(?:change(?:s|log)|history|news|release[-_ ]?notes|releases)(?:\.[a-z]+)?$/i;
+/** A changelog directory (changelogs/0.12.x.md, release-notes/2.0.md, docs/releases/6.5.0.json). */
+const RELEASE_NOTES_DIR = /(?:^|\/)(?:change(?:s|log|logs)|history|news|release[-_ ]?notes|releases)\//i;
+
+/** Release notes, by file name or by a changelog directory: history, not instructions to follow. */
+export function isReleaseNotes(path: string): boolean {
+  return RELEASE_NOTES.test(basename(path)) || RELEASE_NOTES_DIR.test(path);
+}
+
 export function isSourcePath(path: string): boolean {
   return SOURCE_SUFFIXES.has(extension(path));
 }

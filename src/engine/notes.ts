@@ -42,6 +42,7 @@ export const NOTE_TEMPLATES = {
 
   // code
   evalUrlDecoded: "evaluates URL-decoded data from a variable",
+  localRoundTrip: "decodes a value this file just encoded from its own visible source (a transport or shell-quoting round-trip, not a hidden payload)",
   inContainer: "runs inside a container image build, not directly on your computer",
   browserCleaner: "only deletes browser data here; nothing in this file opens, copies, decrypts or sends it (privacy cleaners do this)",
   browserName: "names a browser password or cookie file but does not open, read, decrypt or send it (labels and settings mention these names too)",
